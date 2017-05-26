@@ -1,0 +1,201 @@
+// fake.proto describes the message format for creating integration tests for
+// streaming telemetry components by generating a reproducible stream of
+// updates from fake targets.
+syntax = "proto3";
+
+package telemetry.proxy.fake;
+
+service AgentManager {
+  // Add adds an agent to the server.
+  rpc Add(Config) returns (Config);
+  // Remove removes an agent from the server.
+  rpc Remove(Config) returns (Config);
+  // Get returns the current status of an agent on the server.
+  rpc Get(Config) returns (Config);
+}
+
+enum State {
+  STOPPED = 0;
+  INIT = 1;
+  RUNNING = 2;
+}
+
+// Configuration is used to store all agent configuration for the fake agent
+// server.  Each config describes a single agent hosted on the server.
+message Configuration {
+  // Repeated list of targets to emulate.
+  repeated Config config = 1;
+}
+
+message Credentials {
+  string username =1;
+  string password = 2;
+}
+
+// Config is a collection of values that together represent the update streams
+// for one or more fake devices.
+message Config {
+  enum ClientType {
+    GRPC = 0;
+    STUBBY = 1;
+    GRPC_GNMI = 2;
+    GRPC_GNMI_PROD = 3;
+  }
+  // The target for which the fake will publish values for.
+  string target = 1;
+  // Port for the agent to listen on. If 0 or unset the agent will pick a port
+  // for this agent.
+  int64 port = 2;
+  // A global random seed used in generating subsequent values. Set to have
+  // reproducible results.
+  int64 seed = 6;
+  // The list of values generated.  Each value will contain its corresponding
+  // target as the first string in the event.GetValue().path meaning that it is
+  // possible to generate streams that will be rejected by the cache for testing
+  // purposes.
+  repeated Value values = 3;
+  // Setting disable sync will keep the configured client from autogenerating a
+  // sync message. This allows negative testing on sync handling.
+  bool disable_sync = 4;
+  // Type of client to fake either Stubby or GRPC based fake.
+  ClientType client_type = 5;
+  // Disable EOF will hold open the subscription and not automagically close
+  // the stream once the value queue is empty.
+  bool disable_eof = 7;
+  // Per RPC credentials for the agent. If not set no per RPC auth will be used.
+  Credentials credentials = 8;
+  // TLS cert for use on the agent. If not set the transport will not be TLS.
+  bytes cert = 9;
+}
+
+// Delete will cause the value to be deleted at the Value's path.
+message DeleteValue{}
+
+// Value is the main message that will trigger a stream of updates for a given
+// path.  A file containing a list of values can be used to simulate a network
+// device for integration tests.
+message Value {
+  // The device specific, or OpenConfig path corresponding to a value.
+  repeated string path = 1;
+  // The initial timestamp and configuration on how the timestamp will change
+  // for subsequent values. If timestamp is not set the default will assume to
+  // be the current system time.
+  Timestamp timestamp = 2;
+  // If set, repeat indicates that the value should be repeated this many times,
+  // otherwise it is repeated indefinitely.
+  int32 repeat = 6;
+  // A local random seed used in generating subsequent values for this path. If
+  // not set, will share the global random source with seed defined in Config.
+  int64 seed = 7;
+  // The initial value of the chosen type including configuration on how the
+  // value will mutate for subsequent updates.
+  oneof value {
+    IntValue int_value = 100;
+    DoubleValue double_value = 101;
+    StringValue string_value = 102;
+    uint64 sync =
+        103;  // this value WILL be changed to a bool DO NOT rely on it.
+    DeleteValue delete = 104;
+  }
+}
+
+message Timestamp {
+  // Initial timestamp for the corresponding value, nanoseconds since epoch.
+  // This value need have no relation to absolute real-time as the stream of
+  // of updates is generated without regard to the real clock and can be run
+  // repeatably at any time if the seed is set in the corresponding Value.
+  int64 timestamp = 1;
+  // These values will vary the change in the timestamp for subsequent outputs
+  // by a value between delta_min and delta_max.  Set to the same value to force
+  // a set periodic interval.
+  int64 delta_min = 2;
+  int64 delta_max = 3;
+}
+
+message IntValue {
+  // If distribution is IntRange, value is used as the initial value
+  // inside [minimum, maximum] and hold the value as it mutates.
+  // If distribution is IntList, value is only used to hold the value as it
+  // mutates.
+  // If no distribution is set, value is used as it mutates, i.e. constant
+  // update.
+  int64 value = 1;
+  oneof distribution {
+    IntRange range = 2;
+    IntList list = 3;
+  }
+}
+
+message IntRange {
+  // The range of the value allowed.
+  int64 minimum = 1;
+  int64 maximum = 2;
+  // If set, the value is cumulative and the subsequent value is value + delta
+  // where delta is randomly chosen between delta_min and delta_max.  The range
+  // minimum and maximum are still respected and values will saturate at the
+  // boundaries if they are exceeded. If not set subsequent value is a value
+  // randomly chosen between minimum and maximum.
+  int64 delta_min = 3;
+  int64 delta_max = 4;
+}
+
+message IntList {
+  // The set of values which can be used.
+  repeated int64 options = 1;
+  // Set to true to randomize selection of value from options. If false, the
+  // values are cycled in order, starting at index 0.
+  bool random = 2;
+}
+
+message DoubleValue {
+  // If distribution is DoubleRange, value is used as the initial value
+  // inside [minimum, maximum] and hold the value as it mutates.
+  // If distribution is DoubleList, value is only used to hold the value as it
+  // mutates.
+  // If no distribution is set, value is used as it mutates, i.e. constant
+  // update.
+  double value = 1;
+  oneof distribution {
+    DoubleRange range = 2;
+    DoubleList list = 3;
+  }
+}
+
+message DoubleRange {
+  // The range of the value allowed.
+  double minimum = 1;
+  double maximum = 2;
+  // If set, the value is cumulative and the subsequent value is value + delta
+  // where delta is randomly chosen between delta_min and delta_max. The range
+  // minimum and maximum are still respected. If not set subsequent value is a
+  // value randomly chosen between minimum and maximum.
+  double delta_min = 3;
+  double delta_max = 4;
+}
+
+message DoubleList {
+  // The set of values which can be used.
+  repeated double options = 1;
+  // Set to true to randomize selection of value from options. If false, the
+  // values are cycled in order.
+  bool random = 2;
+}
+
+message StringValue {
+  // If distribution is StringList, value is used to hold the value as it
+  // mutates.
+  // If no distribution is set, value is used as it mutates, i.e. constant
+  // update.
+  string value = 1;
+  oneof distribution {
+    StringList list = 2;
+  }
+}
+
+message StringList {
+  // The set of strings which can be used.
+  repeated string options = 1;
+  // Set to true to randomize selection of value from options. If false, the
+  // values are cycled in order, starting at index 0.
+  bool random = 2;
+}
