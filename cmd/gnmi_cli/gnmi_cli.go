@@ -144,7 +144,7 @@ func main() {
 	}
 
 	if err := cli.QueryDisplay(ctx, q, &cfg); err != nil {
-		log.Errorf("cli.QueryDisplay(ctx, %v, %v): %v", q, cfg, err)
+		log.Errorf("cli.QueryDisplay:\n\t%v", err)
 	}
 }
 

@@ -79,7 +79,7 @@ func QueryType(t string) client.Type {
 // results with the supplied display function.
 func QueryDisplay(ctx context.Context, query client.Query, cfg *Config) error {
 	if err := sendQueryAndDisplay(ctx, query, cfg); err != nil {
-		return fmt.Errorf("SendQuery(ctx, %+v, %+v): %v", query, cfg, err)
+		return fmt.Errorf("sendQueryAndDisplay(ctx, %+v, %+v):\n\t%v", query, cfg, err)
 	}
 	return nil
 }
@@ -186,7 +186,7 @@ func displaySingleResults(ctx context.Context, query client.Query, cfg *Config) 
 	query.NotificationHandler = genHandler(cfg)
 	c := &client.BaseClient{}
 	if err := c.Subscribe(ctx, query); err != nil {
-		return fmt.Errorf("client had error while displaying results: %v", err)
+		return fmt.Errorf("client had error while displaying results:\n\t%v", err)
 	}
 	return nil
 }
@@ -203,7 +203,7 @@ func displayProtoResults(ctx context.Context, query client.Query, cfg *Config, f
 	}
 	c := &client.BaseClient{}
 	if err := c.Subscribe(ctx, query); err != nil {
-		return fmt.Errorf("client had error while displaying results: %v", err)
+		return fmt.Errorf("client had error while displaying results:\n\t%v", err)
 	}
 	if cfg.DisplaySize {
 		cfg.Display([]byte(fmt.Sprintf("// total response size: %d", sum)))
@@ -237,7 +237,7 @@ func displayPeer(c client.Client, cfg *Config) {
 func displayOnceResults(ctx context.Context, query client.Query, cfg *Config) error {
 	c := client.New()
 	if err := c.Subscribe(ctx, query); err != nil {
-		return fmt.Errorf("client had error while displaying results: %v", err)
+		return fmt.Errorf("client had error while displaying results:\n\t%v", err)
 	}
 	displayPeer(c, cfg)
 	displayWalk(query.Target, c, cfg)
@@ -263,7 +263,7 @@ func countComplete(cfg *Config) bool {
 func displayPollingResults(ctx context.Context, query client.Query, cfg *Config) error {
 	c := client.New()
 	if err := c.Subscribe(ctx, query); err != nil {
-		return fmt.Errorf("client had error while displaying results: %v", err)
+		return fmt.Errorf("client had error while displaying results:\n\t%v", err)
 	}
 	defer c.Close()
 	header := false
