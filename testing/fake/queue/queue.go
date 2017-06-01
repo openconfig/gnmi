@@ -26,6 +26,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )
 
@@ -346,4 +347,21 @@ func ValueOf(v *fpb.Value) interface{} {
 	default:
 		return nil
 	}
+}
+
+// TypedValueOf returns the gNMI TypedValue of v. If v is a Sync or Delete,
+// TypedValueOf returns nil.
+func TypedValueOf(v *fpb.Value) *gpb.TypedValue {
+	tv := &gpb.TypedValue{}
+	switch val := v.GetValue().(type) {
+	case *fpb.Value_IntValue:
+		tv.Value = &gpb.TypedValue_IntVal{val.IntValue.Value}
+	case *fpb.Value_DoubleValue:
+		tv.Value = &gpb.TypedValue_FloatVal{float32(val.DoubleValue.Value)}
+	case *fpb.Value_StringValue:
+		tv.Value = &gpb.TypedValue_StringVal{val.StringValue.Value}
+	default:
+		return nil
+	}
+	return tv
 }

@@ -30,6 +30,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
 	"github.com/openconfig/gnmi/client"
+	"google3/third_party/openconfig/gnmi/value/value"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -171,7 +172,7 @@ func (c *Client) defaultRecv(msg proto.Message) error {
 			if u.Path == nil {
 				return fmt.Errorf("invalid nil path in update: %v", u)
 			}
-			u, err := noti(append(p, u.Path.Element...), ts, u.Value)
+			u, err := noti(append(p, u.Path.Element...), ts, u)
 			if err != nil {
 				return err
 			}
@@ -282,11 +283,18 @@ func subscribe(q client.Query) *gpb.SubscribeRequest {
 	return &gpb.SubscribeRequest{Request: s}
 }
 
-func noti(p client.Path, ts time.Time, v *gpb.Value) (client.Notification, error) {
-	if v == nil {
+func noti(p client.Path, ts time.Time, u *gpb.Update) (client.Notification, error) {
+	if u == nil {
 		return client.Delete{Path: p, TS: ts}, nil
 	}
-	switch v.Type {
+	if u.Val != nil {
+		val, err := value.ToScalar(u.Val)
+		if err != nil {
+			return nil, err
+		}
+		return client.Update{Path: p, TS: ts, Val: val}, nil
+	}
+	switch v := u.Value; v.Type {
 	case gpb.Encoding_BYTES:
 		return client.Update{Path: p, TS: ts, Val: v.Value}, nil
 	case gpb.Encoding_JSON, gpb.Encoding_JSON_IETF:

@@ -17,7 +17,6 @@ limitations under the License.
 package gnmi
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
 	"sync"
@@ -262,9 +261,9 @@ func valToResp(val *fpb.Value) (*gpb.SubscribeResponse, error) {
 			},
 		}, nil
 	default:
-		b, err := json.Marshal(queue.ValueOf(val))
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal value %s: %s", val, err)
+		tv := queue.TypedValueOf(val)
+		if tv == nil {
+			return nil, fmt.Errorf("failed to get TypedValue of %s", val)
 		}
 		return &gpb.SubscribeResponse{
 			Response: &gpb.SubscribeResponse_Update{
@@ -272,8 +271,8 @@ func valToResp(val *fpb.Value) (*gpb.SubscribeResponse, error) {
 					Timestamp: val.Timestamp.Timestamp,
 					Update: []*gpb.Update{
 						{
-							Path:  &gpb.Path{Element: val.Path},
-							Value: &gpb.Value{Value: b},
+							Path: &gpb.Path{Element: val.Path},
+							Val:  tv,
 						},
 					},
 				},

@@ -301,8 +301,8 @@ update: <
       element: "a"
       element: "b"
     >
-    value: <
-      value: "5"
+    val: <
+      int_val: 5
     >
   >
 >
@@ -335,13 +335,13 @@ update: <
       element: "a"
       element: "b"
     >
-    value: <
-      value: "5"
+    val: <
+      int_val: 5
     >
   >
 >
 
-// total response size: 35
+// total response size: 34
 `,
 	}, {
 		desc: "single target multiple paths (with timestamp)",
@@ -597,7 +597,7 @@ dev1.a.c, 3.25, 101
 			Display:     display,
 			DisplayType: "shortproto",
 		},
-		want: `update:<timestamp:100 update:<path:<element:"dev1" element:"a" element:"b" > value:<value:"5" > > >
+		want: `update:<timestamp:100 update:<path:<element:"dev1" element:"a" element:"b" > val:<int_val:5 > > >
 sync_response:true
 `,
 	}, {
@@ -809,8 +809,8 @@ dev/a/b, <nil>, 1969-12-31-16:00:00
 			Display:     display,
 			DisplayType: "shortproto",
 		},
-		want: `update:<timestamp:100 update:<path:<element:"dev" element:"a" > value:<value:"5" > > >
-update:<timestamp:100 update:<path:<element:"dev" element:"a" element:"b" > value:<value:"5" > > >
+		want: `update:<timestamp:100 update:<path:<element:"dev" element:"a" > val:<int_val:5 > > >
+update:<timestamp:100 update:<path:<element:"dev" element:"a" element:"b" > val:<int_val:5 > > >
 update:<timestamp:200 delete:<element:"dev" element:"a" element:"b" > >
 sync_response:true
 `,

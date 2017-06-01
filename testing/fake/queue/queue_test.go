@@ -22,9 +22,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )
 
@@ -761,6 +763,41 @@ func TestValueOf(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			if got, want := ValueOf(tc.in), tc.want; !reflect.DeepEqual(got, want) {
 				t.Errorf("ValueOf(%q) failed: got %q, want %q", tc.in, got, want)
+			}
+		})
+	}
+}
+
+func TestTypedValueOf(t *testing.T) {
+	tests := []struct {
+		name string
+		in   *fpb.Value
+		want *gpb.TypedValue
+	}{{
+		name: "string value",
+		in:   &fpb.Value{Value: &fpb.Value_StringValue{&fpb.StringValue{Value: "UP"}}},
+		want: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{"UP"}},
+	}, {
+		name: "int value",
+		in:   &fpb.Value{Value: &fpb.Value_IntValue{&fpb.IntValue{Value: 100}}},
+		want: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{100}},
+	}, {
+		name: "double value",
+		in:   &fpb.Value{Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Value: float64(101)}}},
+		want: &gpb.TypedValue{Value: &gpb.TypedValue_FloatVal{101}},
+	}, {
+		name: "Delete value",
+		in:   &fpb.Value{Value: &fpb.Value_Delete{&fpb.DeleteValue{}}},
+		want: nil,
+	}, {
+		name: "Sync value",
+		in:   &fpb.Value{Value: &fpb.Value_Sync{uint64(1)}},
+		want: nil,
+	}}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			if got, want := TypedValueOf(tc.in), tc.want; !proto.Equal(got, want) {
+				t.Errorf("TypedValueOf(%q) failed: got %q, want %q", tc.in, got, want)
 			}
 		})
 	}

@@ -377,3 +377,69 @@ func TestConvertSetResponse(t *testing.T) {
 		})
 	}
 }
+
+func TestNoti(t *testing.T) {
+	tests := []struct {
+		desc     string
+		path     client.Path
+		ts       time.Time
+		u        *gpb.Update
+		wantNoti client.Notification
+		wantErr  bool
+	}{
+		{
+			desc:     "nil update means delete",
+			path:     []string{"dev", "a", "b"},
+			ts:       time.Unix(0, 200),
+			wantNoti: client.Delete{Path: []string{"dev", "a", "b"}, TS: time.Unix(0, 200)},
+		}, {
+			desc:     "update with TypedValue",
+			path:     []string{"dev", "a"},
+			ts:       time.Unix(0, 100),
+			u:        &gpb.Update{Val: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}}},
+			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: 5},
+		}, {
+			desc:    "update with non-scalar TypedValue",
+			path:    []string{"dev", "a"},
+			ts:      time.Unix(0, 100),
+			u:       &gpb.Update{Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte("5")}}},
+			wantErr: true,
+		}, {
+			desc:     "update with JSON value",
+			path:     []string{"dev", "a"},
+			ts:       time.Unix(0, 100),
+			u:        &gpb.Update{Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte("5")}},
+			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: 5},
+		}, {
+			desc:     "update with bytes value",
+			path:     []string{"dev", "a"},
+			ts:       time.Unix(0, 100),
+			u:        &gpb.Update{Value: &gpb.Value{Type: gpb.Encoding_BYTES, Value: []byte("5")}},
+			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: []byte("5")},
+		}, {
+			desc:    "update with un-unmarshalable JSON value",
+			path:    []string{"dev", "a"},
+			ts:      time.Unix(0, 100),
+			u:       &gpb.Update{Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`"5`)}},
+			wantErr: true,
+		}, {
+			desc:    "update with unsupported value",
+			path:    []string{"dev", "a"},
+			ts:      time.Unix(0, 100),
+			u:       &gpb.Update{Value: &gpb.Value{Type: gpb.Encoding_PROTO}},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		got, err := noti(tt.path, tt.ts, tt.u)
+		switch {
+		case err != nil && !tt.wantErr:
+			t.Errorf("%s: got error %v, want nil", tt.desc, err)
+		case err == nil && tt.wantErr:
+			t.Errorf("%s: got nil error, want non-nil", tt.desc)
+		}
+		if diff := pretty.Compare(tt.wantNoti, got); diff != "" {
+			t.Errorf("%s: notification diff:\n%s", tt.desc, diff)
+		}
+	}
+}
