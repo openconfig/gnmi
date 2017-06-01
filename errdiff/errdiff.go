@@ -92,11 +92,6 @@ func Text(got error, want string) string {
 	return ""
 }
 
-// ExactTextCompare is deprecated. Please use Text.
-func ExactTextCompare(got error, want string) string {
-	return Text(got, want)
-}
-
 // Substring returns a message describing the difference between the
 // error text and the desired input. want="" indicates that no error is
 // expected.
@@ -135,16 +130,6 @@ func Code(got error, want codes.Code) string {
 	return ""
 }
 
-// CodeCompare is deprecated, please use Code.
-func CodeCompare(got error, want codes.Code) string {
-	return Code(got, want)
-}
-
-// StatusCompare is deprecated, please use Code.
-func StatusCompare(got error, want codes.Code) string {
-	return Code(got, want)
-}
-
 // Check returns a message describing the difference between the error err and
 // want.  If want is a codes.Code, this function is the same as Code.
 // If want is a string, this function is the same as Substring.  If
@@ -167,7 +152,7 @@ func Check(got error, want interface{}) string {
 		}
 		return ""
 	case codes.Code:
-		return CodeCompare(got, w)
+		return Code(got, w)
 	case string:
 		return Substring(got, w)
 	case error:
