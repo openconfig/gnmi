@@ -88,6 +88,7 @@ func init() {
 	flag.Var(replaces, "replace", "List of paths to replace; --set flag must be set.")
 
 	// Shortcut flags that can be used in place of the longform flags above.
+	flag.Var(queryAddr, "a", "Short for address.")
 	flag.Var(queryFlag, "q", "Short for query.")
 	flag.UintVar(&cfg.Count, "c", cfg.Count, "Short for count.")
 	flag.StringVar(&cfg.Delimiter, "d", cfg.Delimiter, "Short for delimiter.")
