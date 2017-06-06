@@ -65,7 +65,8 @@ type Config struct {
 	// <FORMAT> - human readable timestamp according to <FORMAT>
 	Timestamp   string // Formatting of timestamp in result output.
 	DisplaySize bool
-	Latency     bool // Show latency to client
+	Latency     bool     // Show latency to client
+	ClientTypes []string // List of client types to try.
 }
 
 // QueryType returns a client query type for t after trying aliases for the
@@ -202,7 +203,7 @@ func displayProtoResults(ctx context.Context, query client.Query, cfg *Config, f
 		return nil
 	}
 	c := &client.BaseClient{}
-	if err := c.Subscribe(ctx, query); err != nil {
+	if err := c.Subscribe(ctx, query, cfg.ClientTypes...); err != nil {
 		return fmt.Errorf("client had error while displaying results:\n\t%v", err)
 	}
 	if cfg.DisplaySize {
@@ -236,7 +237,7 @@ func displayPeer(c client.Client, cfg *Config) {
 // query to the OpenConfig data tree and displays the resulting tree in JSON.
 func displayOnceResults(ctx context.Context, query client.Query, cfg *Config) error {
 	c := client.New()
-	if err := c.Subscribe(ctx, query); err != nil {
+	if err := c.Subscribe(ctx, query, cfg.ClientTypes...); err != nil {
 		return fmt.Errorf("client had error while displaying results:\n\t%v", err)
 	}
 	displayPeer(c, cfg)
@@ -262,7 +263,7 @@ func countComplete(cfg *Config) bool {
 // interval.
 func displayPollingResults(ctx context.Context, query client.Query, cfg *Config) error {
 	c := client.New()
-	if err := c.Subscribe(ctx, query); err != nil {
+	if err := c.Subscribe(ctx, query, cfg.ClientTypes...); err != nil {
 		return fmt.Errorf("client had error while displaying results:\n\t%v", err)
 	}
 	defer c.Close()
@@ -320,7 +321,7 @@ func displayStreamingResults(ctx context.Context, query client.Query, cfg *Confi
 		}
 		return nil
 	}
-	return c.Subscribe(ctx, query)
+	return c.Subscribe(ctx, query, cfg.ClientTypes...)
 }
 
 func displayWalk(target string, c *client.CacheClient, cfg *Config) {

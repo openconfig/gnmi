@@ -19,6 +19,7 @@ package client
 import (
 	"errors"
 	"fmt"
+	"sort"
 	"sync"
 
 	log "github.com/golang/glog"
@@ -82,6 +83,7 @@ func NewImpl(ctx context.Context, q Query, clientType ...string) (Impl, error) {
 	implC := make(chan Impl)
 	done := make(chan struct{})
 	defer close(done)
+	log.V(1).Infof("Attempting client types: %v", clientType)
 	for _, t := range clientType {
 		// Launch each clientType in parallel where each sends either an error or
 		// an implementation over a channel.
@@ -129,4 +131,16 @@ func ResetRegisteredImpls() {
 	mu.Lock()
 	defer mu.Unlock()
 	clientImpl = make(map[string]InitImpl)
+}
+
+// RegisteredImpls returns a slice of currently registered client types.
+func RegisteredImpls() []string {
+	mu.Lock()
+	defer mu.Unlock()
+	var impls []string
+	for k := range clientImpl {
+		impls = append(impls, k)
+	}
+	sort.Strings(impls)
+	return impls
 }

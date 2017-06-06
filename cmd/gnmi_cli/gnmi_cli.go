@@ -54,9 +54,10 @@ var (
 		os.Stdout.Write(append(b, '\n'))
 	}}
 
-	queryFlag = &flags.StringList{}
-	queryType = flag.String("query_type", client.Once.String(), "Type of result, one of: (o, once, p, polling, s, streaming).")
-	queryAddr = flags.NewStringList(&q.Addrs, nil)
+	clientTypes = flags.NewStringList(&cfg.ClientTypes, nil)
+	queryFlag   = &flags.StringList{}
+	queryType   = flag.String("query_type", client.Once.String(), "Type of result, one of: (o, once, p, polling, s, streaming).")
+	queryAddr   = flags.NewStringList(&q.Addrs, nil)
 
 	setFlag  = flag.Bool("set", false, "When set, CLI will perform a Set request. At least one of --delete/--update/--replace must be set.")
 	deletes  = &flags.StringList{}
@@ -67,6 +68,7 @@ var (
 )
 
 func init() {
+	flag.Var(clientTypes, "client_types", fmt.Sprintf("List of explicit client types to attempt: (%s) (default: attempt all registered clients).", strings.Join(client.RegisteredImpls(), ", ")))
 	flag.Var(queryFlag, "query", "Comma separated list of queries.  Each query is a delimited list of OpenConfig path nodes which may also be specified as a glob (*).  The delimeter can be specified with the --delimiter flag.")
 	// Query command-line flags.
 	flag.Var(queryAddr, "address", "Address of the GNMI target to query.")

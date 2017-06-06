@@ -45,6 +45,10 @@ func testImpl(ctx context.Context, q client.Query) (client.Impl, error) {
 func TestRegister(t *testing.T) {
 	// In case some other test forgot, clean out registered impls.
 	client.ResetRegisteredImpls()
+	// Verify Reset
+	if got := client.RegisteredImpls(); got != nil {
+		t.Fatalf("client.ResetRegisteredImpls() failed: got %v want nil", got)
+	}
 	// Clean out what we registered.
 	defer client.ResetRegisteredImpls()
 
