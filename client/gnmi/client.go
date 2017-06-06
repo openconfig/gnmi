@@ -24,13 +24,14 @@ import (
 	"strings"
 	"time"
 
-	log "github.com/golang/glog"
 	"context"
+
+	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc"
 	"github.com/openconfig/gnmi/client"
-	"google3/third_party/openconfig/gnmi/value/value"
+	"github.com/openconfig/gnmi/value"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
