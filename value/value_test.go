@@ -31,7 +31,7 @@ func TestFromScalar(t *testing.T) {
 		{intf: float32(3.5), msg: &pb.TypedValue{Value: &pb.TypedValue_FloatVal{3.5}}},
 		{intf: true, msg: &pb.TypedValue{Value: &pb.TypedValue_BoolVal{true}}},
 		{intf: false, msg: &pb.TypedValue{Value: &pb.TypedValue_BoolVal{false}}},
-		{intf: float64(3.5), err: true},
+		{intf: float64(3.5), msg: &pb.TypedValue{Value: &pb.TypedValue_FloatVal{3.5}}},
 		{intf: []byte("foo"), err: true},
 	}
 	for _, tt := range tests {

@@ -37,6 +37,8 @@ func FromScalar(i interface{}) (*pb.TypedValue, error) {
 		tv.Value = &pb.TypedValue_UintVal{v}
 	case float32:
 		tv.Value = &pb.TypedValue_FloatVal{v}
+	case float64:
+		tv.Value = &pb.TypedValue_FloatVal{float32(v)}
 	case bool:
 		tv.Value = &pb.TypedValue_BoolVal{v}
 	default:
