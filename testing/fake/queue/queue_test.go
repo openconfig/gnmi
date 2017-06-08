@@ -22,7 +22,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/kylelemons/godebug/pretty"
 	"github.com/openconfig/gnmi/errdiff"
 
@@ -34,49 +33,49 @@ var seed = int64(100)
 
 func TestUpdateTimestamp(t *testing.T) {
 	tests := []struct {
-		name string
+		desc string
 		in   *fpb.Value
 		want *fpb.Timestamp
 		err  string
 	}{{
-		name: "No timestamp",
+		desc: "No timestamp",
 		in:   &fpb.Value{},
 		err:  "timestamp not set",
 	}, {
-		name: "Negative timestamp",
+		desc: "Negative timestamp",
 		in:   &fpb.Value{Timestamp: &fpb.Timestamp{Timestamp: -1}},
 		err:  "timestamp must be positive",
 	}, {
-		name: "Invalid timestamp",
+		desc: "Invalid timestamp",
 		in:   &fpb.Value{Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 2, DeltaMax: 1}},
 		err:  "invalid delta_min/delta_max on timestamp",
 	}, {
-		name: "Valid timestamp",
+		desc: "Valid timestamp",
 		in: &fpb.Value{
 			Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 1}},
 		want: &fpb.Timestamp{Timestamp: 1235, DeltaMin: 1, DeltaMax: 1},
 	}, {
-		name: "Using global seed",
+		desc: "Using global seed",
 		in: &fpb.Value{
 			Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 10}},
 		want: &fpb.Timestamp{Timestamp: 1243, DeltaMin: 1, DeltaMax: 10},
 	}, {
-		name: "Using local seed",
+		desc: "Using local seed",
 		in: &fpb.Value{
 			Seed:      10,
 			Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 10}},
 		want: &fpb.Timestamp{Timestamp: 1240, DeltaMin: 1, DeltaMax: 10}},
 	}
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			v := newValue(test.in, rand.New(rand.NewSource(seed)))
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			v := newValue(tc.in, rand.New(rand.NewSource(seed)))
 			err := v.updateTimestamp()
-			if diff := errdiff.Substring(err, test.err); diff != "" {
-				t.Errorf("newValue(%q).updateTimestamp() %v", test.in, diff)
+			if diff := errdiff.Substring(err, tc.err); diff != "" {
+				t.Errorf("newValue(%q).updateTimestamp() %v", tc.in, diff)
 			}
-			if diff := pretty.Compare(v.v.GetTimestamp(), test.want); err == nil && diff != "" {
-				t.Errorf("newValue(%q).updateTimestamp() %v", test.in, diff)
+			if diff := pretty.Compare(v.v.GetTimestamp(), tc.want); err == nil && diff != "" {
+				t.Errorf("newValue(%q).updateTimestamp() %v", tc.in, diff)
 			}
 		})
 	}
@@ -84,44 +83,44 @@ func TestUpdateTimestamp(t *testing.T) {
 
 func TestUpdateIntValue(t *testing.T) {
 	tests := []struct {
-		name  string
+		desc  string
 		value *fpb.Value
 		want  *fpb.Value
 		err   string
 	}{{
-		name:  "Nil value",
+		desc:  "Nil value",
 		value: &fpb.Value{},
 		err:   "invalid IntValue",
 	}, {
-		name: "Invalid min/max in range",
+		desc: "Invalid min/max in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
 				Value:        50,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 100, Maximum: 0}}}}},
 		err: "invalid minimum/maximum in IntRange",
 	}, {
-		name: "Invalid init value (value < min) in range",
+		desc: "Invalid init value (value < min) in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
 				Value:        -100,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 0, Maximum: 100}}}}},
 		err: "value not in [minimum, maximum] in IntRange",
 	}, {
-		name: "Invalid init value (value > max) in range",
+		desc: "Invalid init value (value > max) in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
 				Value:        200,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 0, Maximum: 100}}}}},
 		err: "value not in [minimum, maximum] in IntRange",
 	}, {
-		name: "Invalid delta_min/delta_max in range",
+		desc: "Invalid delta_min/delta_max in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
 				Value:        50,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 0, Maximum: 100, DeltaMin: 10, DeltaMax: 5}}}}},
 		err: "invalid delta_min/delta_max in IntRange",
 	}, {
-		name: "Non-empty value, non-cumulative in range, using global seed",
+		desc: "Non-empty value, non-cumulative in range, using global seed",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
 				Value:        50,
@@ -131,7 +130,7 @@ func TestUpdateIntValue(t *testing.T) {
 				Value:        65,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 0, Maximum: 100}}}}},
 	}, {
-		name: "Non-empty value, non-cumulative in range, using local seed",
+		desc: "Non-empty value, non-cumulative in range, using local seed",
 		value: &fpb.Value{
 			Seed: 10,
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
@@ -142,7 +141,7 @@ func TestUpdateIntValue(t *testing.T) {
 				Value:        69,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 0, Maximum: 100}}}}},
 	}, {
-		name: "Non-empty value, cumulative in range",
+		desc: "Non-empty value, cumulative in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
 				Value:        50,
@@ -152,7 +151,7 @@ func TestUpdateIntValue(t *testing.T) {
 				Value:        60,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 0, Maximum: 100, DeltaMin: 10, DeltaMax: 10}}}}},
 	}, {
-		name: "Non-empty value, cumulative, maximum capped in range",
+		desc: "Non-empty value, cumulative, maximum capped in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
 				Value:        50,
@@ -162,7 +161,7 @@ func TestUpdateIntValue(t *testing.T) {
 				Value:        51,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 0, Maximum: 51, DeltaMin: 10, DeltaMax: 10}}}}},
 	}, {
-		name: "Non-empty value, cumulative, minimum capped in range",
+		desc: "Non-empty value, cumulative, minimum capped in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
 				Value:        50,
@@ -173,13 +172,13 @@ func TestUpdateIntValue(t *testing.T) {
 				Distribution: &fpb.IntValue_Range{
 					Range: &fpb.IntRange{Minimum: 45, Maximum: 60, DeltaMin: -10, DeltaMax: -10}}}}},
 	}, {
-		name: "no options, random in list",
+		desc: "no options, random in list",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{Distribution: &fpb.IntValue_List{
 				List: &fpb.IntList{Random: true}}}}},
 		err: "missing options on IntValue_List",
 	}, {
-		name: "four options, random in list",
+		desc: "four options, random in list",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{Distribution: &fpb.IntValue_List{
 				List: &fpb.IntList{Options: []int64{100, 200, 300, 400}, Random: true}}}}},
@@ -189,7 +188,7 @@ func TestUpdateIntValue(t *testing.T) {
 				Distribution: &fpb.IntValue_List{
 					List: &fpb.IntList{Options: []int64{100, 200, 300, 400}, Random: true}}}}},
 	}, {
-		name: "four options, non-random in list",
+		desc: "four options, non-random in list",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{Distribution: &fpb.IntValue_List{
 				List: &fpb.IntList{Options: []int64{100, 200, 300, 400}, Random: false}}}}},
@@ -199,21 +198,21 @@ func TestUpdateIntValue(t *testing.T) {
 				Distribution: &fpb.IntValue_List{
 					List: &fpb.IntList{Options: []int64{200, 300, 400, 100}, Random: false}}}}},
 	}, {
-		name: "constant",
+		desc: "constant",
 		value: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{Value: 100}}},
 		want: &fpb.Value{
 			Value: &fpb.Value_IntValue{&fpb.IntValue{Value: 100}}},
 	}}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			v := newValue(test.value, rand.New(rand.NewSource(seed)))
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			v := newValue(tc.value, rand.New(rand.NewSource(seed)))
 			err := v.updateIntValue()
-			if diff := errdiff.Substring(err, test.err); diff != "" {
-				t.Errorf("newValue(%q).updateIntValue() %v", test.value, diff)
+			if diff := errdiff.Substring(err, tc.err); diff != "" {
+				t.Errorf("newValue(%q).updateIntValue() %v", tc.value, diff)
 			}
-			if diff := pretty.Compare(v.v, test.want); err == nil && diff != "" {
-				t.Errorf("newValue(%q).updatedIntValue() %v", test.value, diff)
+			if diff := pretty.Compare(v.v, tc.want); err == nil && diff != "" {
+				t.Errorf("newValue(%q).updatedIntValue() %v", tc.value, diff)
 			}
 		})
 	}
@@ -221,37 +220,37 @@ func TestUpdateIntValue(t *testing.T) {
 
 func TestUpdateDoubleValue(t *testing.T) {
 	tests := []struct {
-		name  string
+		desc  string
 		value *fpb.Value
 		want  *fpb.Value
 		err   string
 	}{{
-		name:  "Nil Value",
+		desc:  "Nil Value",
 		value: &fpb.Value{},
 		err:   "invalid DoubleValue",
 	}, {
-		name: "Invalid min/max in range",
+		desc: "Invalid min/max in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{
 				Value:        50,
 				Distribution: &fpb.DoubleValue_Range{Range: &fpb.DoubleRange{Minimum: 100, Maximum: 0}}}}},
 		err: "invalid minimum/maximum on DoubleValue_Range",
 	}, {
-		name: "Invalid init value (value > max) in range",
+		desc: "Invalid init value (value > max) in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{
 				Value:        200,
 				Distribution: &fpb.DoubleValue_Range{Range: &fpb.DoubleRange{Minimum: 0, Maximum: 100}}}}},
 		err: "value not in [minimum, maximum] on DoubleValue_Range",
 	}, {
-		name: "Invalid delta_min/delta_max in range",
+		desc: "Invalid delta_min/delta_max in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{
 				Value:        50,
 				Distribution: &fpb.DoubleValue_Range{Range: &fpb.DoubleRange{Minimum: 0, Maximum: 100, DeltaMin: 10, DeltaMax: 5}}}}},
 		err: "invalid delta_min/delta_max on DoubleValue_Range",
 	}, {
-		name: "Non-empty value, non-cumulative in range, using global seed",
+		desc: "Non-empty value, non-cumulative in range, using global seed",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{
 				Value:        50,
@@ -261,7 +260,7 @@ func TestUpdateDoubleValue(t *testing.T) {
 				Value:        81.65026937796166,
 				Distribution: &fpb.DoubleValue_Range{Range: &fpb.DoubleRange{Minimum: 0, Maximum: 100}}}}},
 	}, {
-		name: "Non-empty value, non-cumulative in range, using local seed",
+		desc: "Non-empty value, non-cumulative in range, using local seed",
 		value: &fpb.Value{
 			Seed: 10,
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{
@@ -274,7 +273,7 @@ func TestUpdateDoubleValue(t *testing.T) {
 				Distribution: &fpb.DoubleValue_Range{
 					Range: &fpb.DoubleRange{Minimum: 0, Maximum: 100}}}}},
 	}, {
-		name: "Non-empty value, cumulative in range",
+		desc: "Non-empty value, cumulative in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{
 				Value:        50,
@@ -285,7 +284,7 @@ func TestUpdateDoubleValue(t *testing.T) {
 				Distribution: &fpb.DoubleValue_Range{
 					Range: &fpb.DoubleRange{Minimum: 0, Maximum: 100, DeltaMin: 10, DeltaMax: 10}}}}},
 	}, {
-		name: "Non-empty value, cumulative, maximum capped in range",
+		desc: "Non-empty value, cumulative, maximum capped in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{
 				Value:        50,
@@ -296,7 +295,7 @@ func TestUpdateDoubleValue(t *testing.T) {
 				Distribution: &fpb.DoubleValue_Range{
 					Range: &fpb.DoubleRange{Minimum: 0, Maximum: 51, DeltaMin: 10, DeltaMax: 10}}}}},
 	}, {
-		name: "Non-empty value, cumulative, minimum capped in range",
+		desc: "Non-empty value, cumulative, minimum capped in range",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{
 				Value:        50,
@@ -307,13 +306,13 @@ func TestUpdateDoubleValue(t *testing.T) {
 				Distribution: &fpb.DoubleValue_Range{
 					Range: &fpb.DoubleRange{Minimum: 45, Maximum: 60, DeltaMin: -10, DeltaMax: -10}}}}},
 	}, {
-		name: "no options, random in list",
+		desc: "no options, random in list",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Distribution: &fpb.DoubleValue_List{
 				List: &fpb.DoubleList{Random: true}}}}},
 		err: "missing options on DoubleValue_List",
 	}, {
-		name: "four options, random in list, using global seed",
+		desc: "four options, random in list, using global seed",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Distribution: &fpb.DoubleValue_List{
 				List: &fpb.DoubleList{Options: []float64{100, 200, 300, 400}, Random: true}}}}},
@@ -323,7 +322,7 @@ func TestUpdateDoubleValue(t *testing.T) {
 				Distribution: &fpb.DoubleValue_List{
 					List: &fpb.DoubleList{Options: []float64{100, 200, 300, 400}, Random: true}}}}},
 	}, {
-		name: "four options, non-random in list, using global seed",
+		desc: "four options, non-random in list, using global seed",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Distribution: &fpb.DoubleValue_List{
 				List: &fpb.DoubleList{Options: []float64{100, 200, 300, 400}, Random: false}}}}},
@@ -333,24 +332,24 @@ func TestUpdateDoubleValue(t *testing.T) {
 				Distribution: &fpb.DoubleValue_List{
 					List: &fpb.DoubleList{Options: []float64{200, 300, 400, 100}, Random: false}}}}},
 	}, {
-		name: "constant",
+		desc: "constant",
 		value: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Value: 100}}},
 		want: &fpb.Value{
 			Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Value: 100}}},
 	}}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			v := newValue(test.value, rand.New(rand.NewSource(seed)))
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			v := newValue(tc.value, rand.New(rand.NewSource(seed)))
 			err := v.updateDoubleValue()
-			if diff := errdiff.Substring(err, test.err); diff != "" {
-				t.Errorf("newValue(%q).updateDoubleValue() %v", test.value, diff)
+			if diff := errdiff.Substring(err, tc.err); diff != "" {
+				t.Errorf("newValue(%q).updateDoubleValue() %v", tc.value, diff)
 			}
 			if err != nil {
 				return
 			}
-			if diff := pretty.Compare(v.v, test.want); diff != "" {
-				t.Errorf("newValue(%q).updatedDoubleValue() %v", test.value, diff)
+			if diff := pretty.Compare(v.v, tc.want); diff != "" {
+				t.Errorf("newValue(%q).updatedDoubleValue() %v", tc.value, diff)
 			}
 		})
 	}
@@ -358,22 +357,22 @@ func TestUpdateDoubleValue(t *testing.T) {
 
 func TestUpdateStringValue(t *testing.T) {
 	tests := []struct {
-		name  string
+		desc  string
 		value *fpb.Value
 		want  *fpb.Value
 		err   string
 	}{{
-		name:  "Nil Value",
+		desc:  "Nil Value",
 		value: &fpb.Value{},
 		err:   "invalid StringValue",
 	}, {
-		name: "no options, random in list",
+		desc: "no options, random in list",
 		value: &fpb.Value{
 			Value: &fpb.Value_StringValue{&fpb.StringValue{Distribution: &fpb.StringValue_List{
 				List: &fpb.StringList{Random: true}}}}},
 		err: "missing options on StringValue_List",
 	}, {
-		name: "Four options, random in list, using global seed",
+		desc: "Four options, random in list, using global seed",
 		value: &fpb.Value{
 			Value: &fpb.Value_StringValue{&fpb.StringValue{Distribution: &fpb.StringValue_List{
 				List: &fpb.StringList{Options: []string{"a", "b", "c", "d"}, Random: true}}}}},
@@ -384,7 +383,7 @@ func TestUpdateStringValue(t *testing.T) {
 					List: &fpb.StringList{
 						Options: []string{"a", "b", "c", "d"}, Random: true}}}}},
 	}, {
-		name: "Four options, random in list, using local seed",
+		desc: "Four options, random in list, using local seed",
 		value: &fpb.Value{
 			Seed: 10,
 			Value: &fpb.Value_StringValue{&fpb.StringValue{Distribution: &fpb.StringValue_List{
@@ -396,7 +395,7 @@ func TestUpdateStringValue(t *testing.T) {
 				Distribution: &fpb.StringValue_List{
 					List: &fpb.StringList{Random: true, Options: []string{"a", "b", "c", "d"}}}}}},
 	}, {
-		name: "Four options, non-random in list",
+		desc: "Four options, non-random in list",
 		value: &fpb.Value{
 			Value: &fpb.Value_StringValue{&fpb.StringValue{Distribution: &fpb.StringValue_List{
 				List: &fpb.StringList{Random: false, Options: []string{"a", "b", "c", "d"}}}}}},
@@ -406,21 +405,21 @@ func TestUpdateStringValue(t *testing.T) {
 				Distribution: &fpb.StringValue_List{
 					List: &fpb.StringList{Random: false, Options: []string{"b", "c", "d", "a"}}}}}},
 	}, {
-		name: "constant",
+		desc: "constant",
 		value: &fpb.Value{
 			Value: &fpb.Value_StringValue{&fpb.StringValue{Value: "a"}}},
 		want: &fpb.Value{
 			Value: &fpb.Value_StringValue{&fpb.StringValue{Value: "a"}}},
 	}}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			v := newValue(test.value, rand.New(rand.NewSource(seed)))
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			v := newValue(tc.value, rand.New(rand.NewSource(seed)))
 			err := v.updateStringValue()
-			if diff := errdiff.Substring(err, test.err); diff != "" {
-				t.Errorf("newValue(%q).updateStringValue() %v", test.value, diff)
+			if diff := errdiff.Substring(err, tc.err); diff != "" {
+				t.Errorf("newValue(%q).updateStringValue() %v", tc.value, diff)
 			}
-			if diff := pretty.Compare(v.v, test.want); err == nil && diff != "" {
-				t.Errorf("newValue(%q).updatedStringValue() %v", test.value, diff)
+			if diff := pretty.Compare(v.v, tc.want); err == nil && diff != "" {
+				t.Errorf("newValue(%q).updatedStringValue() %v", tc.value, diff)
 			}
 		})
 	}
@@ -428,22 +427,22 @@ func TestUpdateStringValue(t *testing.T) {
 
 func TestNextValue(t *testing.T) {
 	tests := []struct {
-		name string
+		desc string
 		in   *fpb.Value
 		want *fpb.Value
 		err  string
 	}{{
-		name: "Empty value",
+		desc: "Empty value",
 		in:   &fpb.Value{},
 		want: &fpb.Value{},
 		err:  "timestamp not set",
 	}, {
-		name: "Just timestamp",
+		desc: "Just timestamp",
 		in:   &fpb.Value{Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 1}},
 		want: &fpb.Value{Timestamp: &fpb.Timestamp{Timestamp: 1235, DeltaMin: 1, DeltaMax: 1}},
 		err:  "value type not found",
 	}, {
-		name: "Indefinite updates",
+		desc: "Indefinite updates",
 		in: &fpb.Value{
 			Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 1},
 			Value: &fpb.Value_IntValue{&fpb.IntValue{
@@ -455,7 +454,7 @@ func TestNextValue(t *testing.T) {
 				Value:        80,
 				Distribution: &fpb.IntValue_Range{Range: &fpb.IntRange{Minimum: 0, Maximum: 100}}}}},
 	}, {
-		name: "Repeat",
+		desc: "Repeat",
 		in: &fpb.Value{
 			Repeat:    5,
 			Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 1},
@@ -467,7 +466,7 @@ func TestNextValue(t *testing.T) {
 				Value:        10,
 				Distribution: &fpb.IntValue_List{List: &fpb.IntList{Options: []int64{20, 30, 10}, Random: false}}}}},
 	}, {
-		name: "Repeat with constant double value",
+		desc: "Repeat with constant double value",
 		in: &fpb.Value{
 			Repeat:    5,
 			Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 1},
@@ -479,21 +478,21 @@ func TestNextValue(t *testing.T) {
 			Value:     &fpb.Value_DoubleValue{&fpb.DoubleValue{Value: 50.1}},
 		},
 	}, {
-		name: "Last repeat",
+		desc: "Last repeat",
 		in: &fpb.Value{
 			Repeat:    1,
 			Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 1},
 			Value:     &fpb.Value_IntValue{&fpb.IntValue{Value: 50}},
 		},
 	}, {
-		name: "Last repeat with constant string value",
+		desc: "Last repeat with constant string value",
 		in: &fpb.Value{
 			Repeat:    1,
 			Timestamp: &fpb.Timestamp{Timestamp: 1234, DeltaMin: 1, DeltaMax: 1},
 			Value:     &fpb.Value_StringValue{&fpb.StringValue{Value: "a"}},
 		},
 	}, {
-		name: "String value",
+		desc: "String value",
 		in: &fpb.Value{
 			Repeat:    2,
 			Timestamp: &fpb.Timestamp{Timestamp: 1234},
@@ -505,7 +504,7 @@ func TestNextValue(t *testing.T) {
 			Value:     &fpb.Value_StringValue{&fpb.StringValue{Value: "a"}},
 		},
 	}, {
-		name: "Sync value",
+		desc: "Sync value",
 		in: &fpb.Value{
 			Repeat:    2,
 			Timestamp: &fpb.Timestamp{Timestamp: 1234},
@@ -517,7 +516,7 @@ func TestNextValue(t *testing.T) {
 			Value:     &fpb.Value_Sync{uint64(1)},
 		},
 	}, {
-		name: "Delete value",
+		desc: "Delete value",
 		in: &fpb.Value{
 			Repeat:    2,
 			Timestamp: &fpb.Timestamp{Timestamp: 1234},
@@ -529,15 +528,15 @@ func TestNextValue(t *testing.T) {
 			Value:     &fpb.Value_Delete{&fpb.DeleteValue{}},
 		},
 	}}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			v := newValue(test.in, rand.New(rand.NewSource(seed)))
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			v := newValue(tc.in, rand.New(rand.NewSource(seed)))
 			err := v.nextValue()
-			if diff := errdiff.Substring(err, test.err); diff != "" {
-				t.Errorf("newValue(%q).nextValue() %v", test.in, diff)
+			if diff := errdiff.Substring(err, tc.err); diff != "" {
+				t.Errorf("newValue(%q).nextValue() %v", tc.in, diff)
 			}
-			if diff := pretty.Compare(v.v, test.want); err == nil && diff != "" {
-				t.Errorf("value of newValue(%q).nextValue() %v", test.in, diff)
+			if diff := pretty.Compare(v.v, tc.want); err == nil && diff != "" {
+				t.Errorf("value of newValue(%q).nextValue() %v", tc.in, diff)
 			}
 		})
 	}
@@ -735,32 +734,32 @@ func TestQueueAddValue(t *testing.T) {
 
 func TestValueOf(t *testing.T) {
 	tests := []struct {
-		name string
+		desc string
 		in   *fpb.Value
 		want interface{}
 	}{{
-		name: "string value",
+		desc: "string value",
 		in:   &fpb.Value{Value: &fpb.Value_StringValue{&fpb.StringValue{Value: "UP"}}},
 		want: "UP",
 	}, {
-		name: "int value",
+		desc: "int value",
 		in:   &fpb.Value{Value: &fpb.Value_IntValue{&fpb.IntValue{Value: 100}}},
 		want: int64(100),
 	}, {
-		name: "double value",
+		desc: "double value",
 		in:   &fpb.Value{Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Value: float64(101)}}},
 		want: float64(101),
 	}, {
-		name: "Delete value",
+		desc: "Delete value",
 		in:   &fpb.Value{Value: &fpb.Value_Delete{&fpb.DeleteValue{}}},
 		want: &fpb.DeleteValue{},
 	}, {
-		name: "Sync value",
+		desc: "Sync value",
 		in:   &fpb.Value{Value: &fpb.Value_Sync{uint64(1)}},
 		want: uint64(1),
 	}}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.desc, func(t *testing.T) {
 			if got, want := ValueOf(tc.in), tc.want; !reflect.DeepEqual(got, want) {
 				t.Errorf("ValueOf(%q) failed: got %q, want %q", tc.in, got, want)
 			}
@@ -768,35 +767,235 @@ func TestValueOf(t *testing.T) {
 	}
 }
 
+func TestFixedQueue(t *testing.T) {
+	tests := []struct {
+		desc    string
+		in      []*gpb.SubscribeResponse
+		delay   bool
+		want    *gpb.TypedValue
+		updates []*gpb.SubscribeResponse
+	}{{
+		desc: "empty notifications",
+	}, {
+		desc: "single sync",
+		in: []*gpb.SubscribeResponse{{
+			Response: &gpb.SubscribeResponse_SyncResponse{
+				SyncResponse: true,
+			},
+		}},
+	}, {
+		desc: "sync then updates",
+		in: []*gpb.SubscribeResponse{{
+			Response: &gpb.SubscribeResponse_SyncResponse{
+				SyncResponse: true,
+			},
+		}, {
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 1,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 1}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 2}},
+					}},
+				},
+			},
+		}},
+	}, {
+		desc: "sync then updates with add",
+		in: []*gpb.SubscribeResponse{{
+			Response: &gpb.SubscribeResponse_SyncResponse{
+				SyncResponse: true,
+			},
+		}, {
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 1,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 1}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 2}},
+					}},
+				},
+			},
+		}},
+		updates: []*gpb.SubscribeResponse{{
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 100,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 10}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 20}},
+					}},
+				},
+			},
+		}},
+	}, {
+		desc: "multi update sync",
+		in: []*gpb.SubscribeResponse{{
+			Response: &gpb.SubscribeResponse_SyncResponse{
+				SyncResponse: true,
+			},
+		}, {
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 1,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 1}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 2}},
+					}},
+				},
+			},
+		}, {
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 2,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 10}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 20}},
+					}},
+				},
+			},
+		}},
+	}, {
+		desc:  "multi update sync with delay",
+		delay: true,
+		in: []*gpb.SubscribeResponse{{
+			Response: &gpb.SubscribeResponse_SyncResponse{
+				SyncResponse: true,
+			},
+		}, {
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 1,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 1}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 2}},
+					}},
+				},
+			},
+		}, {
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 2,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 10}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 20}},
+					}},
+				},
+			},
+		}},
+	}, {
+		desc:  "multi update sync with delay <negative>",
+		delay: true,
+		in: []*gpb.SubscribeResponse{{
+			Response: &gpb.SubscribeResponse_SyncResponse{
+				SyncResponse: true,
+			},
+		}, {
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 2,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 1}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 2}},
+					}},
+				},
+			},
+		}, {
+			Response: &gpb.SubscribeResponse_Update{
+				Update: &gpb.Notification{
+					Timestamp: 1,
+					Update: []*gpb.Update{{
+						Path: &gpb.Path{Element: []string{"a", "b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 10}},
+					}, {
+						Path: &gpb.Path{Element: []string{"a", "c"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{IntVal: 20}},
+					}},
+				},
+			},
+		}},
+	}}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			want := make([]*gpb.SubscribeResponse, len(tc.in))
+			copy(want, tc.in)
+			q := NewFixed(want, tc.delay)
+			for _, u := range tc.updates {
+				q.Add(u)
+				want = append(want, u)
+			}
+			var got []*gpb.SubscribeResponse
+		Loop:
+			for {
+				v, err := q.Next()
+				switch {
+				case err != nil:
+					t.Fatalf("NewFixed(%q, %v).Next() unexpected error: got %q, want nil", want, tc.delay, err)
+				case v == nil:
+					break Loop
+				}
+				got = append(got, v)
+			}
+			if gotL, wantL := len(got), len(want); gotL != wantL {
+				t.Fatalf("q.Next() failed: got length(%d), want length(%d): %v", gotL, wantL, got)
+			}
+		})
+	}
+}
+
 func TestTypedValueOf(t *testing.T) {
 	tests := []struct {
-		name string
+		desc string
 		in   *fpb.Value
 		want *gpb.TypedValue
 	}{{
-		name: "string value",
+		desc: "string value",
 		in:   &fpb.Value{Value: &fpb.Value_StringValue{&fpb.StringValue{Value: "UP"}}},
 		want: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{"UP"}},
 	}, {
-		name: "int value",
+		desc: "int value",
 		in:   &fpb.Value{Value: &fpb.Value_IntValue{&fpb.IntValue{Value: 100}}},
-		want: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{100}},
+		want: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{int64(100)}},
 	}, {
-		name: "double value",
+		desc: "double value",
 		in:   &fpb.Value{Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Value: float64(101)}}},
-		want: &gpb.TypedValue{Value: &gpb.TypedValue_FloatVal{101}},
+		want: &gpb.TypedValue{Value: &gpb.TypedValue_FloatVal{float32(101)}},
 	}, {
-		name: "Delete value",
+		desc: "delete value",
 		in:   &fpb.Value{Value: &fpb.Value_Delete{&fpb.DeleteValue{}}},
 		want: nil,
 	}, {
-		name: "Sync value",
+		desc: "sync value",
 		in:   &fpb.Value{Value: &fpb.Value_Sync{uint64(1)}},
 		want: nil,
 	}}
 	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			if got, want := TypedValueOf(tc.in), tc.want; !proto.Equal(got, want) {
+		t.Run(tc.desc, func(t *testing.T) {
+			if got, want := TypedValueOf(tc.in), tc.want; !reflect.DeepEqual(got, want) {
 				t.Errorf("TypedValueOf(%q) failed: got %q, want %q", tc.in, got, want)
 			}
 		})

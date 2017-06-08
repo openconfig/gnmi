@@ -3,7 +3,10 @@
 // updates from fake targets.
 syntax = "proto3";
 
-package telemetry.proxy.fake;
+import "github.com/golang/protobuf/ptypes/any/any.proto";
+import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
+
+package gnmi.fake;
 
 service AgentManager {
   // Add adds an agent to the server.
@@ -48,12 +51,12 @@ message Config {
   int64 port = 2;
   // A global random seed used in generating subsequent values. Set to have
   // reproducible results.
-  int64 seed = 6;
+  int64 seed = 6 [deprecated=true];
   // The list of values generated.  Each value will contain its corresponding
   // target as the first string in the event.GetValue().path meaning that it is
   // possible to generate streams that will be rejected by the cache for testing
   // purposes.
-  repeated Value values = 3;
+  repeated Value values = 3 [deprecated=true];
   // Setting disable sync will keep the configured client from autogenerating a
   // sync message. This allows negative testing on sync handling.
   bool disable_sync = 4;
@@ -66,6 +69,24 @@ message Config {
   Credentials credentials = 8;
   // TLS cert for use on the agent. If not set the transport will not be TLS.
   bytes cert = 9;
+  // Honor the delay between events in the generated value streams. Default will
+  // play events as fast as the can be streamed.
+  bool enable_delay = 10;
+  // Generator for value series for the target.
+  oneof generator {
+    google.protobuf.Any custom = 100;
+    RandomGenerator random = 101;
+    FixedGenerator fixed = 102;
+  }
+}
+
+message FixedGenerator {
+  repeated gnmi.SubscribeResponse responses = 1;
+}
+
+message RandomGenerator {
+  int64 seed = 1;
+  repeated Value values = 2;
 }
 
 // Delete will cause the value to be deleted at the Value's path.
