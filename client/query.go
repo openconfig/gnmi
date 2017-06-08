@@ -117,6 +117,9 @@ type Query struct {
 	Credentials *Credentials
 	// TLS config to use when connecting to target. Optional.
 	TLS *tls.Config
+	// Extra contains arbitrary additional metadata to be passed to the
+	// target. Optional.
+	Extra map[string]string
 }
 
 // Credentials contains information necessary to authenticate with the target.
