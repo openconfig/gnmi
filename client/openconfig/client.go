@@ -27,10 +27,10 @@ import (
 	log "github.com/golang/glog"
 	"context"
 	"github.com/golang/protobuf/proto"
-	"github.com/openconfig/gnmi/client"
-
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
+	"github.com/openconfig/gnmi/client"
+	"github.com/openconfig/gnmi/client/grpcutil"
 
 	ocpb "github.com/openconfig/reference/rpc/openconfig"
 )
@@ -76,6 +76,16 @@ func New(ctx context.Context, q client.Query) (client.Impl, error) {
 
 // NewFromConn creates and returns the client based on the provided transport.
 func NewFromConn(ctx context.Context, conn *grpc.ClientConn, q client.Query) (*Client, error) {
+	ok, err := grpcutil.Lookup(ctx, conn, "openconfig.OpenConfig")
+	if err != nil {
+		log.V(1).Infof("gRPC reflection lookup on %q for service openconfig.OpenConfig failed: %v", q.Addrs, err)
+		// This check is disabled for now. Reflection will become part of gNMI
+		// specification in the near future, so we can't enforce it yet.
+	}
+	if !ok {
+		// This check is disabled for now. Reflection will become part of gNMI
+		// specification in the near future, so we can't enforce it yet.
+	}
 	oc := ocpb.NewOpenConfigClient(conn)
 	sub, err := oc.Subscribe(ctx)
 	if err != nil {

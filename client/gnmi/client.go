@@ -30,6 +30,7 @@ import (
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
 	"github.com/openconfig/gnmi/client"
+	"github.com/openconfig/gnmi/client/grpcutil"
 	"github.com/openconfig/gnmi/value"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -80,6 +81,16 @@ func New(ctx context.Context, q client.Query) (client.Impl, error) {
 
 // NewFromConn creates and returns the client based on the provided transport.
 func NewFromConn(ctx context.Context, conn *grpc.ClientConn, q client.Query) (*Client, error) {
+	ok, err := grpcutil.Lookup(ctx, conn, "gnmi.gNMI")
+	if err != nil {
+		log.V(1).Infof("gRPC reflection lookup on %q for service gnmi.gNMI failed: %v", q.Addrs, err)
+		// This check is disabled for now. Reflection will become part of gNMI
+		// specification in the near future, so we can't enforce it yet.
+	}
+	if !ok {
+		// This check is disabled for now. Reflection will become part of gNMI
+		// specification in the near future, so we can't enforce it yet.
+	}
 	cl := gpb.NewGNMIClient(conn)
 	sub, err := cl.Subscribe(ctx)
 	if err != nil {

@@ -30,6 +30,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 	ocpb "github.com/openconfig/reference/rpc/openconfig"
@@ -63,6 +64,7 @@ func New(config *fpb.Config, opts []grpc.ServerOption) (*Agent, error) {
 		clients: map[string]*Client{},
 		target:  config.Target,
 	}
+	reflection.Register(a.s)
 	if a.config.Port < 0 {
 		a.config.Port = 0
 	}

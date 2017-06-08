@@ -31,6 +31,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/reflection"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
@@ -56,7 +57,10 @@ func New(config *fpb.Config, opts []grpc.ServerOption) (*Agent, error) {
 	if config == nil {
 		return nil, errors.New("config not provided")
 	}
-	return NewFromServer(grpc.NewServer(opts...), config)
+	s := grpc.NewServer(opts...)
+	reflection.Register(s)
+
+	return NewFromServer(s, config)
 }
 
 // NewFromServer returns a new initialized fake agent from provided server.

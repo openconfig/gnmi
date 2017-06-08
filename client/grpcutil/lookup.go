@@ -14,8 +14,8 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package grpc provides helper functions for working with gRPC targets.
-package grpc
+// Package grpcutil provides helper functions for working with gRPC targets.
+package grpcutil
 
 import (
 	"context"
