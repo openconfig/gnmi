@@ -19,6 +19,7 @@ package errdiff
 import (
 	"errors"
 	"io"
+	"strings"
 	"testing"
 
 	"google.golang.org/grpc/codes"
@@ -117,7 +118,14 @@ func TestCode(t *testing.T) {
 	}
 }
 
+type elist []string
+
+func (e elist) Error() string { return strings.Join(e, ", ") }
+
 func TestCheck(t *testing.T) {
+	elist1 := elist{"error1a", "error1b"}
+	elist2 := elist{"error2a", "error2b"}
+
 	tests := []struct {
 		desc   string
 		got    error
@@ -170,6 +178,27 @@ func TestCheck(t *testing.T) {
 			desc: "got error, want error",
 			got:  io.EOF,
 			want: true,
+		},
+		{
+			desc:   "unexpected errlist",
+			got:    elist1,
+			result: `got err=error1a, error1b, want err=nil`,
+		},
+		{
+			desc:   "missing errlist",
+			want:   elist1,
+			result: `got err=nil, want err=error1a, error1b`,
+		},
+		{
+			desc: "correct errlist",
+			got:  elist1,
+			want: elist1,
+		},
+		{
+			desc:   "wrong errlist",
+			got:    elist1,
+			want:   elist2,
+			result: `got err=error1a, error1b, want err=error2a, error2b`,
 		},
 	}
 	for _, tt := range tests {

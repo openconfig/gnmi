@@ -157,9 +157,9 @@ func Check(got error, want interface{}) string {
 		return Substring(got, w)
 	case error:
 		switch {
-		case got == w:
+		case got == nil && w == nil:
 			return ""
-		case got == nil:
+		case got == nil && w != nil:
 			return fmt.Sprintf("got err=nil, want err=%v", w)
 		case w == nil:
 			return fmt.Sprintf("got err=%v, want err=nil", got)
