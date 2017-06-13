@@ -4,6 +4,7 @@ package value
 
 import (
 	"fmt"
+	"unicode/utf8"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -14,7 +15,11 @@ func FromScalar(i interface{}) (*pb.TypedValue, error) {
 	tv := &pb.TypedValue{}
 	switch v := i.(type) {
 	case string:
-		tv.Value = &pb.TypedValue_StringVal{v}
+		if utf8.ValidString(v) {
+			tv.Value = &pb.TypedValue_StringVal{v}
+		} else {
+			return nil, fmt.Errorf("string %q contains non-UTF-8 bytes", v)
+		}
 	case int:
 		tv.Value = &pb.TypedValue_IntVal{int64(v)}
 	case int8:
