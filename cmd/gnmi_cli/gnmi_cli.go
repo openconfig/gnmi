@@ -46,7 +46,7 @@ import (
 )
 
 var (
-	q   client.Query
+	q   = client.Query{TLS: &tls.Config{}}
 	mu  sync.Mutex
 	cfg = cli.Config{Display: func(b []byte) {
 		defer mu.Unlock()
@@ -88,6 +88,8 @@ func init() {
 	flag.Var(deletes, "delete", "List of paths to delete; --set flag must be set.")
 	flag.Var(updates, "update", "List of paths to update; --set flag must be set.")
 	flag.Var(replaces, "replace", "List of paths to replace; --set flag must be set.")
+	flag.StringVar(&q.TLS.ServerName, "server_name", "", "When set, CLI will use this hostname to verify server certificate during TLS handshake.")
+	flag.BoolVar(&q.TLS.InsecureSkipVerify, "insecure", false, "When set, CLI will not verify the server certificate during TLS handshake.")
 
 	// Shortcut flags that can be used in place of the longform flags above.
 	flag.Var(queryAddr, "a", "Short for address.")
@@ -125,9 +127,6 @@ func main() {
 			log.Exit(err)
 		}
 	}
-	// Transport security is required even with PerRPCCredentials. Make this
-	// insecure for now.
-	q.TLS = &tls.Config{InsecureSkipVerify: true}
 
 	if *setFlag {
 		if err := executeSet(ctx); err != nil {
