@@ -45,7 +45,6 @@ type Client struct {
 	// sending all Updates before returning ErrStopReading.
 	// BlockAfterSync is closed when Close is called.
 	BlockAfterSync chan struct{}
-	connected      bool
 }
 
 // Reset will reset the client to start playing new updates.
@@ -56,10 +55,6 @@ func (c *Client) Reset(u []interface{}) {
 
 // Recv will be called for each update the generic client wants to receive.
 func (c *Client) Recv() error {
-	if !c.connected {
-		c.Handler(client.Connected{})
-		c.connected = true
-	}
 	if c.currUpdate >= len(c.Updates) {
 		if c.BlockAfterSync != nil {
 			log.Info("No more updates, blocking on BlockAfterSync")

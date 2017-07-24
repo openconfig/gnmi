@@ -47,7 +47,7 @@ type ReconnectClient struct {
 	reset      func()
 
 	mu     sync.Mutex
-	cancel func()
+	closed bool
 }
 
 var _ Client = &ReconnectClient{}
@@ -72,10 +72,6 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 	case Stream, Poll:
 	}
 
-	// ctx is cancelled in p.Close().
-	ctx, cancel := context.WithCancel(ctx)
-	p.cancel = cancel
-
 	failCount := 0
 	for {
 		start := time.Now()
@@ -90,6 +86,14 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 		case <-ctx.Done():
 			return ctx.Err()
 		default:
+		}
+
+		// Check if Subscribe returned because p was closed.
+		p.mu.Lock()
+		closed := p.closed
+		p.mu.Unlock()
+		if closed {
+			return nil
 		}
 
 		if err == nil {
@@ -114,9 +118,10 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 
 // Close implements Client interface.
 func (p *ReconnectClient) Close() error {
-	if p.cancel != nil {
-		p.cancel()
-	}
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	p.closed = true
 	return p.Client.Close()
 }
 

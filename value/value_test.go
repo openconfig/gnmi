@@ -34,41 +34,6 @@ func TestFromScalar(t *testing.T) {
 		{intf: float64(3.5), msg: &pb.TypedValue{Value: &pb.TypedValue_FloatVal{3.5}}},
 		{intf: []byte("foo"), err: true},
 		{intf: "a non-utf-8 string \377", err: true},
-		{
-			intf: []string{"a", "b"},
-			msg: &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{
-				Element: []*pb.TypedValue{
-					{Value: &pb.TypedValue_StringVal{"a"}},
-					{Value: &pb.TypedValue_StringVal{"b"}},
-				},
-			}}},
-		},
-		{
-			intf: []string{},
-			msg:  &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{}}},
-		},
-		{
-			intf: []interface{}{"a", "b"},
-			msg: &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{
-				Element: []*pb.TypedValue{
-					{Value: &pb.TypedValue_StringVal{"a"}},
-					{Value: &pb.TypedValue_StringVal{"b"}},
-				},
-			}}},
-		},
-		{
-			intf: []interface{}{},
-			msg:  &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{}}},
-		},
-		{
-			intf: []interface{}{"a", 1},
-			msg: &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{
-				Element: []*pb.TypedValue{
-					{Value: &pb.TypedValue_StringVal{"a"}},
-					{Value: &pb.TypedValue_IntVal{1}},
-				},
-			}}},
-		},
 	}
 	for _, tt := range tests {
 		v, err := FromScalar(tt.intf)
@@ -94,35 +59,9 @@ func TestToScalar(t *testing.T) {
 		{intf: float32(3.5), msg: &pb.TypedValue{Value: &pb.TypedValue_FloatVal{3.5}}},
 		{intf: true, msg: &pb.TypedValue{Value: &pb.TypedValue_BoolVal{true}}},
 		{intf: false, msg: &pb.TypedValue{Value: &pb.TypedValue_BoolVal{false}}},
-		{
-			msg: &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{
-				Element: []*pb.TypedValue{
-					{Value: &pb.TypedValue_StringVal{"a"}},
-					{Value: &pb.TypedValue_StringVal{"b"}},
-				},
-			}}},
-			intf: []interface{}{"a", "b"},
-		},
-		{
-			msg:  &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{}}},
-			intf: []interface{}{},
-		},
-		{
-			msg:  &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{}},
-			intf: []interface{}{},
-		},
-		{
-			msg: &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{
-				Element: []*pb.TypedValue{
-					{Value: &pb.TypedValue_StringVal{"a"}},
-					{Value: &pb.TypedValue_IntVal{1}},
-					{Value: &pb.TypedValue_UintVal{1}},
-				},
-			}}},
-			intf: []interface{}{"a", int64(1), uint64(1)},
-		},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_BytesVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{}}, err: true},
+		{msg: &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_AnyVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_JsonVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_JsonIetfVal{}}, err: true},
@@ -138,7 +77,7 @@ func TestToScalar(t *testing.T) {
 		case err != nil:
 			t.Errorf("ToScalar(%v): got error %v, want %+v", tt.msg, err, tt.intf)
 		case !reflect.DeepEqual(v, tt.intf):
-			t.Errorf("ToScalar(%v): got %#v, want %#v", tt.msg, v, tt.intf)
+			t.Errorf("ToScalar(%v): got %+v, want %+v", tt.msg, v, tt.intf)
 		}
 	}
 }

@@ -46,22 +46,6 @@ func FromScalar(i interface{}) (*pb.TypedValue, error) {
 		tv.Value = &pb.TypedValue_FloatVal{float32(v)}
 	case bool:
 		tv.Value = &pb.TypedValue_BoolVal{v}
-	case []string:
-		sa := &pb.ScalarArray{Element: make([]*pb.TypedValue, len(v))}
-		for x, s := range v {
-			sa.Element[x] = &pb.TypedValue{Value: &pb.TypedValue_StringVal{s}}
-		}
-		tv.Value = &pb.TypedValue_LeaflistVal{sa}
-	case []interface{}:
-		sa := &pb.ScalarArray{Element: make([]*pb.TypedValue, len(v))}
-		var err error
-		for x, intf := range v {
-			sa.Element[x], err = FromScalar(intf)
-			if err != nil {
-				return nil, fmt.Errorf("in []interface{}: %v", err)
-			}
-		}
-		tv.Value = &pb.TypedValue_LeaflistVal{sa}
 	default:
 		return nil, fmt.Errorf("non-scalar type %+v", i)
 	}
@@ -83,17 +67,6 @@ func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 		i = tv.GetBoolVal()
 	case *pb.TypedValue_FloatVal:
 		i = tv.GetFloatVal()
-	case *pb.TypedValue_LeaflistVal:
-		elems := tv.GetLeaflistVal().GetElement()
-		ss := make([]interface{}, len(elems))
-		for x, e := range elems {
-			v, err := ToScalar(e)
-			if err != nil {
-				return nil, fmt.Errorf("ToScalar for ScalarArray %+v: %v", e.Value, err)
-			}
-			ss[x] = v
-		}
-		i = ss
 	default:
 		return nil, fmt.Errorf("non-scalar type %+v", tv.Value)
 	}
