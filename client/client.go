@@ -176,6 +176,7 @@ var (
 // Query.
 type BaseClient struct {
 	mu         sync.RWMutex
+	closed     bool
 	clientImpl Impl
 
 	query Query
@@ -192,6 +193,7 @@ func (c *BaseClient) Subscribe(ctx context.Context, q Query, clientType ...strin
 	c.mu.Lock()
 	c.query = q
 	c.clientImpl = impl
+	c.closed = false
 	c.mu.Unlock()
 
 	return c.run(impl)
@@ -214,11 +216,13 @@ func (c *BaseClient) Poll() error {
 
 // Close implements the Client interface.
 func (c *BaseClient) Close() error {
-	impl, err := c.Impl()
-	if err != nil {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	if c.clientImpl == nil {
 		return ErrClientInit
 	}
-	return impl.Close()
+	c.closed = true
+	return c.clientImpl.Close()
 }
 
 // Impl implements the Client interface.
@@ -254,6 +258,19 @@ func (c *BaseClient) run(impl Impl) error {
 			log.V(1).Infof("impl.Recv() stop marker: %v", err)
 			return nil
 		case nil:
+		}
+
+		// Close fast, so that we don't deliver any buffered updates.
+		//
+		// Note: this approach still allows at most 1 update through after
+		// Close. A more thorough solution would be to do the check at
+		// Notification/ProtoHandler or Impl level, but that would involve much
+		// more work.
+		c.mu.RLock()
+		closed := c.closed
+		c.mu.RUnlock()
+		if closed {
+			return nil
 		}
 	}
 }
