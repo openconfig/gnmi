@@ -21,6 +21,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"strings"
 	"sync"
 	"testing"
 
@@ -268,17 +269,19 @@ func TestClientCreate(t *testing.T) {
 	}
 }
 
-func TestClientSend(t *testing.T) {
+func festClientSend(t *testing.T) {
 	defaultConfig := &fpb.Config{
 		Target: "arista",
 		Port:   -1,
 		Values: []*fpb.Value{},
 	}
 	tests := []struct {
-		config *fpb.Config
-		events []event
+		config  *fpb.Config
+		wantErr string
+		events  []event
 	}{{
-		config: defaultConfig,
+		config:  defaultConfig,
+		wantErr: "invalid configuration",
 		events: []event{
 			&receiveEvent{d: "Send"},
 		},
@@ -315,7 +318,13 @@ func TestClientSend(t *testing.T) {
 		s := newFakeStream(tt.events)
 		defer s.Cancel()
 		c.subscribe = &gnmipb.SubscriptionList{Mode: gnmipb.SubscriptionList_ONCE}
-		c.reset()
+		err := c.reset()
+		switch {
+		case err == nil && tt.wantErr != "":
+			t.Fatalf("reset() failed: got %v, want %v", err, tt.wantErr)
+		case err != nil && !strings.HasPrefix(err.Error(), tt.wantErr):
+			t.Fatalf("reset() failed: got %q, want %q", err, tt.wantErr)
+		}
 		c.send(s)
 		t.Logf("Received Events:\n%s\n", pp.Sprint(s.recv))
 		if c.errors != 0 {
@@ -407,8 +416,8 @@ func TestNewAgent(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	for i, tc := range tests {
-		t.Run(fmt.Sprintf("Test case %d", i+1), func(t *testing.T) {
+	for _, tc := range tests {
+		t.Run(fmt.Sprintf("Test case %+v", tc.config), func(t *testing.T) {
 			a, err := New(tc.config, []grpc.ServerOption{certOpt})
 			if err != nil {
 				if tc.err == nil || tc.err.Error() != err.Error() {
@@ -416,6 +425,7 @@ func TestNewAgent(t *testing.T) {
 				}
 				return
 			}
+			go a.Serve()
 			conn, err := grpc.Dial(a.Address(), grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
 				InsecureSkipVerify: true,
 			})))

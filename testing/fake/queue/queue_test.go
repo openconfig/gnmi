@@ -958,7 +958,7 @@ func TestFixedQueue(t *testing.T) {
 				case v == nil:
 					break Loop
 				}
-				got = append(got, v)
+				got = append(got, v.(*gpb.SubscribeResponse))
 			}
 			if gotL, wantL := len(got), len(want); gotL != wantL {
 				t.Fatalf("q.Next() failed: got length(%d), want length(%d): %v", gotL, wantL, got)

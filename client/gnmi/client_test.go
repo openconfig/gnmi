@@ -201,7 +201,7 @@ func TestClient(t *testing.T) {
 				},
 				[]grpc.ServerOption{opt},
 			)
-
+			go s.Serve()
 			if err != nil {
 				t.Fatal("failed to start test server")
 			}

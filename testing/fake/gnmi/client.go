@@ -43,7 +43,7 @@ type Client struct {
 	polled    chan struct{}
 	mu        sync.RWMutex
 	canceled  bool
-	q         *queue.UpdateQueue
+	q         queue.Queue
 	subscribe *gpb.SubscriptionList
 }
 
@@ -97,7 +97,10 @@ func (c *Client) Run(stream gpb.GNMI_SubscribeServer) (err error) {
 	if c.subscribe == nil {
 		return grpc.Errorf(codes.InvalidArgument, "first message must be SubscriptionList: %q", query)
 	}
-	c.reset() // Initialize the queue used between send and recv.
+	// Initialize the queue used between send and recv.
+	if err = c.reset(); err != nil {
+		return grpc.Errorf(codes.Aborted, "failed to initialize the queue: %v", err)
+	}
 
 	log.V(1).Infof("Client %s running", c)
 	go c.recv(stream)
@@ -145,7 +148,10 @@ func (c *Client) recv(stream gpb.GNMI_SubscribeServer) {
 				c.Close()
 				return
 			}
-			c.reset()
+			if err = c.reset(); err != nil {
+				c.Close()
+				return
+			}
 			c.polled <- struct{}{}
 			continue
 		}
@@ -160,6 +166,9 @@ func (c *Client) processQueue(stream gpb.GNMI_SubscribeServer) error {
 	c.mu.RLock()
 	q := c.q
 	c.mu.RUnlock()
+	if q == nil {
+		return fmt.Errorf("nil client queue nothing to do")
+	}
 	for {
 		c.mu.RLock()
 		canceled := c.canceled
@@ -184,13 +193,18 @@ func (c *Client) processQueue(stream gpb.GNMI_SubscribeServer) error {
 			}
 			return fmt.Errorf("end of updates")
 		}
-		v, err := valToResp(event)
-		if err != nil {
-			c.errors++
-			return err
+		var resp *gpb.SubscribeResponse
+		switch v := event.(type) {
+		case *fpb.Value:
+			if resp, err = valToResp(v); err != nil {
+				c.errors++
+				return err
+			}
+		case *gpb.SubscribeResponse:
+			resp = v
 		}
-		log.V(1).Infof("Client %s sending:\n%s", c, v)
-		err = stream.Send(v)
+		log.V(1).Infof("Client %s sending:\n%v", c, resp)
+		err = stream.Send(resp)
 		if err != nil {
 			c.errors++
 			return err
@@ -218,19 +232,31 @@ func (c *Client) SetConfig(config *fpb.Config) {
 	c.config = config
 }
 
-func (c *Client) reset() {
+func (c *Client) reset() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	log.V(1).Infof("Client %s using config:\n%s", c, pretty.Sprint(c.config))
-	c.q = queue.New(false, c.config.Seed, c.config.Values)
-	// Inject sync message after latest provided update in the config.
-	if !c.config.DisableSync {
-		c.q.Add(&fpb.Value{
-			Timestamp: &fpb.Timestamp{Timestamp: c.q.Latest()},
-			Repeat:    1,
-			Value:     &fpb.Value_Sync{uint64(1)},
-		})
+	switch {
+	default:
+		q := queue.New(false, c.config.Seed, c.config.Values)
+		// Inject sync message after latest provided update in the config.
+		if !c.config.DisableSync {
+			q.Add(&fpb.Value{
+				Timestamp: &fpb.Timestamp{Timestamp: q.Latest()},
+				Repeat:    1,
+				Value:     &fpb.Value_Sync{uint64(1)},
+			})
+		}
+		c.q = q
+	case c.config.GetFixed() != nil:
+		q := queue.NewFixed(c.config.GetFixed().Responses, c.config.EnableDelay)
+		// Inject sync message after latest provided update in the config.
+		if !c.config.DisableSync {
+			q.Add(syncResp)
+		}
+		c.q = q
 	}
+	return nil
 }
 
 // valToResp converts a fake_proto Value to its corresponding gNMI proto stream

@@ -43,13 +43,13 @@ import (
 type Agent struct {
 	mu     sync.Mutex
 	s      *grpc.Server
+	lis    net.Listener
 	target string
 	state  fpb.State
 	config *fpb.Config
 	// cMu protects clients.
 	cMu     sync.Mutex
 	clients map[string]*Client
-	lis     net.Listener
 }
 
 // New returns an initialized fake agent.
@@ -81,10 +81,20 @@ func NewFromServer(s *grpc.Server, config *fpb.Config) (*Agent, error) {
 		return nil, fmt.Errorf("failed to open listener port %d: %v", a.config.Port, err)
 	}
 	gnmipb.RegisterGNMIServer(a.s, a)
-	go a.s.Serve(a.lis)
-	a.state = fpb.State_RUNNING
 	log.V(1).Infof("Created Agent: %s on %s", a.target, a.Address())
 	return a, nil
+}
+
+// Serve will start the agent serving and block until closed.
+func (a *Agent) Serve() error {
+	a.mu.Lock()
+	a.state = fpb.State_RUNNING
+	s := a.s
+	a.mu.Unlock()
+	if s == nil {
+		return fmt.Errorf("Serve() failed: not initialized")
+	}
+	return a.s.Serve(a.lis)
 }
 
 // Target returns the target name the agent is faking.
@@ -122,8 +132,12 @@ func (a *Agent) Close() {
 	defer a.mu.Unlock()
 	a.Clear()
 	a.state = fpb.State_STOPPED
+	if a.s == nil {
+		return
+	}
 	a.s.Stop()
 	a.s = nil
+	a.lis = nil
 }
 
 // Clear closes all currently connected clients of the agent.

@@ -188,13 +188,17 @@ func (c *Client) processQueue(stream ocpb.OpenConfig_SubscribeServer) error {
 			}
 			return fmt.Errorf("end of updates")
 		}
-		v, err := valToResp(event)
+		v, ok := event.(*fpb.Value)
+		if !ok {
+			return fmt.Errorf("failed to covert %v to Value", event)
+		}
+		resp, err := valToResp(v)
 		if err != nil {
 			c.errors++
 			return err
 		}
-		log.V(1).Infof("Client %s sending:\n%s", c, v)
-		err = stream.Send(v)
+		log.V(1).Infof("Client %s sending:\n%s", c, resp)
+		err = stream.Send(resp)
 		if err != nil {
 			c.errors++
 			return err

@@ -34,8 +34,9 @@ func (q *FixedQueue) Add(resp *gpb.SubscribeResponse) {
 }
 
 // Next returns the next update in the queue or an error. If the queue is
-// exhausted, a nil is returned for the update.
-func (q *FixedQueue) Next() (*gpb.SubscribeResponse, error) {
+// exhausted, a nil is returned for the update. The return will always be a
+// *gpb.SubscribeResponse for proper type assertion.
+func (q *FixedQueue) Next() (interface{}, error) {
 	q.mu.Lock()
 	defer q.mu.Unlock()
 	if len(q.resp) == 0 {

@@ -114,8 +114,7 @@ message Value {
     IntValue int_value = 100;
     DoubleValue double_value = 101;
     StringValue string_value = 102;
-    uint64 sync =
-        103;  // this value WILL be changed to a bool DO NOT rely on it.
+    uint64 sync = 103;
     DeleteValue delete = 104;
   }
 }

@@ -30,6 +30,12 @@ import (
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )
 
+// Queue is a generic interface for getting the next element from either a
+// FixedQeueue or UpdateQueue.
+type Queue interface {
+	Next() (interface{}, error)
+}
+
 // UpdateQueue is a structure that orders a set of device updates by their
 // timestamps and repeatedly generates new pseudo-random updates based on
 // a set of device path configurations.
@@ -70,8 +76,9 @@ func (u *UpdateQueue) Latest() int64 {
 }
 
 // Next returns the next update in the queue or an error.  If the queue is
-// exhausted, a nil is returned for the update.
-func (u *UpdateQueue) Next() (*fpb.Value, error) {
+// exhausted, a nil is returned for the update. The return will always be a
+// *fpb.Value for proper type assertion.
+func (u *UpdateQueue) Next() (interface{}, error) {
 	u.mu.Lock()
 	defer u.mu.Unlock()
 	if len(u.q) == 0 {
