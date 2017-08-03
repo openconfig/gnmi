@@ -36,7 +36,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.3.1";
+option (gnmi_service) = "0.4.0";
 
 service gNMI {
   // Capabilities allows the client to retrieve the set of capabilities that
@@ -121,8 +121,19 @@ message TypedValue {
 // associated attributes.
 // Reference: gNMI Specification Section 2.2.2.
 message Path {
-  repeated string element = 1;    // An element of the path.
-  string origin = 2;              // Label to disambiguate the path.
+  // Elements of the path are no longer encoded as a string, but rather within
+  // the elem field as a PathElem message.
+  repeated string element = 1 [deprecated=true];
+  string origin = 2;                              // Label to disambiguate path.
+  repeated PathElem elem = 3;                     // Elements of the path.
+}
+
+// PathElem encodes an element of a gNMI path, along ith any attributes (keys)
+// that may be associated with it.
+// Reference: gNMI Specification Section 2.2.2.
+message PathElem {
+  string name = 1;                    // The name of the element in the path.
+  map<string, string> key = 2;        // Map of key (attribute) name to value.
 }
 
 // Value encodes a data tree node's value - along with the way in which
@@ -147,21 +158,23 @@ enum Encoding {
   JSON_IETF = 4;      // JSON encoded text as per RFC7951.
 }
 
-// Error message used by the target to return errors to the client.
+// Error message previously utilised to return errors to the client. Deprecated
+// in favour of using the google.golang.org/genproto/googleapis/rpc/status
+// message in the RPC response.
 // Reference: gNMI Specification Section 2.5
 message Error {
+  option deprecated = true;
   uint32 code = 1;                // Canonical gRPC error code.
   string message = 2;             // Human readable error.
   google.protobuf.Any data = 3;   // Optional additional information.
 }
 
-
-// Decimal64 is used to encode floating-point decimal number. The value
+// Decimal64 is used to encode a fixed precision decimal number. The value
 // is expressed as a set of digits with the precision specifying the
 // number of digits following the decimal point in the digit set.
 message Decimal64 {
-  uint64 digits = 1;      // Set of digits.
-  uint32 precision = 2;    // Number of digits following the decimal point.
+  uint64 digits = 1;        // Set of digits.
+  uint32 precision = 2;     // Number of digits following the decimal point.
 }
 
 // ScalarArray is used to encode a mixed-type array of values.
@@ -197,14 +210,16 @@ message Poll {
 // The target includes a Notification message which is used to transmit values
 // of the path(s) that are associated with the subscription. The same message
 // is to indicate that the target has sent all data values once (is
-// synchronized). The error field is used to report errors that occur during
-// creation of a subscription.
+// synchronized).
 // Reference: gNMI Specification Section 3.5.1.4
 message SubscribeResponse {
   oneof response {
-    Notification update = 1;    // Changed or sampled value for a path.
-    bool sync_response = 3;     // Indicate target has sent all values once.
-    Error error = 4;            // Report an occurred in the Subscription.
+    Notification update = 1;          // Changed or sampled value for a path.
+    // Indicate target has sent all values associated with the subscription
+    // at least once.
+    bool sync_response = 3;
+    // Deprecated in favour of google.golang.org/genproto/googleapis/rpc/status
+    Error error = 4 [deprecated=true];
   }
 }
 
@@ -334,9 +349,9 @@ message UpdateResult {
   // all mutations effected by a set should be applied as a single
   // transaction.
   int64 timestamp = 1 [deprecated=true];
-  Path path = 2;          // Path associated with the update.
-  Error message = 3;      // Status of the update operation.
-  Operation op = 4;       // Operation type associated with the update.
+  Path path = 2;                            // Path associated with the update.
+  Error message = 3 [deprecated=true];      // Status of the update operation.
+  Operation op = 4;                         // Update operation type.
 }
 
 // GetRequest is sent when a client initiates a Get RPC. It is used to specify
@@ -369,7 +384,7 @@ message GetRequest {
 // Reference: gNMI Specification Section 3.3.2
 message GetResponse {
   repeated Notification notification = 1;   // Data values.
-  Error error = 2;                          // Errors that occurred in the Get.
+  Error error = 2 [deprecated=true];       // Errors that occurred in the Get.
 }
 
 // CapabilityRequest is sent by the client in the Capabilities RPC to request
