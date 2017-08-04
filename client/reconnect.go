@@ -46,8 +46,9 @@ type ReconnectClient struct {
 	disconnect func()
 	reset      func()
 
-	mu     sync.Mutex
-	cancel func()
+	mu            sync.Mutex
+	subscribeDone chan struct{}
+	cancel        func()
 }
 
 var _ Client = &ReconnectClient{}
@@ -71,6 +72,9 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 		return fmt.Errorf("ReconnectClient used for %s query", q.Type)
 	case Stream, Poll:
 	}
+
+	done := p.initDone()
+	defer done()
 
 	// ctx is cancelled in p.Close().
 	ctx, cancel := context.WithCancel(ctx)
@@ -112,12 +116,34 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 	}
 }
 
+func (p *ReconnectClient) initDone() func() {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+	p.subscribeDone = make(chan struct{})
+
+	return func() {
+		close(p.subscribeDone)
+	}
+}
+
+func (p *ReconnectClient) wait() {
+	p.mu.Lock()
+	ch := p.subscribeDone
+	p.mu.Unlock()
+
+	if ch != nil {
+		<-ch
+	}
+}
+
 // Close implements Client interface.
 func (p *ReconnectClient) Close() error {
 	if p.cancel != nil {
 		p.cancel()
 	}
-	return p.Client.Close()
+	err := p.Client.Close()
+	p.wait()
+	return err
 }
 
 // Impl implements Client interface.
