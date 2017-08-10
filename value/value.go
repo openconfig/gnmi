@@ -68,6 +68,8 @@ func FromScalar(i interface{}) (*pb.TypedValue, error) {
 			sa.Element[x] = &pb.TypedValue{Value: &pb.TypedValue_StringVal{s}}
 		}
 		tv.Value = &pb.TypedValue_LeaflistVal{sa}
+	case []byte:
+		tv.Value = &pb.TypedValue_BytesVal{v}
 	case []interface{}:
 		sa := &pb.ScalarArray{Element: make([]*pb.TypedValue, len(v))}
 		var err error
@@ -110,6 +112,8 @@ func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 			ss[x] = v
 		}
 		i = ss
+	case *pb.TypedValue_BytesVal:
+		i = tv.GetBytesVal()
 	default:
 		return nil, fmt.Errorf("non-scalar type %+v", tv.Value)
 	}

@@ -48,7 +48,7 @@ func TestFromScalar(t *testing.T) {
 		{intf: true, msg: &pb.TypedValue{Value: &pb.TypedValue_BoolVal{true}}},
 		{intf: false, msg: &pb.TypedValue{Value: &pb.TypedValue_BoolVal{false}}},
 		{intf: float64(3.5), msg: &pb.TypedValue{Value: &pb.TypedValue_FloatVal{3.5}}},
-		{intf: []byte("foo"), err: true},
+		{intf: []byte("foo"), msg: &pb.TypedValue{Value: &pb.TypedValue_BytesVal{[]byte("foo")}}},
 		{intf: "a non-utf-8 string \377", err: true},
 		{
 			intf: []string{"a", "b"},
@@ -137,7 +137,7 @@ func TestToScalar(t *testing.T) {
 			}}},
 			intf: []interface{}{"a", int64(1), uint64(1)},
 		},
-		{msg: &pb.TypedValue{Value: &pb.TypedValue_BytesVal{}}, err: true},
+		{intf: []byte("foo"), msg: &pb.TypedValue{Value: &pb.TypedValue_BytesVal{[]byte("foo")}}},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_AnyVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_JsonVal{}}, err: true},
