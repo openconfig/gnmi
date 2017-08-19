@@ -7,7 +7,7 @@ import (
 	"io/ioutil"
 
 	"flag"
-	
+
 	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
@@ -17,6 +17,7 @@ import (
 
 var (
 	configFile = flag.String("config", "", "configuration file to load")
+	text       = flag.Bool("text", false, "use text configuration file")
 	port       = flag.Int("port", -1, "port to listen on")
 )
 
@@ -26,8 +27,14 @@ func loadConfig(fileName string) (*fpb.Config, error) {
 		return nil, err
 	}
 	cfg := &fpb.Config{}
-	if err := proto.Unmarshal(in, cfg); err != nil {
-		return nil, fmt.Errorf("failed to parse %s: %v", fileName, err)
+	if *text {
+		if err := proto.UnmarshalText(string(in[:]), cfg); err != nil {
+			return nil, fmt.Errorf("failed to parse text file %s: %v", fileName, err)
+		}
+	} else {
+		if err := proto.Unmarshal(in, cfg); err != nil {
+			return nil, fmt.Errorf("failed to parse %s: %v", fileName, err)
+		}
 	}
 	return cfg, nil
 }
