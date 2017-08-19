@@ -3,11 +3,16 @@
 package main
 
 import (
+	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"io/ioutil"
 
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
+
 	"flag"
-	
+
 	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
@@ -18,6 +23,11 @@ import (
 var (
 	configFile = flag.String("config", "", "configuration file to load")
 	port       = flag.Int("port", -1, "port to listen on")
+
+	// Certificate files.
+	caCert     = flag.String("ca_crt", "", "CA certificate.")
+	serverCert = flag.String("server_crt", "", "Server certificate.")
+	serverKey  = flag.String("server_key", "", "Server private key.")
 )
 
 func loadConfig(fileName string) (*fpb.Config, error) {
@@ -47,8 +57,44 @@ func main() {
 		log.Errorf("Failed to load %s: %v", *configFile, err)
 		return
 	}
+
+	opts := []grpc.ServerOption{}
+	if *caCert != "" || *serverCert != "" || *serverKey != "" {
+		if *caCert == "" || *serverCert == "" || *serverKey == "" {
+			log.Exit("--ca_crt --server_crt and --server_key must be set with file locations")
+		}
+
+		certificate, err := tls.LoadX509KeyPair(*serverCert, *serverKey)
+		if err != nil {
+			log.Fatalf("could not load server key pair: %s", err)
+		}
+
+		certPool := x509.NewCertPool()
+		ca, err := ioutil.ReadFile(*caCert)
+		if err != nil {
+			log.Fatalf("could not read ca certificate: %s", err)
+		}
+
+		if ok := certPool.AppendCertsFromPEM(ca); !ok {
+			log.Fatal("failed to append ca certs")
+		}
+
+		creds := credentials.NewTLS(&tls.Config{
+			ClientAuth:   tls.RequireAndVerifyClientCert,
+			Certificates: []tls.Certificate{certificate},
+			ClientCAs:    certPool,
+		})
+
+		opts = append(opts, grpc.Creds(creds))
+	}
+
 	cfg.Port = int64(*port)
-	a, err := gnmi.New(cfg, nil)
+	a, err := gnmi.New(cfg, opts)
+	if err != nil {
+		log.Errorf("Failed to create gNMI: %v", err)
+		return
+	}
+
 	log.Infof("Starting RPC server on address :%s", a.Address())
 	a.Serve() // blocks until close
 }
