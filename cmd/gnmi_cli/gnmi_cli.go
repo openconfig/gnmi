@@ -25,20 +25,23 @@ package main
 
 import (
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/signal"
 	"strings"
 	"sync"
 	"time"
 
-	"flag"
-	log "github.com/golang/glog"
 	"context"
-	"golang.org/x/crypto/ssh/terminal"
+	"flag"
+
+	log "github.com/golang/glog"
 	"github.com/openconfig/gnmi/cli"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/flags"
+	"golang.org/x/crypto/ssh/terminal"
 
 	// Register supported client types.
 	_ "github.com/openconfig/gnmi/client/gnmi"
@@ -65,6 +68,11 @@ var (
 	replaces = &flags.StringMap{}
 
 	withUserPass = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
+
+	// Certificate files.
+	caCert     = flag.String("ca_crt", "", "CA certificate file.")
+	clientCert = flag.String("client_crt", "", "Client certificate file.")
+	clientKey  = flag.String("client_key", "", "Client private key file.")
 )
 
 func init() {
@@ -143,6 +151,30 @@ func main() {
 	}
 	for _, path := range *queryFlag {
 		q.Queries = append(q.Queries, strings.Split(path, cfg.Delimiter))
+	}
+
+	if *caCert != "" || *clientCert != "" || *clientKey != "" {
+		if *caCert == "" || *clientCert == "" || *clientKey == "" {
+			log.Exit("--ca_crt --client_crt and --client_key must be set with file locations")
+		}
+
+		certificate, err := tls.LoadX509KeyPair(*clientCert, *clientKey)
+		if err != nil {
+			log.Fatalf("could not load client key pair: %s", err)
+		}
+
+		certPool := x509.NewCertPool()
+		ca, err := ioutil.ReadFile(*caCert)
+		if err != nil {
+			log.Fatalf("could not read ca certificate: %s", err)
+		}
+
+		if ok := certPool.AppendCertsFromPEM(ca); !ok {
+			log.Fatal("failed to append ca certs")
+		}
+
+		q.TLS.Certificates = []tls.Certificate{certificate}
+		q.TLS.RootCAs = certPool
 	}
 
 	if err := cli.QueryDisplay(ctx, q, &cfg); err != nil {
