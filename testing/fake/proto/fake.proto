@@ -3,7 +3,7 @@
 // updates from fake targets.
 syntax = "proto3";
 
-import "github.com/golang/protobuf/ptypes/any/any.proto";
+import "google/protobuf/any.proto";
 import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
 
 package gnmi.fake;
