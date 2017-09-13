@@ -69,9 +69,9 @@ var (
 	withUserPass = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
 
 	// Certificate files.
-	caCert     = flag.String("ca_crt", "", "CA certificate file.")
-	clientCert = flag.String("client_crt", "", "Client certificate file.")
-	clientKey  = flag.String("client_key", "", "Client private key file.")
+	caCert     = flag.String("ca_crt", "", "CA certificate file. Used to verify server TLS certificate.")
+	clientCert = flag.String("client_crt", "", "Client certificate file. Used for client certificate-based authentication.")
+	clientKey  = flag.String("client_key", "", "Client private key file. Used for client certificate-based authentication.")
 )
 
 func init() {
@@ -152,28 +152,29 @@ func main() {
 		q.Queries = append(q.Queries, strings.Split(path, cfg.Delimiter))
 	}
 
-	if *caCert != "" || *clientCert != "" || *clientKey != "" {
-		if *caCert == "" || *clientCert == "" || *clientKey == "" {
-			log.Exit("--ca_crt --client_crt and --client_key must be set with file locations")
-		}
-
-		certificate, err := tls.LoadX509KeyPair(*clientCert, *clientKey)
-		if err != nil {
-			log.Exitf("could not load client key pair: %s", err)
-		}
-
+	if *caCert != "" {
 		certPool := x509.NewCertPool()
 		ca, err := ioutil.ReadFile(*caCert)
 		if err != nil {
 			log.Exitf("could not read %q: %s", *caCert, err)
 		}
-
 		if ok := certPool.AppendCertsFromPEM(ca); !ok {
 			log.Exit("failed to append CA certificates")
 		}
 
-		q.TLS.Certificates = []tls.Certificate{certificate}
 		q.TLS.RootCAs = certPool
+	}
+
+	if *clientCert != "" || *clientKey != "" {
+		if *clientCert == "" || *clientKey == "" {
+			log.Exit("--client_crt and --client_key must be set with file locations")
+		}
+		certificate, err := tls.LoadX509KeyPair(*clientCert, *clientKey)
+		if err != nil {
+			log.Exitf("could not load client key pair: %s", err)
+		}
+
+		q.TLS.Certificates = []tls.Certificate{certificate}
 	}
 
 	if err := cli.QueryDisplay(ctx, q, &cfg); err != nil {
