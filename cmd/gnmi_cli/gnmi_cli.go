@@ -33,6 +33,7 @@ import (
 	"strings"
 	"sync"
 	"time"
+	"unicode/utf8"
 
 	"flag"
 	log "github.com/golang/glog"
@@ -83,7 +84,7 @@ func init() {
 	// Config command-line flags.
 	flag.DurationVar(&cfg.PollingInterval, "polling_interval", 30*time.Second, "Interval at which to poll in seconds if polling is specified for query_type.")
 	flag.UintVar(&cfg.Count, "count", 0, "Number of polling/streaming events (0 is infinite).")
-	flag.StringVar(&cfg.Delimiter, "delimiter", "/", "Delimiter between path nodes in query.")
+	flag.StringVar(&cfg.Delimiter, "delimiter", "/", "Delimiter between path nodes in query. Must be a single UTF-8 code point.")
 	flag.DurationVar(&cfg.StreamingDuration, "streaming_duration", 0, "Length of time to collect streaming queries (0 is infinite).")
 	flag.StringVar(&cfg.DisplayPrefix, "display_prefix", "", "Per output line prefix.")
 	flag.StringVar(&cfg.DisplayIndent, "display_indent", "  ", "Output line, per nesting-level indent.")
@@ -149,7 +150,11 @@ func main() {
 		log.Exit("--query must be set")
 	}
 	for _, path := range *queryFlag {
-		q.Queries = append(q.Queries, strings.Split(path, cfg.Delimiter))
+		query, err := parseQuery(path, cfg.Delimiter)
+		if err != nil {
+			log.Exitf("invalid query %q : %v", path, err)
+		}
+		q.Queries = append(q.Queries, query)
 	}
 
 	if *caCert != "" {
@@ -222,4 +227,41 @@ func readCredentials() (*client.Credentials, error) {
 	c.Password = string(pass)
 
 	return c, nil
+}
+
+func parseQuery(query, delim string) ([]string, error) {
+	d, w := utf8.DecodeRuneInString(delim)
+	if w == 0 || w != len(delim) {
+		return nil, fmt.Errorf("delimiter must be single UTF-8 codepoint: %q", delim)
+	}
+	// Ignore leading and trailing delimters.
+	query = strings.Trim(query, delim)
+	// Split path on delimeter with contextually aware key/value handling.
+	var buf []rune
+	inKey := false
+	null := rune(0)
+	for _, r := range query {
+		switch r {
+		case '[':
+			if inKey {
+				return nil, fmt.Errorf("malformed query, nested '[': %q ", query)
+			}
+			inKey = true
+		case ']':
+			if !inKey {
+				return nil, fmt.Errorf("malformed query, unmatched ']': %q", query)
+			}
+			inKey = false
+		case d:
+			if !inKey {
+				buf = append(buf, null)
+				continue
+			}
+		}
+		buf = append(buf, r)
+	}
+	if inKey {
+		return nil, fmt.Errorf("malformed query, missing trailing ']': %q", query)
+	}
+	return strings.Split(string(buf), string(null)), nil
 }
