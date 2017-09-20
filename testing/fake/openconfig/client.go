@@ -230,7 +230,7 @@ func (c *Client) reset() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	log.V(1).Infof("Client %s using config:\n%s", c, pretty.Sprint(c.config))
-	c.q = queue.New(false, c.config.Seed, c.config.Values)
+	c.q = queue.New(c.config.GetEnableDelay(), c.config.Seed, c.config.Values)
 	// Inject sync message after latest provided update in the config.
 	if !c.config.DisableSync {
 		c.q.Add(&fpb.Value{

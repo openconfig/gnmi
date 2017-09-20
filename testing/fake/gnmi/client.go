@@ -238,7 +238,7 @@ func (c *Client) reset() error {
 	log.V(1).Infof("Client %s using config:\n%s", c, pretty.Sprint(c.config))
 	switch {
 	default:
-		q := queue.New(false, c.config.Seed, c.config.Values)
+		q := queue.New(c.config.GetEnableDelay(), c.config.Seed, c.config.Values)
 		// Inject sync message after latest provided update in the config.
 		if !c.config.DisableSync {
 			q.Add(&fpb.Value{
