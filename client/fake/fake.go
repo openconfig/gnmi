@@ -34,9 +34,14 @@ var New = func(ctx context.Context, q client.Query) (client.Impl, error) {
 }
 
 // Client is the fake of a client implementation. It will provide a simple
-// list of updates to send to the generic client. The Updates slice can be
-// made up of either client.Notifications or errors anything else will cause
-// a panic.
+// list of updates to send to the generic client.
+//
+// The Updates slice can be:
+// - client.Notification: passed to query.NotificationHandler
+// - error: returned from Recv, interrupts the update stream
+// - Block: pauses Recv, proceeds to next update on Unblock
+//
+// See ExampleClient for sample use case.
 type Client struct {
 	currUpdate int
 	Updates    []interface{}
@@ -60,23 +65,30 @@ func (c *Client) Recv() error {
 		c.Handler(client.Connected{})
 		c.connected = true
 	}
-	if c.currUpdate >= len(c.Updates) {
-		if c.BlockAfterSync != nil {
-			log.Info("No more updates, blocking on BlockAfterSync")
-			<-c.BlockAfterSync
+
+	for c.currUpdate < len(c.Updates) {
+		u := c.Updates[c.currUpdate]
+		c.currUpdate++
+		log.Infof("fake client update: %v", u)
+		switch v := u.(type) {
+		case client.Notification:
+			c.Handler(v)
+			return nil
+		case error:
+			return v
+		case Block:
+			<-v
 		}
-		log.Infof("Recv() returning %v", client.ErrStopReading)
-		return client.ErrStopReading
 	}
-	log.Infof("Recv() called sending update: %v", c.Updates[c.currUpdate])
-	switch v := c.Updates[c.currUpdate].(type) {
-	case client.Notification:
-		c.Handler(v)
-	case error:
-		return v
+
+	c.Handler(client.Sync{})
+	// We went through all c.Update items.
+	if c.BlockAfterSync != nil {
+		log.Info("No more updates, blocking on BlockAfterSync")
+		<-c.BlockAfterSync
 	}
-	c.currUpdate++
-	return nil
+	log.Infof("Recv() returning %v", client.ErrStopReading)
+	return client.ErrStopReading
 }
 
 // Close is a noop in the fake.
@@ -96,3 +108,11 @@ func (c *Client) Poll() error {
 func (c *Client) Set(context.Context, client.SetRequest) (client.SetResponse, error) {
 	return client.SetResponse{}, client.ErrUnsupported
 }
+
+// Block is a special update that lets the stream of updates to be paused.
+// See Client docs for usage example.
+type Block chan struct{}
+
+// Unblock unpauses the update stream following the Block. Can only be called
+// once.
+func (b Block) Unblock() { close(b) }
