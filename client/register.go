@@ -21,6 +21,7 @@ import (
 	"fmt"
 	"sort"
 	"sync"
+	"time"
 
 	log "github.com/golang/glog"
 	"context"
@@ -31,6 +32,9 @@ var (
 	mu         sync.Mutex
 	clientImpl = map[string]InitImpl{}
 )
+
+// Default timeout for all queries.
+const defaultTimeout = time.Minute
 
 // Impl is the protocol/RPC specific implementation of the streaming
 // Client.
@@ -79,6 +83,14 @@ func NewImpl(ctx context.Context, q Query, clientType ...string) (Impl, error) {
 	if registeredCount == 0 {
 		return nil, errors.New("no registered client types")
 	}
+
+	// If Timeout is not set, use a default one. There is pretty much never a
+	// case where clients will want to wait for initial connection
+	// indefinitely. Reconnect client helps with retries.
+	if q.Timeout == 0 {
+		q.Timeout = defaultTimeout
+	}
+
 	errC := make(chan error, len(clientType))
 	implC := make(chan Impl)
 	done := make(chan struct{})

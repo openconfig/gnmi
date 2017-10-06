@@ -104,6 +104,8 @@ type Query struct {
 	// Timeout is the connection timeout for the query. It will *not* prevent a
 	// slow (or streaming) query from completing, this only affects the initial
 	// connection and broken connection detection.
+	//
+	// If Timeout is not set, default is 1 minute.
 	Timeout time.Duration
 	// NotificationHandler is the per notification callback handed to a vendor
 	// specific implementation. For every notificaiton this call back will be
