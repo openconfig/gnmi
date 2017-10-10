@@ -30,6 +30,7 @@ import (
 var New = func(ctx context.Context, q client.Query) (client.Impl, error) {
 	return &Client{
 		Handler: q.NotificationHandler,
+		Context: ctx,
 	}, nil
 }
 
@@ -51,6 +52,7 @@ type Client struct {
 	// BlockAfterSync is closed when Close is called.
 	BlockAfterSync chan struct{}
 	connected      bool
+	Context        context.Context
 }
 
 // Reset will reset the client to start playing new updates.
@@ -61,6 +63,9 @@ func (c *Client) Reset(u []interface{}) {
 
 // Recv will be called for each update the generic client wants to receive.
 func (c *Client) Recv() error {
+	if c.Context == nil {
+		c.Context = context.Background()
+	}
 	if !c.connected {
 		c.Handler(client.Connected{})
 		c.connected = true
@@ -77,7 +82,11 @@ func (c *Client) Recv() error {
 		case error:
 			return v
 		case Block:
-			<-v
+			select {
+			case <-c.Context.Done():
+				return c.Context.Err()
+			case <-v:
+			}
 		}
 	}
 
@@ -85,7 +94,11 @@ func (c *Client) Recv() error {
 	// We went through all c.Update items.
 	if c.BlockAfterSync != nil {
 		log.Info("No more updates, blocking on BlockAfterSync")
-		<-c.BlockAfterSync
+		select {
+		case <-c.Context.Done():
+			return c.Context.Err()
+		case <-c.BlockAfterSync:
+		}
 	}
 	log.Infof("Recv() returning %v", client.ErrStopReading)
 	return client.ErrStopReading
