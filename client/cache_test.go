@@ -177,7 +177,7 @@ func TestCache(t *testing.T) {
 		u: []interface{}{
 			client.Error{},
 		},
-		err: false,
+		err: true,
 	}, {
 		desc: "Error on Recv",
 		u: []interface{}{

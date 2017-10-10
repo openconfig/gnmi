@@ -77,8 +77,7 @@ func (c *Client) Recv() error {
 		log.Infof("fake client update: %v", u)
 		switch v := u.(type) {
 		case client.Notification:
-			c.Handler(v)
-			return nil
+			return c.Handler(v)
 		case error:
 			return v
 		case Block:
