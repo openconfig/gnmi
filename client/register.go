@@ -68,6 +68,22 @@ func Register(t string, f InitImpl) error {
 	return nil
 }
 
+// RegisterTest allows tests to override client implementation for any client
+// type. It's identical to Register, except t uniqueness is not enforced.
+//
+// RegisterTest is similar to ResetRegisteredImpls + Register.
+// Commonly used with the fake client (./fake directory).
+func RegisterTest(t string, f InitImpl) error {
+	mu.Lock()
+	defer mu.Unlock()
+	if f == nil {
+		return errors.New("RegisterFunc cannot be nil")
+	}
+	clientImpl[t] = f
+	log.V(1).Infof("client.Register(%q, func) successful.", t)
+	return nil
+}
+
 // NewImpl returns a client implementation based on the registered types.
 // It will try all clientTypes listed in parallel until one succeeds. If
 // clientType is nil, it will try all registered clientTypes.

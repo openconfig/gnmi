@@ -11,20 +11,12 @@ import (
 
 func ExampleClient() {
 	block := make(Block)
-	cl := &Client{
-		Updates: []interface{}{
-			client.Update{Path: []string{"target", "a", "b"}, Val: 1, TS: time.Now()},
-			client.Update{Path: []string{"target", "a", "c"}, Val: 2, TS: time.Now()},
-			block,
-			client.Delete{Path: []string{"target", "a", "b"}, TS: time.Now()},
-			errors.New("unexpected error"),
-		},
-	}
-
-	client.ResetRegisteredImpls()
-	client.Register("fake", func(ctx context.Context, q client.Query) (client.Impl, error) {
-		cl.Handler = q.NotificationHandler
-		return cl, nil
+	Mock("fake", []interface{}{
+		client.Update{Path: []string{"target", "a", "b"}, Val: 1, TS: time.Now()},
+		client.Update{Path: []string{"target", "a", "c"}, Val: 2, TS: time.Now()},
+		block,
+		client.Delete{Path: []string{"target", "a", "b"}, TS: time.Now()},
+		errors.New("unexpected error"),
 	})
 
 	// Unblock the stream after a second.

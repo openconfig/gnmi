@@ -27,6 +27,9 @@ import (
 )
 
 // New can be replaced for any negative testing you would like to do as well.
+//
+// New exists for compatibility reasons. Most new clients should use Mock.
+// Mock ensures that q.NotificationHandler and ctx aren't forgotten.
 var New = func(ctx context.Context, q client.Query) (client.Impl, error) {
 	return &Client{
 		Handler: q.NotificationHandler,
@@ -34,10 +37,26 @@ var New = func(ctx context.Context, q client.Query) (client.Impl, error) {
 	}, nil
 }
 
+// Mock overrides a client implementation named typ (most implementation
+// libraries have Type constant containing that name) with a fake client
+// sending given updates.
+//
+// See Client documentation about updates slice contents.
+func Mock(typ string, updates []interface{}) {
+	client.RegisterTest(typ, func(ctx context.Context, q client.Query) (client.Impl, error) {
+		c := &Client{
+			Handler: q.NotificationHandler,
+			Context: ctx,
+			Updates: updates,
+		}
+		return c, nil
+	})
+}
+
 // Client is the fake of a client implementation. It will provide a simple
 // list of updates to send to the generic client.
 //
-// The Updates slice can be:
+// The Updates slice can contain:
 // - client.Notification: passed to query.NotificationHandler
 // - error: returned from Recv, interrupts the update stream
 // - Block: pauses Recv, proceeds to next update on Unblock
@@ -47,6 +66,9 @@ type Client struct {
 	currUpdate int
 	Updates    []interface{}
 	Handler    client.NotificationHandler
+	// BlockAfterSync is deprecated: use Block update as last Updates slice
+	// element instead.
+	//
 	// When BlockAfterSync is set, Client will read from it in Recv after
 	// sending all Updates before returning ErrStopReading.
 	// BlockAfterSync is closed when Close is called.
