@@ -96,7 +96,7 @@ func (c *Client) Recv() error {
 	for c.currUpdate < len(c.Updates) {
 		u := c.Updates[c.currUpdate]
 		c.currUpdate++
-		log.Infof("fake client update: %v", u)
+		log.V(1).Infof("fake client update: %v", u)
 		switch v := u.(type) {
 		case client.Notification:
 			return c.Handler(v)
