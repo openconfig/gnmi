@@ -1,0 +1,2 @@
+target: "insert-target-name-here"
+client_type: GRPC_GNMI
