@@ -49,6 +49,7 @@ type ReconnectClient struct {
 	mu            sync.Mutex
 	subscribeDone chan struct{}
 	cancel        func()
+	closed        bool
 }
 
 var _ Client = &ReconnectClient{}
@@ -73,12 +74,8 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 	case Stream, Poll:
 	}
 
-	done := p.initDone()
+	ctx, done := p.initDone(ctx)
 	defer done()
-
-	// ctx is cancelled in p.Close().
-	ctx, cancel := context.WithCancel(ctx)
-	p.cancel = cancel
 
 	failCount := 0
 	for {
@@ -116,33 +113,50 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 	}
 }
 
-func (p *ReconnectClient) initDone() func() {
+// initDone finishes Subscribe initialization before starting the inner
+// Subscribe loop.
+// If p is closed before initDone, a cancelled context is returned.
+func (p *ReconnectClient) initDone(ctx context.Context) (context.Context, func()) {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.subscribeDone = make(chan struct{})
 
-	return func() {
-		close(p.subscribeDone)
+	// ctx is cancelled in p.Close().
+	ctx, p.cancel = context.WithCancel(ctx)
+
+	// If Close was called before initDone returned, it didn't have a cancel
+	// func to trigger. Trigger it here instead.
+	// Since initDone and Cancel are synchronizing on p.mu, either this or
+	// Close will call p.cancel(), preventing a hanging client.
+	if p.closed {
+		p.cancel()
 	}
-}
 
-func (p *ReconnectClient) wait() {
-	p.mu.Lock()
-	ch := p.subscribeDone
-	p.mu.Unlock()
-
-	if ch != nil {
-		<-ch
+	return ctx, func() {
+		close(p.subscribeDone)
 	}
 }
 
 // Close implements Client interface.
 func (p *ReconnectClient) Close() error {
-	if p.cancel != nil {
-		p.cancel()
-	}
+	subscribeDone := func() chan struct{} {
+		p.mu.Lock()
+		defer p.mu.Unlock()
+
+		if p.cancel != nil {
+			p.cancel()
+		}
+		p.closed = true
+
+		return p.subscribeDone
+	}()
+
 	err := p.Client.Close()
-	p.wait()
+
+	// Wait for Subscribe to return.
+	if subscribeDone != nil {
+		<-subscribeDone
+	}
 	return err
 }
 

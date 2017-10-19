@@ -23,6 +23,7 @@ import (
 
 	"context"
 	"github.com/openconfig/gnmi/client"
+	fclient "github.com/openconfig/gnmi/client/fake"
 )
 
 func TestReconnect(t *testing.T) {
@@ -74,4 +75,28 @@ func (c breakingSubscribeClient) Subscribe(ctx context.Context, q client.Query, 
 func (c breakingSubscribeClient) Close() error {
 	c.ch <- errors.New("closed")
 	return nil
+}
+
+func TestReconnectEarlyClose(t *testing.T) {
+	block := make(fclient.Block)
+	defer close(block)
+	fclient.Mock("fake", []interface{}{block})
+
+	rc := client.Reconnect(&client.BaseClient{}, nil, nil)
+	rc.Close()
+
+	done := make(chan struct{})
+	go func() {
+		rc.Subscribe(context.Background(), client.Query{
+			Type:                client.Stream,
+			NotificationHandler: func(client.Notification) error { return nil },
+		}, "fake")
+		close(done)
+	}()
+
+	select {
+	case <-done:
+	case <-time.After(time.Second):
+		t.Error("Subscribe on a closed ReconnectClient didn't return after 1s")
+	}
 }
