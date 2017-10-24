@@ -101,7 +101,7 @@ func (c *CacheClient) Synced() <-chan struct{} {
 func (c *CacheClient) Leaves() Leaves {
 	// Convert node items into Leaf (expand TreeVal leaves).
 	var pvs Leaves
-	c.WalkSorted(func(path []string, value interface{}) {
+	c.WalkSorted(func(path []string, _ *ctree.Leaf, value interface{}) {
 		tv, ok := value.(TreeVal)
 		if !ok {
 			log.Errorf("Invalid value in tree: %s=%#v", path, value)

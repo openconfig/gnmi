@@ -354,7 +354,7 @@ func displayWalk(target string, c *client.CacheClient, cfg *Config) {
 			b.add(path, v.Val)
 		}
 	}
-	c.WalkSorted(func(path []string, value interface{}) {
+	c.WalkSorted(func(path []string, _ *ctree.Leaf, value interface{}) {
 		switch v := value.(type) {
 		default:
 			b.add(path, fmt.Sprintf("INVALID NODE %#v", value))

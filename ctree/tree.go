@@ -36,6 +36,26 @@ type Tree struct {
 	leafBranch interface{}
 }
 
+// Leaf is a Tree node that represents a leaf.
+//
+// Leaf is safe for use from multiple goroutines and will return the latest
+// value.
+// This means that if value in this leaf was updated after Leaf was retrieved,
+// Value will return the updated content, not the original one.
+// This also means that multiple calls to Value may return different results.
+type Leaf Tree
+
+// Value returns the latest value stored in this leaf. Value is safe to call on
+// nil Leaf.
+func (l *Leaf) Value() interface{} {
+	if l == nil {
+		return nil
+	}
+	defer l.mu.RUnlock()
+	l.mu.RLock()
+	return l.leafBranch
+}
+
 func newBranch(path []string, value interface{}) *Tree {
 	if len(path) == 0 {
 		return &Tree{leafBranch: value}
@@ -133,7 +153,36 @@ func (t *Tree) Get(path []string) interface{} {
 	return nil
 }
 
-func (t *Tree) enumerateChildren(prefix, path []string, f func(path []string, value interface{})) {
+// GetLeaf returns the leaf node if path points to a leaf in t, nil otherwise. All
+// nodes in path must be fully specified with no globbing (*).
+func (t *Tree) GetLeaf(path []string) *Leaf {
+	defer t.mu.RUnlock()
+	t.mu.RLock()
+	if len(path) == 0 {
+		if _, ok := t.leafBranch.(branch); ok {
+			return nil
+		}
+		return (*Leaf)(t)
+	}
+	if b, ok := t.leafBranch.(branch); ok {
+		if br := b[path[0]]; br != nil {
+			return br.GetLeaf(path[1:])
+		}
+	}
+	return nil
+}
+
+// VisitFunc is a callback func triggered on leaf values by Query and Walk.
+//
+// The provided Leaf is the leaf node of the tree, val is the value stored
+// inside of it. l can be retained after VisitFunc returns and l.Value() can be
+// called to get the latest value for that leaf.
+//
+// Note that l.Value can *not* be called inside VisitFunc, because the node is
+// already locked by Query/Walk.
+type VisitFunc func(path []string, l *Leaf, val interface{})
+
+func (t *Tree) enumerateChildren(prefix, path []string, f VisitFunc) {
 	// Caller should hold a read lock on t.
 	if len(path) == 0 {
 		switch b := t.leafBranch.(type) {
@@ -142,7 +191,7 @@ func (t *Tree) enumerateChildren(prefix, path []string, f func(path []string, va
 				br.queryInternal(append(prefix, k), path, f)
 			}
 		default:
-			f(prefix, t.leafBranch)
+			f(prefix, (*Leaf)(t), t.leafBranch)
 		}
 		return
 	}
@@ -157,11 +206,11 @@ func (t *Tree) enumerateChildren(prefix, path []string, f func(path []string, va
 // nodes in path may be specified by globs (*). Results and their full paths
 // are passed to f as they are found in the Tree. No ordering of paths is
 // guaranteed.
-func (t *Tree) Query(path []string, f func(path []string, value interface{})) {
+func (t *Tree) Query(path []string, f VisitFunc) {
 	t.queryInternal(nil, path, f)
 }
 
-func (t *Tree) queryInternal(prefix, path []string, f func(path []string, value interface{})) {
+func (t *Tree) queryInternal(prefix, path []string, f VisitFunc) {
 	defer t.mu.RUnlock()
 	t.mu.RLock()
 	if len(path) == 0 || path[0] == "*" {
@@ -175,7 +224,7 @@ func (t *Tree) queryInternal(prefix, path []string, f func(path []string, value 
 	}
 }
 
-func (t *Tree) walkInternal(path []string, f func(path []string, value interface{})) {
+func (t *Tree) walkInternal(path []string, f VisitFunc) {
 	defer t.mu.RUnlock()
 	t.mu.RLock()
 	if b, ok := t.leafBranch.(branch); ok {
@@ -192,15 +241,15 @@ func (t *Tree) walkInternal(path []string, f func(path []string, value interface
 	if len(path) == 0 && t.leafBranch == nil {
 		return
 	}
-	f(path, t.leafBranch)
+	f(path, (*Leaf)(t), t.leafBranch)
 }
 
 // Walk calls f for all leaves.
-func (t *Tree) Walk(f func(path []string, value interface{})) {
+func (t *Tree) Walk(f VisitFunc) {
 	t.walkInternal(nil, f)
 }
 
-func (t *Tree) walkInternalSorted(path []string, f func(path []string, value interface{})) {
+func (t *Tree) walkInternalSorted(path []string, f VisitFunc) {
 	defer t.mu.RUnlock()
 	t.mu.RLock()
 	if b, ok := t.leafBranch.(branch); ok {
@@ -222,11 +271,11 @@ func (t *Tree) walkInternalSorted(path []string, f func(path []string, value int
 	if len(path) == 0 && t.leafBranch == nil {
 		return
 	}
-	f(path, t.leafBranch)
+	f(path, (*Leaf)(t), t.leafBranch)
 }
 
 // WalkSorted calls f for all leaves in string sorted order.
-func (t *Tree) WalkSorted(f func(path []string, value interface{})) {
+func (t *Tree) WalkSorted(f VisitFunc) {
 	t.walkInternalSorted(nil, f)
 }
 

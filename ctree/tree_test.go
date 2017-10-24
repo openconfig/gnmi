@@ -26,11 +26,6 @@ import (
 	"testing"
 )
 
-type expected struct {
-	path  []string
-	value string
-}
-
 func TestAdd(t *testing.T) {
 	tr := &Tree{}
 	if err := tr.Add([]string{}, "foo"); err != nil {
@@ -56,7 +51,10 @@ func TestAdd(t *testing.T) {
 
 func TestGet(t *testing.T) {
 	tr := &Tree{}
-	for x, tt := range []expected{
+	for x, tt := range []struct {
+		path  []string
+		value string
+	}{
 		{[]string{"a", "b"}, "value0"},
 		{[]string{"a", "c"}, "value1"},
 		{[]string{"a", "d"}, "value2"},
@@ -104,7 +102,7 @@ type expectedQuery struct {
 func TestQuery(t *testing.T) {
 	tr := &Tree{}
 	results := make(map[string]interface{})
-	appendResults := func(p []string, v interface{}) { results[strings.Join(p, "/")] = v }
+	appendResults := func(p []string, _ *Leaf, v interface{}) { results[strings.Join(p, "/")] = v }
 
 	tr.Query([]string{"*"}, appendResults)
 	if len(results) > 0 {
@@ -131,11 +129,25 @@ func TestQuery(t *testing.T) {
 	}
 }
 
+func TestUpdateLeaf(t *testing.T) {
+	tr := &Tree{}
+	buildTree(tr)
+
+	l := tr.GetLeaf(testPaths[0])
+
+	nv := "new value"
+	tr.Add(testPaths[0], nv)
+
+	if got := l.Value(); got != nv {
+		t.Errorf("Value on updated leaf returned %+v, want %+v", got, nv)
+	}
+}
+
 func TestWalk(t *testing.T) {
 	tr := &Tree{}
 	buildTree(tr)
 	paths := [][]string{}
-	tr.Walk(func(path []string, value interface{}) {
+	tr.Walk(func(path []string, _ *Leaf, value interface{}) {
 		got, want := value.(string), strings.Join(path, "/")
 		if got != want {
 			t.Errorf("Walk got value %q, want %q", got, want)
@@ -169,7 +181,7 @@ func TestWalkSorted(t *testing.T) {
 	tr := &Tree{}
 	buildTree(tr)
 	paths := [][]string{}
-	tr.WalkSorted(func(path []string, value interface{}) {
+	tr.WalkSorted(func(path []string, _ *Leaf, value interface{}) {
 		got, want := value.(string), strings.Join(path, "/")
 		if got != want {
 			t.Errorf("WalkSorted got value %q, want %q", got, want)
@@ -186,10 +198,10 @@ func TestWalkSorted(t *testing.T) {
 
 func TestEmptyWalk(t *testing.T) {
 	tr := &Tree{}
-	tr.Walk(func(_ []string, _ interface{}) {
+	tr.Walk(func(_ []string, _ *Leaf, _ interface{}) {
 		t.Error("Walk on empty tree should not call func.")
 	})
-	tr.WalkSorted(func(_ []string, _ interface{}) {
+	tr.WalkSorted(func(_ []string, _ *Leaf, _ interface{}) {
 		t.Error("WalkSorted on empty tree should not call func.")
 	})
 }
@@ -380,7 +392,7 @@ func TestParallelDelete(t *testing.T) {
 }
 
 func query(tr *Tree, path []string) (ret []interface{}) {
-	tr.Query(path, func(_ []string, val interface{}) {
+	tr.Query(path, func(_ []string, _ *Leaf, val interface{}) {
 		ret = append(ret, val)
 	})
 	return ret
@@ -514,7 +526,7 @@ func BenchmarkTreeParallelQuerySingle(b *testing.B) {
 	var x int64
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			t.Query(makePath(atomic.AddInt64(&x, 1)), func(_ []string, val interface{}) { c <- val })
+			t.Query(makePath(atomic.AddInt64(&x, 1)), func(_ []string, _ *Leaf, val interface{}) { c <- val })
 		}
 	})
 	close(c)
@@ -550,7 +562,7 @@ func BenchmarkTreeParallelQueryMany(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			// For each query, use only a subpath to retrieve multiple elements.
-			t.Query(makePath(atomic.AddInt64(&x, 1))[0:3], func(_ []string, val interface{}) { c <- val })
+			t.Query(makePath(atomic.AddInt64(&x, 1))[0:3], func(_ []string, _ *Leaf, val interface{}) { c <- val })
 		}
 	})
 	close(c)
