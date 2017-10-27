@@ -45,6 +45,11 @@ type Tree struct {
 // This also means that multiple calls to Value may return different results.
 type Leaf Tree
 
+// DetachedLeaf returns a Leaf that's not attached to any tree.
+func DetachedLeaf(val interface{}) *Leaf {
+	return &Leaf{leafBranch: val}
+}
+
 // Value returns the latest value stored in this leaf. Value is safe to call on
 // nil Leaf.
 func (l *Leaf) Value() interface{} {
@@ -54,6 +59,13 @@ func (l *Leaf) Value() interface{} {
 	defer l.mu.RUnlock()
 	l.mu.RLock()
 	return l.leafBranch
+}
+
+// Update sets the value of this Leaf to val.
+func (l *Leaf) Update(val interface{}) {
+	defer l.mu.Unlock()
+	l.mu.Lock()
+	l.leafBranch = val
 }
 
 func newBranch(path []string, value interface{}) *Tree {
