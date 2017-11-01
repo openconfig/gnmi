@@ -42,7 +42,7 @@ func TestSendQueryAndDisplayFail(t *testing.T) {
 		want string
 	}{{
 		desc: "addr not set",
-		want: "Query.Addrs not set",
+		want: "Destination.Addrs is empty",
 		q:    client.Query{Queries: []client.Path{{"a"}}, Type: client.Once},
 		cfg:  &Config{DisplayType: "group"},
 	}, {

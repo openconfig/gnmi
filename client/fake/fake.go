@@ -30,11 +30,8 @@ import (
 //
 // New exists for compatibility reasons. Most new clients should use Mock.
 // Mock ensures that q.NotificationHandler and ctx aren't forgotten.
-var New = func(ctx context.Context, q client.Query) (client.Impl, error) {
-	return &Client{
-		Handler: q.NotificationHandler,
-		Context: ctx,
-	}, nil
+var New = func(ctx context.Context, _ client.Destination) (client.Impl, error) {
+	return &Client{Context: ctx}, nil
 }
 
 // Mock overrides a client implementation named typ (most implementation
@@ -43,9 +40,8 @@ var New = func(ctx context.Context, q client.Query) (client.Impl, error) {
 //
 // See Client documentation about updates slice contents.
 func Mock(typ string, updates []interface{}) {
-	client.RegisterTest(typ, func(ctx context.Context, q client.Query) (client.Impl, error) {
+	client.RegisterTest(typ, func(ctx context.Context, _ client.Destination) (client.Impl, error) {
 		c := &Client{
-			Handler: q.NotificationHandler,
 			Context: ctx,
 			Updates: updates,
 		}
@@ -75,6 +71,12 @@ type Client struct {
 	BlockAfterSync chan struct{}
 	connected      bool
 	Context        context.Context
+}
+
+// Subscribe implements the client.Impl interface.
+func (c *Client) Subscribe(ctx context.Context, q client.Query) error {
+	c.Handler = q.NotificationHandler
+	return nil
 }
 
 // Reset will reset the client to start playing new updates.

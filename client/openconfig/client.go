@@ -52,33 +52,29 @@ type Client struct {
 
 // New returns a new initialized client. The client implementation will have
 // made a connection to the backend and has sent the initial query q.
-func New(ctx context.Context, q client.Query) (client.Impl, error) {
-	err := q.Validate()
-	if err != nil {
-		return nil, fmt.Errorf("invalid query %+v: %v", q, err)
-	}
-	if len(q.Addrs) != 1 {
-		return nil, fmt.Errorf("q.Addrs must only contain one entry: %v", q.Addrs)
+func New(ctx context.Context, d client.Destination) (client.Impl, error) {
+	if len(d.Addrs) != 1 {
+		return nil, fmt.Errorf("q.Addrs must only contain one entry: %v", d.Addrs)
 	}
 	opts := []grpc.DialOption{
-		grpc.WithTimeout(q.Timeout),
+		grpc.WithTimeout(d.Timeout),
 		grpc.WithBlock(),
 	}
-	if q.TLS != nil {
-		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(q.TLS)))
+	if d.TLS != nil {
+		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(d.TLS)))
 	}
-	conn, err := grpc.Dial(q.Addrs[0], opts...)
+	conn, err := grpc.Dial(d.Addrs[0], opts...)
 	if err != nil {
-		return nil, fmt.Errorf("Dialer(%s, %v): %v", q.Addrs[0], q.Timeout, err)
+		return nil, fmt.Errorf("Dialer(%s, %v): %v", d.Addrs[0], d.Timeout, err)
 	}
-	return NewFromConn(ctx, conn, q)
+	return NewFromConn(ctx, conn, d)
 }
 
 // NewFromConn creates and returns the client based on the provided transport.
-func NewFromConn(ctx context.Context, conn *grpc.ClientConn, q client.Query) (*Client, error) {
+func NewFromConn(ctx context.Context, conn *grpc.ClientConn, d client.Destination) (*Client, error) {
 	ok, err := grpcutil.Lookup(ctx, conn, "openconfig.OpenConfig")
 	if err != nil {
-		log.V(1).Infof("gRPC reflection lookup on %q for service openconfig.OpenConfig failed: %v", q.Addrs, err)
+		log.V(1).Infof("gRPC reflection lookup on %q for service openconfig.OpenConfig failed: %v", d.Addrs, err)
 		// This check is disabled for now. Reflection will become part of gNMI
 		// specification in the near future, so we can't enforce it yet.
 	}
@@ -87,30 +83,34 @@ func NewFromConn(ctx context.Context, conn *grpc.ClientConn, q client.Query) (*C
 		// specification in the near future, so we can't enforce it yet.
 	}
 	oc := ocpb.NewOpenConfigClient(conn)
-	sub, err := oc.Subscribe(ctx)
+	c := &Client{
+		conn:   conn,
+		client: oc,
+	}
+	return c, nil
+}
+
+// Subscribe initializes the Subscribe RPC.
+func (c *Client) Subscribe(ctx context.Context, q client.Query) error {
+	sub, err := c.client.Subscribe(ctx)
 	if err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("ocpb.NewGNMIClient(%v) failed to create client: %v", q, err)
+		return fmt.Errorf("ocpb.NewGNMIClient(%v) failed to create client: %v", q, err)
 	}
 	qq := subscribe(q)
 	if err := sub.Send(qq); err != nil {
-		conn.Close()
-		return nil, fmt.Errorf("client.Send(%+v): %v", qq, err)
+		return fmt.Errorf("client.Send(%+v): %v", qq, err)
 	}
-	c := &Client{
-		conn:    conn,
-		client:  oc,
-		sub:     sub,
-		query:   q,
-		request: qq,
-	}
+	c.sub = sub
+	c.query = q
+	c.request = qq
+
 	if q.ProtoHandler == nil {
 		c.recv = c.defaultRecv
 		c.handler = q.NotificationHandler
 	} else {
 		c.recv = q.ProtoHandler
 	}
-	return c, nil
+	return nil
 }
 
 // Poll will send a single gNMI poll request to the server.

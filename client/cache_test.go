@@ -17,19 +17,15 @@ limitations under the License.
 package client_test
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
-	log "github.com/golang/glog"
 	"context"
 	"github.com/openconfig/gnmi/client"
 	fake "github.com/openconfig/gnmi/client/fake"
-)
-
-var (
-	impl = &fake.Client{}
 )
 
 const (
@@ -38,13 +34,6 @@ const (
 )
 
 func TestPollCache(t *testing.T) {
-	client.Register(cacheTest, func(_ context.Context, q client.Query) (client.Impl, error) {
-		log.Infof("using impl with Query:\n%+v", q)
-		impl.Handler = q.NotificationHandler
-		return impl, nil
-	})
-	defer client.ResetRegisteredImpls()
-
 	tests := []struct {
 		desc string
 		q    client.Query
@@ -54,7 +43,10 @@ func TestPollCache(t *testing.T) {
 	}{{
 		desc: "invalid query type",
 		q: client.Query{
-			Type: client.Once,
+			Type:                client.Once,
+			Addrs:               []string{"fake"},
+			Queries:             []client.Path{{"*"}},
+			NotificationHandler: func(client.Notification) error { return nil },
 		},
 		u: [][]interface{}{{
 			client.Update{TS: time.Unix(0, 0), Path: client.Path{"a", "b"}, Val: 1},
@@ -67,7 +59,10 @@ func TestPollCache(t *testing.T) {
 	}, {
 		desc: "Poll With Entry Test",
 		q: client.Query{
-			Type: client.Poll,
+			Type:                client.Poll,
+			Addrs:               []string{"fake"},
+			Queries:             []client.Path{{"*"}},
+			NotificationHandler: func(client.Notification) error { return nil },
 		},
 		u: [][]interface{}{{
 			client.Update{TS: time.Unix(0, 0), Path: client.Path{"a", "b"}, Val: 1},
@@ -84,7 +79,7 @@ func TestPollCache(t *testing.T) {
 	}}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			impl.Reset(tt.u[0])
+			fake.Mock(cacheTest, tt.u[0])
 			c := client.New()
 			defer c.Close()
 			if err := c.Subscribe(context.Background(), tt.q, cacheTest); err != nil {
@@ -94,8 +89,12 @@ func TestPollCache(t *testing.T) {
 			if !reflect.DeepEqual(l, tt.want[0]) {
 				t.Fatalf("Unexpected updates: got:\n%v\nwant:\n%v", l, tt.want[0])
 			}
-			impl.Reset(tt.u[1])
-			err := c.Poll()
+			impl, err := c.Impl()
+			if err != nil {
+				t.Fatalf("c.Impl: %v", err)
+			}
+			impl.(*fake.Client).Reset(tt.u[1])
+			err = c.Poll()
 			switch {
 			case err != nil && tt.err:
 				return
@@ -115,15 +114,7 @@ func TestPollCache(t *testing.T) {
 }
 
 func TestCache(t *testing.T) {
-	client.Register(cacheTest, func(_ context.Context, q client.Query) (client.Impl, error) {
-		log.Infof("using impl with Query:\n%+v", q)
-		impl.Handler = q.NotificationHandler
-		return impl, nil
-	})
-	client.Register(cacheFail, func(context.Context, client.Query) (client.Impl, error) {
-		return nil, fmt.Errorf("client failed")
-	})
-	defer client.ResetRegisteredImpls()
+	fake.Mock(cacheFail, []interface{}{errors.New("client failed")})
 
 	nTest := false
 	tests := []struct {
@@ -136,10 +127,20 @@ func TestCache(t *testing.T) {
 	}{{
 		desc:       "Error New",
 		clientType: []string{cacheFail},
-		want:       nil,
-		err:        true,
+		q: client.Query{
+			Type:    client.Once,
+			Addrs:   []string{"fake"},
+			Queries: []client.Path{{"*"}},
+		},
+		want: nil,
+		err:  true,
 	}, {
 		desc: "Once Test",
+		q: client.Query{
+			Type:    client.Once,
+			Addrs:   []string{"fake"},
+			Queries: []client.Path{{"*"}},
+		},
 		u: []interface{}{
 			client.Update{TS: time.Unix(1, 0), Path: client.Path{"a", "b"}, Val: 1},
 			client.Delete{TS: time.Unix(2, 0), Path: client.Path{"a", "b"}},
@@ -148,6 +149,11 @@ func TestCache(t *testing.T) {
 		want: nil,
 	}, {
 		desc: "Once With Entry Test",
+		q: client.Query{
+			Type:    client.Once,
+			Addrs:   []string{"fake"},
+			Queries: []client.Path{{"*"}},
+		},
 		u: []interface{}{
 			client.Update{TS: time.Unix(0, 0), Path: client.Path{"a", "b"}, Val: 1},
 			client.Sync{},
@@ -158,6 +164,9 @@ func TestCache(t *testing.T) {
 	}, {
 		desc: "Custom handler with Sync test",
 		q: client.Query{
+			Type:    client.Once,
+			Addrs:   []string{"fake"},
+			Queries: []client.Path{{"*"}},
 			NotificationHandler: func(n client.Notification) error {
 				if _, ok := n.(client.Sync); ok {
 					nTest = true
@@ -174,12 +183,22 @@ func TestCache(t *testing.T) {
 		},
 	}, {
 		desc: "Error on notification",
+		q: client.Query{
+			Type:    client.Once,
+			Addrs:   []string{"fake"},
+			Queries: []client.Path{{"*"}},
+		},
 		u: []interface{}{
 			client.Error{},
 		},
 		err: true,
 	}, {
 		desc: "Error on Recv",
+		q: client.Query{
+			Type:    client.Once,
+			Addrs:   []string{"fake"},
+			Queries: []client.Path{{"*"}},
+		},
 		u: []interface{}{
 			fmt.Errorf("Recv() error"),
 		},
@@ -187,7 +206,8 @@ func TestCache(t *testing.T) {
 	}}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
-			impl.Reset(tt.u)
+			fake.Mock(cacheTest, tt.u)
+
 			c := client.New()
 			defer c.Close()
 			if tt.q.NotificationHandler != nil {
@@ -197,6 +217,8 @@ func TestCache(t *testing.T) {
 						t.Errorf("Synced() failed: got %v, want true", nTest)
 					}
 				}()
+			} else {
+				tt.q.NotificationHandler = func(client.Notification) error { return nil }
 			}
 			clientType := []string{cacheTest}
 			if tt.clientType != nil {

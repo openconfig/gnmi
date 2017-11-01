@@ -35,11 +35,11 @@ const (
 	defaultQuery = "*"
 )
 
-func testImpl(ctx context.Context, q client.Query) (client.Impl, error) {
-	if len(q.Addrs) > 0 && q.Addrs[0] == "error" {
+func testImpl(ctx context.Context, d client.Destination) (client.Impl, error) {
+	if len(d.Addrs) > 0 && d.Addrs[0] == "error" {
 		return nil, fmt.Errorf("error")
 	}
-	return fclient.New(ctx, q)
+	return fclient.New(ctx, d)
 }
 
 func TestRegister(t *testing.T) {
@@ -56,10 +56,7 @@ func TestRegister(t *testing.T) {
 	tests := []struct {
 		desc       string
 		name       string
-		wName      string
-		newName    string
 		f          client.InitImpl
-		q          client.Query
 		clientType []string
 		rErr       bool
 		nErr       bool
@@ -113,7 +110,12 @@ func TestRegister(t *testing.T) {
 					return
 				}
 			}
-			err := client.New().Subscribe(context.Background(), tt.q, tt.clientType...)
+			err := client.New().Subscribe(context.Background(), client.Query{
+				Type:                client.Once,
+				Addrs:               []string{"fake"},
+				Queries:             []client.Path{{"*"}},
+				NotificationHandler: func(client.Notification) error { return nil },
+			}, tt.clientType...)
 			switch {
 			case tt.nErr && err == nil:
 				t.Fatalf("Subscribe() unexpected success")
@@ -138,13 +140,13 @@ func TestRegisterHangingImpl(t *testing.T) {
 	defer client.ResetRegisteredImpls()
 
 	blocked := make(chan struct{})
-	client.Register("blocking", func(ctx context.Context, _ client.Query) (client.Impl, error) {
+	client.Register("blocking", func(ctx context.Context, _ client.Destination) (client.Impl, error) {
 		close(blocked)
 		// Block until test returns.
 		<-ctx.Done()
 		return nil, nil
 	})
-	client.Register("regular", func(ctx context.Context, q client.Query) (client.Impl, error) {
+	client.Register("regular", func(context.Context, client.Destination) (client.Impl, error) {
 		return nil, nil
 	})
 
@@ -153,13 +155,13 @@ func TestRegisterHangingImpl(t *testing.T) {
 
 	connected := make(chan string, 1)
 	go func() {
-		client.NewImpl(ctx, client.Query{}, "blocking")
+		client.NewImpl(ctx, client.Destination{}, "blocking")
 		connected <- "blocking"
 	}()
 	go func() {
 		// Wait for blocking Impl to start blocking.
 		<-blocked
-		client.NewImpl(ctx, client.Query{}, "regular")
+		client.NewImpl(ctx, client.Destination{}, "regular")
 		connected <- "regular"
 	}()
 
@@ -176,18 +178,19 @@ func TestRegisterHangingImpl(t *testing.T) {
 func TestQuery(t *testing.T) {
 	tests := []struct {
 		desc     string
-		in       *client.Query
+		in       client.Query
 		wantPath []client.Path
 		err      bool
 		client   []string
 	}{{
 		desc:     "Empty Query",
+		in:       client.Query{},
 		err:      true,
 		wantPath: []client.Path{{defaultQuery}},
 	}, {
 		desc:     "No Addr",
 		wantPath: []client.Path{{defaultQuery}},
-		in: &client.Query{
+		in: client.Query{
 			Queries: []client.Path{{"foo", "bar"}, {"a", "b"}},
 			Type:    client.Once,
 		},
@@ -195,7 +198,7 @@ func TestQuery(t *testing.T) {
 	}, {
 		desc:     "No Target",
 		wantPath: []client.Path{{defaultQuery}},
-		in: &client.Query{
+		in: client.Query{
 			Addrs:   []string{"fake addr"},
 			Queries: []client.Path{{"foo", "bar"}, {"a", "b"}},
 			Type:    client.Once,
@@ -204,7 +207,7 @@ func TestQuery(t *testing.T) {
 	}, {
 		desc:     "No Type",
 		wantPath: []client.Path{{defaultQuery}},
-		in: &client.Query{
+		in: client.Query{
 			Addrs:   []string{"fake addr"},
 			Target:  "",
 			Queries: []client.Path{{"foo", "bar"}, {"a", "b"}},
@@ -213,7 +216,7 @@ func TestQuery(t *testing.T) {
 	}, {
 		desc:     "No Queries",
 		wantPath: []client.Path{{defaultQuery}},
-		in: &client.Query{
+		in: client.Query{
 			Addrs:  []string{"fake addr"},
 			Target: "",
 			Type:   client.Once,
@@ -222,7 +225,7 @@ func TestQuery(t *testing.T) {
 	}, {
 		desc:     "Both handlers set",
 		wantPath: []client.Path{{"foo", "bar"}, {"a", "b"}},
-		in: &client.Query{
+		in: client.Query{
 			Addrs:               []string{"fake addr"},
 			Target:              "",
 			Queries:             []client.Path{{"foo", "bar"}, {"a", "b"}},
@@ -234,7 +237,7 @@ func TestQuery(t *testing.T) {
 	}, {
 		desc:     "Valid Query",
 		wantPath: []client.Path{{"foo", "bar"}, {"a", "b"}},
-		in: &client.Query{
+		in: client.Query{
 			Addrs:               []string{"fake addr"},
 			Target:              "",
 			Queries:             []client.Path{{"foo", "bar"}, {"a", "b"}},
@@ -412,7 +415,7 @@ func TestClientUpdatesAfterClose(t *testing.T) {
 	client.ResetRegisteredImpls()
 
 	fake := fakeStreamingClient{ch: make(chan struct{})}
-	client.Register("fake", func(context.Context, client.Query) (client.Impl, error) {
+	client.Register("fake", func(context.Context, client.Destination) (client.Impl, error) {
 		return fake, nil
 	})
 
@@ -420,12 +423,24 @@ func TestClientUpdatesAfterClose(t *testing.T) {
 	done := make(chan struct{})
 	go func() {
 		defer close(done)
-		c.Subscribe(context.Background(), client.Query{}, "fake")
+		err := c.Subscribe(context.Background(), client.Query{
+			Addrs:               []string{"fake"},
+			Type:                client.Stream,
+			Queries:             []client.Path{{"*"}},
+			NotificationHandler: func(client.Notification) error { return nil },
+		}, "fake")
+		if err != nil {
+			t.Errorf("Subscribe(): %v", err)
+		}
 	}()
 
-	fake.ch <- struct{}{}
-	fake.ch <- struct{}{}
-	fake.ch <- struct{}{}
+	for i := 0; i < 10; i++ {
+		select {
+		case fake.ch <- struct{}{}:
+		case <-done:
+			t.Fatal("Subscribe returned before close")
+		}
+	}
 	c.Close()
 
 	var updatesAfterClose int
@@ -446,6 +461,10 @@ loop:
 type fakeStreamingClient struct {
 	client.Impl
 	ch chan struct{}
+}
+
+func (f fakeStreamingClient) Subscribe(context.Context, client.Query) error {
+	return nil
 }
 
 func (f fakeStreamingClient) Recv() error {

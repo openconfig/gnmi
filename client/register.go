@@ -39,6 +39,8 @@ const defaultTimeout = time.Minute
 // Impl is the protocol/RPC specific implementation of the streaming
 // Client.
 type Impl interface {
+	// Subscribe sends a Subscribe request to the server.
+	Subscribe(context.Context, Query) error
 	// Recv processes a single message from the server. This method is exposed to
 	// allow the generic client control the state of message processing.
 	Recv() error
@@ -51,7 +53,7 @@ type Impl interface {
 }
 
 // InitImpl provides a prototype for all client specific implementations of New.
-type InitImpl func(context.Context, Query) (Impl, error)
+type InitImpl func(context.Context, Destination) (Impl, error)
 
 // Register will register the client specific implementation.
 func Register(t string, f InitImpl) error {
@@ -87,7 +89,7 @@ func RegisterTest(t string, f InitImpl) error {
 // NewImpl returns a client implementation based on the registered types.
 // It will try all clientTypes listed in parallel until one succeeds. If
 // clientType is nil, it will try all registered clientTypes.
-func NewImpl(ctx context.Context, q Query, clientType ...string) (Impl, error) {
+func NewImpl(ctx context.Context, d Destination, clientType ...string) (Impl, error) {
 	mu.Lock()
 	registeredCount := len(clientImpl)
 	if clientType == nil {
@@ -103,8 +105,8 @@ func NewImpl(ctx context.Context, q Query, clientType ...string) (Impl, error) {
 	// If Timeout is not set, use a default one. There is pretty much never a
 	// case where clients will want to wait for initial connection
 	// indefinitely. Reconnect client helps with retries.
-	if q.Timeout == 0 {
-		q.Timeout = defaultTimeout
+	if d.Timeout == 0 {
+		d.Timeout = defaultTimeout
 	}
 
 	errC := make(chan error, len(clientType))
@@ -123,7 +125,7 @@ func NewImpl(ctx context.Context, q Query, clientType ...string) (Impl, error) {
 				errC <- fmt.Errorf("no registered client %q", t)
 				return
 			}
-			impl, err := f(ctx, q)
+			impl, err := f(ctx, d)
 			if err != nil {
 				errC <- fmt.Errorf("client %q : %v", t, err)
 				return

@@ -186,8 +186,15 @@ var _ Client = &BaseClient{}
 
 // Subscribe implements the Client interface.
 func (c *BaseClient) Subscribe(ctx context.Context, q Query, clientType ...string) error {
-	impl, err := NewImpl(ctx, q, clientType...)
+	if err := q.Validate(); err != nil {
+		return err
+	}
+	impl, err := NewImpl(ctx, q.Destination(), clientType...)
 	if err != nil {
+		return err
+	}
+	if err := impl.Subscribe(ctx, q); err != nil {
+		impl.Close()
 		return err
 	}
 	c.mu.Lock()

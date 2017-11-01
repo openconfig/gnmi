@@ -79,6 +79,41 @@ var (
 	}
 )
 
+// Destination contains data used to connect to a server.
+type Destination struct {
+	// Addrs is a slice of addresses by which a target may be reached. Most
+	// clients will only handle the first element.
+	Addrs []string
+	// Target is the target of the query.  Maybe empty if the query is performed
+	// against an end target vs. a collector.
+	Target string
+	// Replica is the specific backend to contact.  This field is implementation
+	// specific and for direct agent communication should not be set. default is
+	// first available.
+	Replica int
+	// Timeout is the connection timeout for the query. It will *not* prevent a
+	// slow (or streaming) query from completing, this only affects the initial
+	// connection and broken connection detection.
+	//
+	// If Timeout is not set, default is 1 minute.
+	Timeout time.Duration
+	// Credentials are used for authentication with the target. Optional.
+	Credentials *Credentials
+	// TLS config to use when connecting to target. Optional.
+	TLS *tls.Config
+	// Extra contains arbitrary additional metadata to be passed to the
+	// target. Optional.
+	Extra map[string]string
+}
+
+// Validate validates the fields of Destination.
+func (d Destination) Validate() error {
+	if len(d.Addrs) == 0 {
+		return errors.New("Destination.Addrs is empty")
+	}
+	return nil
+}
+
 // Query contains all of the parameters necessary to initiate the query.
 type Query struct {
 	// Addrs is a slice of addresses by which a target may be reached. Most
@@ -124,6 +159,22 @@ type Query struct {
 	Extra map[string]string
 }
 
+// Destination extracts a Destination instance out of Query fields.
+//
+// Ideally we would embed Destination in Query. But in order to not break the
+// existing API we have this workaround.
+func (q Query) Destination() Destination {
+	return Destination{
+		Addrs:       q.Addrs,
+		Target:      q.Target,
+		Replica:     q.Replica,
+		Timeout:     q.Timeout,
+		Credentials: q.Credentials,
+		TLS:         q.TLS,
+		Extra:       q.Extra,
+	}
+}
+
 // Credentials contains information necessary to authenticate with the target.
 // Currently only username/password are supported, but may contain TLS client
 // certificate in the future.
@@ -134,16 +185,13 @@ type Credentials struct {
 
 // Validate validates that query contains valid values that any client should
 // be able use to form a valid backend request.
-func (q *Query) Validate() error {
+func (q Query) Validate() error {
+	if err := q.Destination().Validate(); err != nil {
+		return err
+	}
 	switch {
-	default:
-		return nil
-	case q == nil:
-		return errors.New("Query cannot be nil")
 	case q.Type == Unknown:
 		return errors.New("Query type cannot be Unknown")
-	case len(q.Addrs) == 0:
-		return errors.New("Query.Addrs not set")
 	case len(q.Queries) == 0:
 		return errors.New("Query.Queries not set")
 	case q.NotificationHandler != nil && q.ProtoHandler != nil:
@@ -151,6 +199,7 @@ func (q *Query) Validate() error {
 	case q.NotificationHandler == nil && q.ProtoHandler == nil:
 		return errors.New("one of Notification or ProtoHandler must be set")
 	}
+	return nil
 }
 
 // SetRequest contains slices of changes to apply.
