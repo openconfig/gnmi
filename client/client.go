@@ -192,6 +192,9 @@ func (c *BaseClient) Subscribe(ctx context.Context, q Query, clientType ...strin
 	}
 	c.mu.Lock()
 	c.query = q
+	if c.clientImpl != nil {
+		c.clientImpl.Close()
+	}
 	c.clientImpl = impl
 	c.closed = false
 	c.mu.Unlock()
