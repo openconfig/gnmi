@@ -1,4 +1,4 @@
-// server is a simple gRPC gnmi agent implementation which will take a
+// The fake_server is a simple gRPC gnmi agent implementation which will take a
 // configuration and start a listening service for the configured target.
 package main
 
@@ -24,9 +24,10 @@ var (
 	text       = flag.Bool("text", false, "use text configuration file")
 	port       = flag.Int("port", -1, "port to listen on")
 	// Certificate files.
-	caCert     = flag.String("ca_crt", "", "CA certificate")
-	serverCert = flag.String("server_crt", "", "server certificate")
-	serverKey  = flag.String("server_key", "", "server private key")
+	caCert            = flag.String("ca_crt", "", "CA certificate for client certificate validation. Optional.")
+	serverCert        = flag.String("server_crt", "", "TLS server certificate")
+	serverKey         = flag.String("server_key", "", "TLS server private key")
+	allowNoClientCert = flag.Bool("allow_no_client_auth", false, "When set, fake_server will request but not require a client certificate.")
 )
 
 func loadConfig(fileName string) (*fpb.Config, error) {
@@ -63,36 +64,34 @@ func main() {
 		return
 	}
 
-	var opts []grpc.ServerOption
-	if *caCert != "" || *serverCert != "" || *serverKey != "" {
-		if *caCert == "" || *serverCert == "" || *serverKey == "" {
-			log.Exit("--ca_crt --server_crt and --server_key must be set with file locations")
-		}
+	certificate, err := tls.LoadX509KeyPair(*serverCert, *serverKey)
+	if err != nil {
+		log.Exitf("could not load server key pair: %s", err)
+	}
+	tlsCfg := &tls.Config{
+		ClientAuth:   tls.RequireAndVerifyClientCert,
+		Certificates: []tls.Certificate{certificate},
+	}
+	if *allowNoClientCert {
+		// RequestClientCert will ask client for a certificate but won't
+		// require it to proceed. If certificate is provided, it will be
+		// verified.
+		tlsCfg.ClientAuth = tls.RequestClientCert
+	}
 
-		certificate, err := tls.LoadX509KeyPair(*serverCert, *serverKey)
-		if err != nil {
-			log.Exitf("could not load server key pair: %s", err)
-		}
-
-		certPool := x509.NewCertPool()
+	if *caCert != "" {
 		ca, err := ioutil.ReadFile(*caCert)
 		if err != nil {
 			log.Exitf("could not read CA certificate: %s", err)
 		}
-
+		certPool := x509.NewCertPool()
 		if ok := certPool.AppendCertsFromPEM(ca); !ok {
 			log.Exit("failed to append CA certificate")
 		}
-
-		creds := credentials.NewTLS(&tls.Config{
-			ClientAuth:   tls.RequireAndVerifyClientCert,
-			Certificates: []tls.Certificate{certificate},
-			ClientCAs:    certPool,
-		})
-
-		opts = append(opts, grpc.Creds(creds))
+		tlsCfg.ClientCAs = certPool
 	}
 
+	opts := []grpc.ServerOption{grpc.Creds(credentials.NewTLS(tlsCfg))}
 	cfg.Port = int64(*port)
 	a, err := gnmi.New(cfg, opts)
 	if err != nil {
