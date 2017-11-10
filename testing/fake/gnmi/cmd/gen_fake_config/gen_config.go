@@ -23,7 +23,6 @@ import (
 	"io/ioutil"
 	"os"
 
-	
 	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 
@@ -57,7 +56,6 @@ var (
 )
 
 func main() {
-	flag.Parse()
 	out := proto.MarshalTextString(config)
 	if err := ioutil.WriteFile(outputPath, []byte(out), os.ModePerm); err != nil {
 		log.Exit(err)
