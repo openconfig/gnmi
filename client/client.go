@@ -155,7 +155,7 @@ type Client interface {
 	// Note that SetResponse and inner SetResult's contain Err fields that
 	// should be checked manually. Error from Set is only related to
 	// transport-layer issues in the RPC.
-	Set(context.Context, SetRequest) (SetResponse, error)
+	Set(context.Context, SetRequest, ...string) (SetResponse, error)
 }
 
 var (
@@ -163,8 +163,8 @@ var (
 	// loop.
 	ErrStopReading = errors.New("stop the result reading loop")
 	// ErrClientInit is the common error for when making calls before the client
-	// has been started via Query.
-	ErrClientInit = errors.New("Query() must be called before any operations on client")
+	// has been started via Subscribe.
+	ErrClientInit = errors.New("Subscribe() must be called before any operations on client")
 	// ErrUnsupported is returned by Impl's methods when the underlying
 	// implementation doesn't support it.
 	ErrUnsupported = errors.New("operation not supported by client implementation")
@@ -246,13 +246,15 @@ func (c *BaseClient) Impl() (Impl, error) {
 }
 
 // Set implements the Client interface.
-func (c *BaseClient) Set(ctx context.Context, r SetRequest) (SetResponse, error) {
-	c.mu.Lock()
-	impl := c.clientImpl
-	c.mu.Unlock()
-	if impl == nil {
-		return SetResponse{}, ErrClientInit
+func (c *BaseClient) Set(ctx context.Context, r SetRequest, clientType ...string) (SetResponse, error) {
+	impl, err := NewImpl(ctx, r.Destination, clientType...)
+	if err != nil {
+		return SetResponse{}, err
 	}
+	c.mu.Lock()
+	c.clientImpl = impl
+	c.mu.Unlock()
+
 	return impl.Set(ctx, r)
 }
 

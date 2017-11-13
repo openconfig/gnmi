@@ -62,7 +62,7 @@ var (
 	queryType   = flag.String("query_type", client.Once.String(), "Type of result, one of: (o, once, p, polling, s, streaming).")
 	queryAddr   = flags.NewStringList(&q.Addrs, nil)
 
-	setFlag  = flag.Bool("set", false, "When set, CLI will perform a Set request. At least one of --delete/--update/--replace must be set.")
+	setFlag  = flag.Bool("set", false, `When set, CLI will perform a Set request. At least one of --delete/--update/--replace must be set. Usage: gnmi_cli --set --update="..." --delete="..." --replace="..." other_flags...`)
 	deletes  = &flags.StringList{}
 	updates  = &flags.StringMap{}
 	replaces = &flags.StringMap{}
@@ -93,9 +93,9 @@ func init() {
 	flag.StringVar(&cfg.Timestamp, "timestamp", "", "Specify timestamp formatting in output.  One of (<empty string>, on, raw, <FORMAT>) where <empty string> is disabled, on is human readable, raw is int64 nanos since epoch, and <FORMAT> is according to golang time.Format(<FORMAT>)")
 	flag.BoolVar(&cfg.DisplaySize, "display_size", false, "Display the total size of query response.")
 	flag.BoolVar(&cfg.Latency, "latency", false, "Display the latency for receiving each update (Now - update timestamp).")
-	flag.Var(deletes, "delete", "List of paths to delete; --set flag must be set.")
-	flag.Var(updates, "update", "List of paths to update; --set flag must be set.")
-	flag.Var(replaces, "replace", "List of paths to replace; --set flag must be set.")
+	flag.Var(deletes, "delete", `List of paths to delete; --set flag must be set. Format is "path1,path2,path3"`)
+	flag.Var(updates, "update", `List of paths to update; --set flag must be set. Format is "path1=val1,path2=val2,path3=val3"`)
+	flag.Var(replaces, "replace", `List of paths to replace; --set flag must be set. Format is "path1=val1,path2=val2,path3=val3"`)
 	flag.StringVar(&q.TLS.ServerName, "server_name", "", "When set, CLI will use this hostname to verify server certificate during TLS handshake.")
 	flag.BoolVar(&q.TLS.InsecureSkipVerify, "insecure", false, "When set, CLI will not verify the server certificate during TLS handshake.")
 
@@ -136,27 +136,6 @@ func main() {
 		}
 	}
 
-	if *setFlag {
-		if err := executeSet(ctx); err != nil {
-			log.Error(err)
-		}
-		return
-	}
-	if q.Type = cli.QueryType(*queryType); q.Type == client.Unknown {
-		log.Exit("--query_type must be one of: (o, once, p, polling, s, streaming)")
-	}
-	// Parse queryFlag into appropriate format.
-	if len(*queryFlag) == 0 {
-		log.Exit("--query must be set")
-	}
-	for _, path := range *queryFlag {
-		query, err := parseQuery(path, cfg.Delimiter)
-		if err != nil {
-			log.Exitf("invalid query %q : %v", path, err)
-		}
-		q.Queries = append(q.Queries, query)
-	}
-
 	if *caCert != "" {
 		certPool := x509.NewCertPool()
 		ca, err := ioutil.ReadFile(*caCert)
@@ -182,13 +161,43 @@ func main() {
 		q.TLS.Certificates = []tls.Certificate{certificate}
 	}
 
+	if *setFlag {
+		if err := executeSet(ctx); err != nil {
+			log.Error(err)
+		}
+		return
+	}
+
+	if q.Type = cli.QueryType(*queryType); q.Type == client.Unknown {
+		log.Exit("--query_type must be one of: (o, once, p, polling, s, streaming)")
+	}
+	// Parse queryFlag into appropriate format.
+	if len(*queryFlag) == 0 {
+		log.Exit("--query must be set")
+	}
+	for _, path := range *queryFlag {
+		query, err := parseQuery(path, cfg.Delimiter)
+		if err != nil {
+			log.Exitf("invalid query %q : %v", path, err)
+		}
+		q.Queries = append(q.Queries, query)
+	}
+
 	if err := cli.QueryDisplay(ctx, q, &cfg); err != nil {
 		log.Errorf("cli.QueryDisplay:\n\t%v", err)
 	}
 }
 
 func executeSet(ctx context.Context) error {
-	req := client.SetRequest{}
+	req := client.SetRequest{
+		Destination: client.Destination{
+			Addrs:       q.Addrs,
+			Target:      q.Target,
+			Timeout:     q.Timeout,
+			Credentials: q.Credentials,
+			TLS:         q.TLS,
+		},
+	}
 
 	for _, p := range *deletes {
 		req.Delete = append(req.Delete, strings.Split(p, cfg.Delimiter))

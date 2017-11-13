@@ -19,6 +19,7 @@ package client
 import (
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/golang/protobuf/proto"
@@ -209,9 +210,24 @@ func (q Query) Validate() error {
 // in the container when the key matches.
 // Replace overwrites the entire container regardless of current contents.
 type SetRequest struct {
+	Destination
+
 	Delete  []Path
 	Update  []Leaf
 	Replace []Leaf
+}
+
+// Validate validates that SetRequest contains valid values that any client
+// should be able use to form a valid backend request.
+func (r SetRequest) Validate() error {
+	if err := r.Destination.Validate(); err != nil {
+		return fmt.Errorf("SetRequest.Destination validation failed: %v", err)
+	}
+
+	if len(r.Delete) == 0 && len(r.Update) == 0 && len(r.Replace) == 0 {
+		return errors.New("at least one of Delete/Update/Replace must be set")
+	}
+	return nil
 }
 
 // SetResponse contains the timestamp of an applied SetRequest.

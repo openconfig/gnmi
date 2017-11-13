@@ -91,7 +91,7 @@ func Set(ctx context.Context, req client.SetRequest, cfg *Config) error {
 	c := &client.BaseClient{}
 	defer c.Close()
 
-	res, err := c.Set(ctx, req)
+	res, err := c.Set(ctx, req, cfg.ClientTypes...)
 	if err != nil {
 		return fmt.Errorf("Set failed: %v", err)
 	}
