@@ -109,28 +109,47 @@ func NewImpl(ctx context.Context, d Destination, clientType ...string) (Impl, er
 		d.Timeout = defaultTimeout
 	}
 
-	errC := make(chan error, len(clientType))
+	log.V(1).Infof("Attempting client types: %v", clientType)
+	fn := func(ctx context.Context, typ string, input interface{}) (Impl, error) {
+		mu.Lock()
+		f, ok := clientImpl[typ]
+		mu.Unlock()
+		if !ok {
+			return nil, fmt.Errorf("no registered client %q", typ)
+		}
+		d := input.(Destination)
+		impl, err := f(ctx, d)
+		if err != nil {
+			return nil, err
+		}
+		log.V(1).Infof("client %q create with type %T", typ, impl)
+		return impl, nil
+	}
+	return getFirst(ctx, clientType, d, fn)
+}
+
+type implFunc func(ctx context.Context, typ string, input interface{}) (Impl, error)
+
+// getFirst tries fn with all types in parallel and returns the Impl from first
+// one to succeed. input is passed directly to fn so it's safe to use an
+// unchecked type asserting inside fn.
+func getFirst(ctx context.Context, types []string, input interface{}, fn implFunc) (Impl, error) {
+	if len(types) == 0 {
+		return nil, errors.New("getFirst: no client types provided")
+	}
+	errC := make(chan error, len(types))
 	implC := make(chan Impl)
 	done := make(chan struct{})
 	defer close(done)
-	log.V(1).Infof("Attempting client types: %v", clientType)
-	for _, t := range clientType {
+	for _, t := range types {
 		// Launch each clientType in parallel where each sends either an error or
 		// an implementation over a channel.
 		go func(t string) {
-			mu.Lock()
-			f, ok := clientImpl[t]
-			mu.Unlock()
-			if !ok {
-				errC <- fmt.Errorf("no registered client %q", t)
-				return
-			}
-			impl, err := f(ctx, d)
+			impl, err := fn(ctx, t, input)
 			if err != nil {
 				errC <- fmt.Errorf("client %q : %v", t, err)
 				return
 			}
-			log.V(1).Infof("client %q create with type %T", t, impl)
 			select {
 			case implC <- impl:
 			case <-done:
@@ -145,7 +164,7 @@ func NewImpl(ctx context.Context, d Destination, clientType ...string) (Impl, er
 		select {
 		case err := <-errC:
 			errs.Add(err)
-			if len(errs.Errors()) == len(clientType) {
+			if len(errs.Errors()) == len(types) {
 				return nil, errs.Err()
 			}
 		case impl := <-implC:

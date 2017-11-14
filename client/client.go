@@ -189,14 +189,29 @@ func (c *BaseClient) Subscribe(ctx context.Context, q Query, clientType ...strin
 	if err := q.Validate(); err != nil {
 		return err
 	}
-	impl, err := NewImpl(ctx, q.Destination(), clientType...)
+	if len(clientType) == 0 {
+		clientType = RegisteredImpls()
+	}
+
+	// TODO: concurrent subscribes can be removed after we enforce reflection
+	// at client Impl level.
+	fn := func(ctx context.Context, typ string, input interface{}) (Impl, error) {
+		q := input.(Query)
+		impl, err := NewImpl(ctx, q.Destination(), typ)
+		if err != nil {
+			return nil, err
+		}
+		if err := impl.Subscribe(ctx, q); err != nil {
+			impl.Close()
+			return nil, err
+		}
+		return impl, nil
+	}
+	impl, err := getFirst(ctx, clientType, q, fn)
 	if err != nil {
 		return err
 	}
-	if err := impl.Subscribe(ctx, q); err != nil {
-		impl.Close()
-		return err
-	}
+
 	c.mu.Lock()
 	c.query = q
 	if c.clientImpl != nil {
