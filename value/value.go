@@ -20,6 +20,7 @@ package value
 
 import (
 	"fmt"
+	"math"
 	"unicode/utf8"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
@@ -91,6 +92,8 @@ func FromScalar(i interface{}) (*pb.TypedValue, error) {
 func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 	var i interface{}
 	switch tv.Value.(type) {
+	case *pb.TypedValue_DecimalVal:
+		i = decimalToFloat(tv.GetDecimalVal())
 	case *pb.TypedValue_StringVal:
 		i = tv.GetStringVal()
 	case *pb.TypedValue_IntVal:
@@ -118,4 +121,10 @@ func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 		return nil, fmt.Errorf("non-scalar type %+v", tv.Value)
 	}
 	return i, nil
+}
+
+// decimalToFloat converts a *gnmi_proto.Decimal64 to a float32. Downcasting to float32 is performed as the
+// precision of a float64 is not required.
+func decimalToFloat(d *pb.Decimal64) float32 {
+	return float32(float64(d.Digits) / math.Pow(10, float64(d.Precision)))
 }

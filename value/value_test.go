@@ -138,7 +138,38 @@ func TestToScalar(t *testing.T) {
 			intf: []interface{}{"a", int64(1), uint64(1)},
 		},
 		{intf: []byte("foo"), msg: &pb.TypedValue{Value: &pb.TypedValue_BytesVal{[]byte("foo")}}},
-		{msg: &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{}}, err: true},
+		{
+			msg: &pb.TypedValue{
+				Value: &pb.TypedValue_DecimalVal{
+					DecimalVal: &pb.Decimal64{
+						Digits:    312,
+						Precision: 1,
+					},
+				},
+			},
+			intf: float32(31.2),
+		},
+		{
+			msg: &pb.TypedValue{
+				Value: &pb.TypedValue_DecimalVal{
+					DecimalVal: &pb.Decimal64{
+						Digits: 5,
+					},
+				},
+			},
+			intf: float32(5),
+		},
+		{
+			msg: &pb.TypedValue{
+				Value: &pb.TypedValue_DecimalVal{
+					DecimalVal: &pb.Decimal64{
+						Digits:    5678,
+						Precision: 18,
+					},
+				},
+			},
+			intf: float32(.000000000000005678),
+		},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_AnyVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_JsonVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_JsonIetfVal{}}, err: true},
