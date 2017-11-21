@@ -89,6 +89,7 @@ func init() {
 	flag.StringVar(&cfg.DisplayPrefix, "display_prefix", "", "Per output line prefix.")
 	flag.StringVar(&cfg.DisplayIndent, "display_indent", "  ", "Output line, per nesting-level indent.")
 	flag.StringVar(&cfg.DisplayType, "display_type", "group", "Display output type (g, group, s, single, p, proto).")
+	flag.StringVar(&q.Target, "target", "", "Name of the gNMI target.")
 	flag.DurationVar(&q.Timeout, "timeout", 30*time.Second, "Terminate query if no RPC is established within the timeout duration.")
 	flag.StringVar(&cfg.Timestamp, "timestamp", "", "Specify timestamp formatting in output.  One of (<empty string>, on, raw, <FORMAT>) where <empty string> is disabled, on is human readable, raw is int64 nanos since epoch, and <FORMAT> is according to golang time.Format(<FORMAT>)")
 	flag.BoolVar(&cfg.DisplaySize, "display_size", false, "Display the total size of query response.")
@@ -102,6 +103,7 @@ func init() {
 	// Shortcut flags that can be used in place of the longform flags above.
 	flag.Var(queryAddr, "a", "Short for address.")
 	flag.Var(queryFlag, "q", "Short for query.")
+	flag.StringVar(&q.Target, "t", q.Target, "Short for target.")
 	flag.UintVar(&cfg.Count, "c", cfg.Count, "Short for count.")
 	flag.StringVar(&cfg.Delimiter, "d", cfg.Delimiter, "Short for delimiter.")
 	flag.StringVar(&cfg.Timestamp, "ts", cfg.Timestamp, "Short for timestamp.")
