@@ -80,7 +80,7 @@ func init() {
 	flag.Var(queryFlag, "query", "Comma separated list of queries.  Each query is a delimited list of OpenConfig path nodes which may also be specified as a glob (*).  The delimeter can be specified with the --delimiter flag.")
 	// Query command-line flags.
 	flag.Var(queryAddr, "address", "Address of the GNMI target to query.")
-	flag.BoolVar(&q.Discard, "discard", false, "Discard the initial sync and only stream updates. Setting this flag for once or polling queries will cause nothing to be returned.")
+	flag.BoolVar(&q.UpdatesOnly, "updates_only", false, "Only stream updates, not the initial sync. Setting this flag for once or polling queries will cause nothing to be returned.")
 	// Config command-line flags.
 	flag.DurationVar(&cfg.PollingInterval, "polling_interval", 30*time.Second, "Interval at which to poll in seconds if polling is specified for query_type.")
 	flag.UintVar(&cfg.Count, "count", 0, "Number of polling/streaming events (0 is infinite).")
@@ -104,6 +104,7 @@ func init() {
 	flag.Var(queryAddr, "a", "Short for address.")
 	flag.Var(queryFlag, "q", "Short for query.")
 	flag.StringVar(&q.Target, "t", q.Target, "Short for target.")
+	flag.BoolVar(&q.UpdatesOnly, "u", q.UpdatesOnly, "Short for updates_only.")
 	flag.UintVar(&cfg.Count, "c", cfg.Count, "Short for count.")
 	flag.StringVar(&cfg.Delimiter, "d", cfg.Delimiter, "Short for delimiter.")
 	flag.StringVar(&cfg.Timestamp, "ts", cfg.Timestamp, "Short for timestamp.")

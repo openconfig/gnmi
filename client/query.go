@@ -127,12 +127,12 @@ type Query struct {
 	// specific and for direct agent communication should not be set. default is
 	// first available.
 	Replica int
-	// Discard will only stream incremental updates rather than providing the
+	// UpdatesOnly will only stream incremental updates rather than providing the
 	// client with an initial snapshot.  This again is implementation specific
 	// if the agent doesn't not accept that query it is up the client library to
 	// decide wheter to return an error or to make a normal subscription then
 	// ignore the initial sync and only provide increment updates.
-	Discard bool
+	UpdatesOnly bool
 	// Queries contains the list of Paths to query.
 	Queries []Path
 	// Type of query to perform.
