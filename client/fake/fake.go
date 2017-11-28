@@ -23,6 +23,7 @@ package client
 import (
 	log "github.com/golang/glog"
 	"context"
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 )
 
@@ -54,14 +55,16 @@ func Mock(typ string, updates []interface{}) {
 //
 // The Updates slice can contain:
 // - client.Notification: passed to query.NotificationHandler
+// - proto.Message: passed to query.ProtoHandler
 // - error: returned from Recv, interrupts the update stream
 // - Block: pauses Recv, proceeds to next update on Unblock
 //
 // See ExampleClient for sample use case.
 type Client struct {
-	currUpdate int
-	Updates    []interface{}
-	Handler    client.NotificationHandler
+	currUpdate   int
+	Updates      []interface{}
+	Handler      client.NotificationHandler
+	ProtoHandler client.ProtoHandler
 	// BlockAfterSync is deprecated: use Block update as last Updates slice
 	// element instead.
 	//
@@ -76,6 +79,7 @@ type Client struct {
 // Subscribe implements the client.Impl interface.
 func (c *Client) Subscribe(ctx context.Context, q client.Query) error {
 	c.Handler = q.NotificationHandler
+	c.ProtoHandler = q.ProtoHandler
 	return nil
 }
 
@@ -102,6 +106,8 @@ func (c *Client) Recv() error {
 		switch v := u.(type) {
 		case client.Notification:
 			return c.Handler(v)
+		case proto.Message:
+			return c.ProtoHandler(v)
 		case error:
 			return v
 		case Block:

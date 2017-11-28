@@ -29,6 +29,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
+	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/grpcutil"
 	"github.com/openconfig/gnmi/value"
@@ -319,4 +320,51 @@ func noti(p client.Path, ts time.Time, u *gpb.Update) (client.Notification, erro
 
 func init() {
 	client.Register(Type, New)
+}
+
+// ProtoResponse converts client library Notification types into gNMI
+// SubscribeResponse proto. An error is returned if any notifications have
+// invalid paths or if update values can't be converted to gpb.TypedValue.
+func ProtoResponse(notifs ...client.Notification) (*gpb.SubscribeResponse, error) {
+	n := new(gpb.Notification)
+
+	for _, nn := range notifs {
+		switch nn := nn.(type) {
+		case client.Update:
+			if n.Timestamp == 0 {
+				n.Timestamp = nn.TS.UnixNano()
+			}
+
+			pp, err := ygot.StringToPath(strings.Join(nn.Path, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+			if err != nil {
+				return nil, err
+			}
+			v, err := value.FromScalar(nn.Val)
+			if err != nil {
+				return nil, err
+			}
+
+			n.Update = append(n.Update, &gpb.Update{
+				Path: pp,
+				Val:  v,
+			})
+
+		case client.Delete:
+			if n.Timestamp == 0 {
+				n.Timestamp = nn.TS.UnixNano()
+			}
+
+			pp, err := ygot.StringToPath(strings.Join(nn.Path, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+			if err != nil {
+				return nil, err
+			}
+			n.Delete = append(n.Delete, pp)
+
+		default:
+			return nil, fmt.Errorf("gnmi.ProtoResponse: unsupported type %T", nn)
+		}
+	}
+
+	resp := &gpb.SubscribeResponse{Response: &gpb.SubscribeResponse_Update{Update: n}}
+	return resp, nil
 }
