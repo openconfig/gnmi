@@ -21,6 +21,8 @@ limitations under the License.
 package client
 
 import (
+	"fmt"
+
 	log "github.com/golang/glog"
 	"context"
 	"github.com/golang/protobuf/proto"
@@ -94,7 +96,7 @@ func (c *Client) Recv() error {
 	if c.Context == nil {
 		c.Context = context.Background()
 	}
-	if !c.connected {
+	if !c.connected && c.Handler != nil {
 		c.Handler(client.Connected{})
 		c.connected = true
 	}
@@ -105,8 +107,14 @@ func (c *Client) Recv() error {
 		log.V(1).Infof("fake client update: %v", u)
 		switch v := u.(type) {
 		case client.Notification:
+			if c.Handler == nil {
+				return fmt.Errorf("update %+v is client.Notification but query.NotificationHandler wasn't set", v)
+			}
 			return c.Handler(v)
 		case proto.Message:
+			if c.ProtoHandler == nil {
+				return fmt.Errorf("update %+v is proto.Message but query.ProtoHandler wasn't set", v)
+			}
 			return c.ProtoHandler(v)
 		case error:
 			return v
@@ -119,7 +127,9 @@ func (c *Client) Recv() error {
 		}
 	}
 
-	c.Handler(client.Sync{})
+	if c.Handler != nil {
+		c.Handler(client.Sync{})
+	}
 	// We went through all c.Update items.
 	if c.BlockAfterSync != nil {
 		log.Info("No more updates, blocking on BlockAfterSync")
