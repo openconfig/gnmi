@@ -284,7 +284,8 @@ func getType(t client.Type) gpb.SubscriptionList_Mode {
 func subscribe(q client.Query) *gpb.SubscribeRequest {
 	s := &gpb.SubscribeRequest_Subscribe{
 		Subscribe: &gpb.SubscriptionList{
-			Mode: getType(q.Type),
+			Mode:   getType(q.Type),
+			Prefix: &gpb.Path{Target: q.Target},
 		},
 	}
 	for _, qq := range q.Queries {
