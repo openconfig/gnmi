@@ -44,7 +44,7 @@ import (
 	"github.com/openconfig/gnmi/client/flags"
 
 	// Register supported client types.
-	_ "github.com/openconfig/gnmi/client/gnmi"
+	gclient "github.com/openconfig/gnmi/client/gnmi"
 	_ "github.com/openconfig/gnmi/client/openconfig"
 )
 
@@ -57,7 +57,7 @@ var (
 		os.Stdout.Write(append(b, '\n'))
 	}}
 
-	clientTypes = flags.NewStringList(&cfg.ClientTypes, nil)
+	clientTypes = flags.NewStringList(&cfg.ClientTypes, []string{gclient.Type})
 	queryFlag   = &flags.StringList{}
 	queryType   = flag.String("query_type", client.Once.String(), "Type of result, one of: (o, once, p, polling, s, streaming).")
 	queryAddr   = flags.NewStringList(&q.Addrs, nil)
@@ -76,7 +76,7 @@ var (
 )
 
 func init() {
-	flag.Var(clientTypes, "client_types", fmt.Sprintf("List of explicit client types to attempt: (%s) (default: attempt all registered clients).", strings.Join(client.RegisteredImpls(), ", ")))
+	flag.Var(clientTypes, "client_types", fmt.Sprintf("List of explicit client types to attempt, one of: %s.", strings.Join(client.RegisteredImpls(), ", ")))
 	flag.Var(queryFlag, "query", "Comma separated list of queries.  Each query is a delimited list of OpenConfig path nodes which may also be specified as a glob (*).  The delimeter can be specified with the --delimiter flag.")
 	// Query command-line flags.
 	flag.Var(queryAddr, "address", "Address of the GNMI target to query.")
