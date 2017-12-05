@@ -25,7 +25,7 @@ import (
 	log "github.com/golang/glog"
 	"context"
 	"github.com/google/go-cmp/cmp"
-	"github.com/google/go-cmp/cmpopts/cmpopts"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/grpc"
 	"github.com/openconfig/gnmi/client"
