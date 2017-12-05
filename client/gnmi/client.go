@@ -101,7 +101,10 @@ func (c *Client) Subscribe(ctx context.Context, q client.Query) error {
 	if err != nil {
 		return fmt.Errorf("gpb.GNMIClient.Subscribe(%v) failed to initialize Subscribe RPC: %v", q, err)
 	}
-	qq := subscribe(q)
+	qq, err := subscribe(q)
+	if err != nil {
+		return fmt.Errorf("generating SubscribeRequest proto: %v", err)
+	}
 	if err := sub.Send(qq); err != nil {
 		return fmt.Errorf("client.Send(%+v): %v", qq, err)
 	}
@@ -175,21 +178,25 @@ func (c *Client) defaultRecv(msg proto.Message) error {
 		n := v.Update
 		var p []string
 		if n.Prefix != nil {
-			p = append(p, n.Prefix.Element...)
+			var err error
+			p, err = ygot.PathToStrings(n.Prefix)
+			if err != nil {
+				return err
+			}
 		}
 		ts := time.Unix(0, n.Timestamp)
 		for _, u := range n.Update {
 			if u.Path == nil {
 				return fmt.Errorf("invalid nil path in update: %v", u)
 			}
-			u, err := noti(append(p, u.Path.Element...), ts, u)
+			u, err := noti(p, u.Path, ts, u)
 			if err != nil {
 				return err
 			}
 			c.handler(u)
 		}
 		for _, d := range n.Delete {
-			u, err := noti(append(p, d.Element...), ts, nil)
+			u, err := noti(p, d, ts, nil)
 			if err != nil {
 				return err
 			}
@@ -217,8 +224,11 @@ func (c *Client) Set(ctx context.Context, sr client.SetRequest) (client.SetRespo
 func convertSetRequest(sr client.SetRequest) (*gpb.SetRequest, error) {
 	req := &gpb.SetRequest{}
 	for _, d := range sr.Delete {
-		p := gpb.Path{Element: d}
-		req.Delete = append(req.Delete, &p)
+		pp, err := ygot.StringToPath(strings.Join(d, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid delete path %q: %v", d, err)
+		}
+		req.Delete = append(req.Delete, pp)
 	}
 
 	genUpdate := func(v client.Leaf) (*gpb.Update, error) {
@@ -226,8 +236,12 @@ func convertSetRequest(sr client.SetRequest) (*gpb.SetRequest, error) {
 		if err != nil {
 			return nil, err
 		}
+		pp, err := ygot.StringToPath(strings.Join(v.Path, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid update path %q: %v", v.Path, err)
+		}
 		return &gpb.Update{
-			Path: &gpb.Path{Element: v.Path},
+			Path: pp,
 			Val:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{buf}},
 			// Value is deprecated, remove it at some point.
 			Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: buf},
@@ -281,7 +295,7 @@ func getType(t client.Type) gpb.SubscriptionList_Mode {
 	return gpb.SubscriptionList_ONCE
 }
 
-func subscribe(q client.Query) *gpb.SubscribeRequest {
+func subscribe(q client.Query) (*gpb.SubscribeRequest, error) {
 	s := &gpb.SubscribeRequest_Subscribe{
 		Subscribe: &gpb.SubscriptionList{
 			Mode:   getType(q.Type),
@@ -289,12 +303,26 @@ func subscribe(q client.Query) *gpb.SubscribeRequest {
 		},
 	}
 	for _, qq := range q.Queries {
-		s.Subscribe.Subscription = append(s.Subscribe.Subscription, &gpb.Subscription{Path: &gpb.Path{Element: qq}})
+		pp, err := ygot.StringToPath(strings.Join(qq, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+		if err != nil {
+			return nil, fmt.Errorf("invalid query path %q: %v", qq, err)
+		}
+		s.Subscribe.Subscription = append(s.Subscribe.Subscription, &gpb.Subscription{Path: pp})
 	}
-	return &gpb.SubscribeRequest{Request: s}
+	return &gpb.SubscribeRequest{Request: s}, nil
 }
 
-func noti(p client.Path, ts time.Time, u *gpb.Update) (client.Notification, error) {
+func noti(prefix []string, pp *gpb.Path, ts time.Time, u *gpb.Update) (client.Notification, error) {
+	sp, err := ygot.PathToStrings(pp)
+	if err != nil {
+		return nil, fmt.Errorf("converting path %v to []string: %v", u.GetPath(), err)
+	}
+	// Make a full new copy of prefix + u.Path to avoid any reuse of underlying
+	// slice arrays.
+	p := make([]string, 0, len(prefix)+len(sp))
+	p = append(p, prefix...)
+	p = append(p, sp...)
+
 	if u == nil {
 		return client.Delete{Path: p, TS: ts}, nil
 	}

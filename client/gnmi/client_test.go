@@ -28,6 +28,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/grpc"
+	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
@@ -252,6 +253,14 @@ func TestClient(t *testing.T) {
 	}
 }
 
+func stringToPath(p string) *gpb.Path {
+	pp, err := ygot.StringToPath(p, ygot.StructuredPath, ygot.StringSlicePath)
+	if err != nil {
+		panic(err)
+	}
+	return pp
+}
+
 func TestConvertSetRequest(t *testing.T) {
 	sr := client.SetRequest{
 		Delete: []client.Path{
@@ -269,29 +278,29 @@ func TestConvertSetRequest(t *testing.T) {
 	}
 	want := &gpb.SetRequest{
 		Delete: []*gpb.Path{
-			{Element: []string{"a", "b"}},
-			{Element: []string{"c", "d"}},
+			stringToPath("a/b"),
+			stringToPath("c/d"),
 		},
 		Update: []*gpb.Update{
 			{
-				Path:  &gpb.Path{Element: []string{"e"}},
+				Path:  stringToPath("e"),
 				Val:   &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte(`2`)}},
 				Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`2`)},
 			},
 			{
-				Path:  &gpb.Path{Element: []string{"f", "g"}},
+				Path:  stringToPath("f/g"),
 				Val:   &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte(`"foo"`)}},
 				Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`"foo"`)},
 			},
 		},
 		Replace: []*gpb.Update{
 			{
-				Path:  &gpb.Path{Element: []string{"h", "i"}},
+				Path:  stringToPath("h/i"),
 				Val:   &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte(`true`)}},
 				Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`true`)},
 			},
 			{
-				Path:  &gpb.Path{Element: []string{"j"}},
+				Path:  stringToPath("j"),
 				Val:   &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte(`5`)}},
 				Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`5`)},
 			},
@@ -383,7 +392,8 @@ func TestConvertSetResponse(t *testing.T) {
 func TestNoti(t *testing.T) {
 	tests := []struct {
 		desc     string
-		path     client.Path
+		prefix   []string
+		path     *gpb.Path
 		ts       time.Time
 		u        *gpb.Update
 		wantNoti client.Notification
@@ -391,49 +401,56 @@ func TestNoti(t *testing.T) {
 	}{
 		{
 			desc:     "nil update means delete",
-			path:     []string{"dev", "a", "b"},
+			path:     stringToPath("dev/a/b"),
 			ts:       time.Unix(0, 200),
 			wantNoti: client.Delete{Path: []string{"dev", "a", "b"}, TS: time.Unix(0, 200)},
 		}, {
 			desc:     "update with TypedValue",
-			path:     []string{"dev", "a"},
+			path:     stringToPath("dev/a"),
 			ts:       time.Unix(0, 100),
 			u:        &gpb.Update{Val: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}}},
 			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: 5},
 		}, {
 			desc:    "update with non-scalar TypedValue",
-			path:    []string{"dev", "a"},
+			path:    stringToPath("dev/a"),
 			ts:      time.Unix(0, 100),
 			u:       &gpb.Update{Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte("5")}}},
 			wantErr: true,
 		}, {
 			desc:     "update with JSON value",
-			path:     []string{"dev", "a"},
+			path:     stringToPath("dev/a"),
 			ts:       time.Unix(0, 100),
 			u:        &gpb.Update{Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte("5")}},
 			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: 5},
 		}, {
 			desc:     "update with bytes value",
-			path:     []string{"dev", "a"},
+			path:     stringToPath("dev/a"),
 			ts:       time.Unix(0, 100),
 			u:        &gpb.Update{Value: &gpb.Value{Type: gpb.Encoding_BYTES, Value: []byte("5")}},
 			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: []byte("5")},
 		}, {
 			desc:    "update with un-unmarshalable JSON value",
-			path:    []string{"dev", "a"},
+			path:    stringToPath("dev/a"),
 			ts:      time.Unix(0, 100),
 			u:       &gpb.Update{Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`"5`)}},
 			wantErr: true,
 		}, {
 			desc:    "update with unsupported value",
-			path:    []string{"dev", "a"},
+			path:    stringToPath("dev/a"),
 			ts:      time.Unix(0, 100),
 			u:       &gpb.Update{Value: &gpb.Value{Type: gpb.Encoding_PROTO}},
 			wantErr: true,
+		}, {
+			desc:     "with prefix",
+			prefix:   []string{"dev"},
+			path:     stringToPath("a"),
+			ts:       time.Unix(0, 100),
+			u:        &gpb.Update{Val: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}}},
+			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: 5},
 		},
 	}
 	for _, tt := range tests {
-		got, err := noti(tt.path, tt.ts, tt.u)
+		got, err := noti(tt.prefix, tt.path, tt.ts, tt.u)
 		switch {
 		case err != nil && !tt.wantErr:
 			t.Errorf("%s: got error %v, want nil", tt.desc, err)
