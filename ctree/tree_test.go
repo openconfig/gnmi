@@ -24,6 +24,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"testing"
+
+	"github.com/kylelemons/godebug/pretty"
 )
 
 func TestAdd(t *testing.T) {
@@ -49,7 +51,33 @@ func TestAdd(t *testing.T) {
 	}
 }
 
-func TestGet(t *testing.T) {
+func TestSlowAdd(t *testing.T) {
+	for _, test := range []struct {
+		tree      *Tree
+		path      []string
+		expectErr bool
+	}{
+		{
+			tree:      &Tree{leafBranch: "not a branch"},
+			path:      []string{"a"},
+			expectErr: true,
+		},
+		{
+			tree:      &Tree{leafBranch: branch{"a": &Tree{leafBranch: "a"}}},
+			path:      []string{"a"},
+			expectErr: false,
+		},
+	} {
+		testVal := "testVal"
+		err := test.tree.slowAdd(test.path, testVal)
+		gotErr := err != nil
+		if gotErr != test.expectErr {
+			t.Errorf("slowAdd(%v, %v) = %v, want %v", test.path, testVal, gotErr, test.expectErr)
+		}
+	}
+}
+
+func TestTreeGetLeafValue(t *testing.T) {
 	tr := &Tree{}
 	for x, tt := range []struct {
 		path  []string
@@ -64,16 +92,16 @@ func TestGet(t *testing.T) {
 		{[]string{"c", "d"}, "value5"},
 	} {
 		// Value shouldn't exist before addition.
-		if value := tr.Get(tt.path); nil != value {
-			t.Errorf("#%d: expected %v, got %v", x, nil, value)
+		if value := tr.GetLeafValue(tt.path); nil != value {
+			t.Errorf("#%d: got %v, expected %v", x, value, nil)
 		}
 		if err := tr.Add(tt.path, tt.value); err != nil {
 			t.Error(err)
 		}
-		value := tr.Get(tt.path)
+		value := tr.GetLeafValue(tt.path)
 		// Value should exist on successful addition.
 		if tt.value != value {
-			t.Errorf("#%d: expected %v, got %v", x, tt.value, value)
+			t.Errorf("#%d: got %v, expected %v", x, value, tt.value)
 		}
 	}
 }
@@ -88,7 +116,11 @@ var testPaths = [][]string{
 }
 
 func buildTree(t *Tree) {
-	for _, path := range testPaths {
+	buildTreePaths(t, testPaths)
+}
+
+func buildTreePaths(t *Tree, paths [][]string) {
+	for _, path := range paths {
 		value := strings.Join(path, "/")
 		t.Add(path, value)
 	}
@@ -262,10 +294,10 @@ func TestDeleteConditional(t *testing.T) {
 	buildTree(tr)
 	leaves = tr.DeleteConditional([]string{}, valEqualsD)
 	if expected := [][]string{[]string{"d"}}; !reflect.DeepEqual(expected, leaves) {
-		t.Errorf("expected: %v, got %v", expected, leaves)
+		t.Errorf("got %v, expected %v", leaves, expected)
 	}
-	if v := tr.Get([]string{"d"}); nil != v {
-		t.Errorf("expected %v, got %v", nil, v)
+	if v := tr.GetLeafValue([]string{"d"}); nil != v {
+		t.Errorf("got %v, expected %v", v, nil)
 	}
 }
 
@@ -304,7 +336,7 @@ func TestEqual(t *testing.T) {
 			true},
 	} {
 		if equal := reflect.DeepEqual(tt.t1, tt.t2); tt.equal != equal {
-			t.Errorf("#%d: expected %t, got %t", x, tt.equal, equal)
+			t.Errorf("#%d: got %t, expected %t", x, equal, tt.equal)
 		}
 	}
 }
@@ -402,7 +434,7 @@ func queryGetTreeRange(t *testing.T, wg *sync.WaitGroup, tr *Tree, paths [][]str
 	defer wg.Done()
 	for i := index; i < len(paths); i += modulus {
 		// Test get of paths.
-		got := tr.Get(paths[i])
+		got := tr.GetLeafValue(paths[i])
 		if want := strings.Join(paths[i], "/"); got != want {
 			t.Errorf("Get(%v): got result %s, want %s using %d threads", paths[i], got, want, modulus)
 		}
@@ -494,7 +526,7 @@ func BenchmarkTreeParallelGet(b *testing.B) {
 	var x int64
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			t.Get(makePath(atomic.AddInt64(&x, 1)))
+			t.GetLeafValue(makePath(atomic.AddInt64(&x, 1)))
 		}
 	})
 }
@@ -568,4 +600,149 @@ func BenchmarkTreeParallelQueryMany(b *testing.B) {
 	close(c)
 	wg.Wait()
 	b.Logf("Query result count: %v", count)
+}
+
+func TestIsBranch(t *testing.T) {
+	tr := &Tree{}
+	buildTree(tr)
+	for _, test := range []struct {
+		node *Tree
+		want bool
+	}{
+		{
+			node: tr,
+			want: true,
+		}, {
+			node: tr.Get(testPaths[0]),
+			want: false,
+		}, {
+			node: nil,
+			want: false,
+		},
+	} {
+		got := test.node.IsBranch()
+		if got != test.want {
+			t.Errorf("IsBranch(%v) = %v, want %v", test.node, got, test.want)
+		}
+	}
+}
+
+func TestGet(t *testing.T) {
+	tr := &Tree{}
+	testPaths = [][]string{
+		[]string{"a", "b", "c"},
+		[]string{"a", "d"},
+		[]string{"d"},
+	}
+	buildTreePaths(tr, testPaths)
+	for _, test := range []struct {
+		path []string
+		want *Tree
+	}{
+		{
+			path: []string{"a"},
+			want: &Tree{leafBranch: branch{
+				"b": &Tree{leafBranch: branch{
+					"c": &Tree{leafBranch: "a/b/c"}}},
+				"d": &Tree{leafBranch: "a/d"}}},
+		}, {
+			path: []string{"a", "d"},
+			want: &Tree{leafBranch: "a/d"},
+		}, {
+			path: []string{},
+			want: &Tree{leafBranch: branch{
+				"a": &Tree{leafBranch: branch{
+					"b": &Tree{leafBranch: branch{
+						"c": &Tree{leafBranch: "a/b/c"}}},
+					"d": &Tree{leafBranch: "a/d"}}},
+				"d": &Tree{leafBranch: "d"}}},
+		}, {
+			path: []string{"non existent path"},
+			want: nil,
+		},
+	} {
+		got := tr.Get(test.path)
+		if diff := pretty.Compare(got, test.want); diff != "" {
+			t.Errorf("Get(%v) returned diff (-got +want):\n%s", test.path, diff)
+		}
+	}
+}
+
+func TestGetChildren(t *testing.T) {
+	tr := &Tree{}
+	testPaths = [][]string{
+		[]string{"a", "b", "c"},
+		[]string{"a", "d"},
+		[]string{"d"},
+	}
+	buildTreePaths(tr, testPaths)
+	for _, test := range []struct {
+		node *Tree
+		want branch
+	}{
+		{
+			node: tr,
+			want: branch{
+				"a": &Tree{leafBranch: branch{
+					"b": &Tree{leafBranch: branch{
+						"c": &Tree{leafBranch: "a/b/c"}}},
+					"d": &Tree{leafBranch: "a/d"}}},
+				"d": &Tree{leafBranch: "d"},
+			},
+		}, {
+			node: tr.Get(testPaths[0]), // Leaf.
+			want: nil,
+		}, {
+			node: nil,
+			want: nil,
+		},
+	} {
+		got := test.node.Children()
+		if diff := pretty.Compare(got, test.want); diff != "" {
+			t.Errorf("Children(%s) returned diff (-got +want):\n%s", test.node, diff)
+		}
+	}
+}
+
+func TestTreeValue(t *testing.T) {
+	for _, test := range []struct {
+		node *Tree
+		want interface{}
+	}{
+		{
+			node: &Tree{leafBranch: branch{}},
+			want: nil,
+		}, {
+			node: &Tree{leafBranch: "val1"},
+			want: "val1",
+		}, {
+			node: nil,
+			want: nil,
+		},
+	} {
+		got := test.node.Value()
+		if got != test.want {
+			t.Errorf("Value(%v) = %v, want %v", test.node, got, test.want)
+		}
+	}
+}
+
+func TestLeafValue(t *testing.T) {
+	for _, test := range []struct {
+		node *Leaf
+		want interface{}
+	}{
+		{
+			node: &Leaf{leafBranch: "val1"},
+			want: "val1",
+		}, {
+			node: nil,
+			want: nil,
+		},
+	} {
+		got := test.node.Value()
+		if got != test.want {
+			t.Errorf("Value(%v) = %v, want %v", test.node, got, test.want)
+		}
+	}
 }

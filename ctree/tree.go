@@ -75,6 +75,54 @@ func newBranch(path []string, value interface{}) *Tree {
 	return &Tree{leafBranch: branch{path[0]: newBranch(path[1:], value)}}
 }
 
+// isBranch assumes the calling function holds a lock on t.
+func (t *Tree) isBranch() bool {
+	_, ok := t.leafBranch.(branch)
+	return ok
+}
+
+// IsBranch returns whether the Tree node represents a branch.
+// Returns false if called on a nil node.
+func (t *Tree) IsBranch() bool {
+	if t == nil {
+		return false
+	}
+	defer t.mu.RUnlock()
+	t.mu.RLock()
+	return t.isBranch()
+}
+
+// Children returns a mapping of child nodes if current node represents a branch, nil otherwise.
+func (t *Tree) Children() map[string]*Tree {
+	if t == nil {
+		return nil
+	}
+	defer t.mu.RUnlock()
+	t.mu.RLock()
+	if t.isBranch() {
+		ret := make(branch)
+		for k, v := range t.leafBranch.(branch) {
+			ret[k] = v
+		}
+		return ret
+	}
+	return nil
+}
+
+// Value returns the latest value stored in node t if it represents a leaf, nil otherwise. Value is safe to call on
+// nil Tree.
+func (t *Tree) Value() interface{} {
+	if t == nil {
+		return nil
+	}
+	defer t.mu.RUnlock()
+	t.mu.RLock()
+	if t.isBranch() {
+		return nil
+	}
+	return t.leafBranch
+}
+
 // slowAdd will add a new branch to Tree t all the way to the leaf containing
 // value, unless another routine added the branch before the write lock was
 // acquired, in which case it will return to the normal Add for the remaining
@@ -146,16 +194,13 @@ func (t *Tree) Add(path []string, value interface{}) error {
 	return t.intermediateAdd(path, value)
 }
 
-// Get returns the leaf value if path points to a leaf in t, nil otherwise. All
-// nodes in path must be fully specified with no globbing (*).
-func (t *Tree) Get(path []string) interface{} {
+// Get returns the Tree node if path points to it, nil otherwise.
+// All nodes in path must be fully specified with no globbing (*).
+func (t *Tree) Get(path []string) *Tree {
 	defer t.mu.RUnlock()
 	t.mu.RLock()
 	if len(path) == 0 {
-		if _, ok := t.leafBranch.(branch); ok {
-			return nil
-		}
-		return t.leafBranch
+		return t
 	}
 	if b, ok := t.leafBranch.(branch); ok {
 		if br := b[path[0]]; br != nil {
@@ -165,23 +210,16 @@ func (t *Tree) Get(path []string) interface{} {
 	return nil
 }
 
+// GetLeafValue returns the leaf value if path points to a leaf in t, nil otherwise. All
+// nodes in path must be fully specified with no globbing (*).
+func (t *Tree) GetLeafValue(path []string) interface{} {
+	return t.Get(path).Value()
+}
+
 // GetLeaf returns the leaf node if path points to a leaf in t, nil otherwise. All
 // nodes in path must be fully specified with no globbing (*).
 func (t *Tree) GetLeaf(path []string) *Leaf {
-	defer t.mu.RUnlock()
-	t.mu.RLock()
-	if len(path) == 0 {
-		if _, ok := t.leafBranch.(branch); ok {
-			return nil
-		}
-		return (*Leaf)(t)
-	}
-	if b, ok := t.leafBranch.(branch); ok {
-		if br := b[path[0]]; br != nil {
-			return br.GetLeaf(path[1:])
-		}
-	}
-	return nil
+	return (*Leaf)(t.Get(path))
 }
 
 // VisitFunc is a callback func triggered on leaf values by Query and Walk.
