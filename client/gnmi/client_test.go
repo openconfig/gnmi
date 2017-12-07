@@ -583,3 +583,24 @@ func TestProtoResponse(t *testing.T) {
 		})
 	}
 }
+
+func TestPathToString(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   client.Path
+		want string
+	}{
+		{"simple path", client.Path{"a", "b", "c"}, "a/b/c"},
+		{"path with attributes", client.Path{"a", "b[k=v]", "c"}, "a/b[k=v]/c"},
+		{"path with slashes", client.Path{"a", "b/0/1", "c"}, "a/b\\/0\\/1/c"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := pathToString(tt.in)
+			if got != tt.want {
+				t.Fatalf("got %q, want %q", got, tt.want)
+			}
+		})
+	}
+}

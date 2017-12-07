@@ -224,7 +224,7 @@ func (c *Client) Set(ctx context.Context, sr client.SetRequest) (client.SetRespo
 func convertSetRequest(sr client.SetRequest) (*gpb.SetRequest, error) {
 	req := &gpb.SetRequest{}
 	for _, d := range sr.Delete {
-		pp, err := ygot.StringToPath(strings.Join(d, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+		pp, err := ygot.StringToPath(pathToString(d), ygot.StructuredPath, ygot.StringSlicePath)
 		if err != nil {
 			return nil, fmt.Errorf("invalid delete path %q: %v", d, err)
 		}
@@ -236,7 +236,7 @@ func convertSetRequest(sr client.SetRequest) (*gpb.SetRequest, error) {
 		if err != nil {
 			return nil, err
 		}
-		pp, err := ygot.StringToPath(strings.Join(v.Path, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+		pp, err := ygot.StringToPath(pathToString(v.Path), ygot.StructuredPath, ygot.StringSlicePath)
 		if err != nil {
 			return nil, fmt.Errorf("invalid update path %q: %v", v.Path, err)
 		}
@@ -303,7 +303,7 @@ func subscribe(q client.Query) (*gpb.SubscribeRequest, error) {
 		},
 	}
 	for _, qq := range q.Queries {
-		pp, err := ygot.StringToPath(strings.Join(qq, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+		pp, err := ygot.StringToPath(pathToString(qq), ygot.StructuredPath, ygot.StringSlicePath)
 		if err != nil {
 			return nil, fmt.Errorf("invalid query path %q: %v", qq, err)
 		}
@@ -364,7 +364,7 @@ func ProtoResponse(notifs ...client.Notification) (*gpb.SubscribeResponse, error
 				n.Timestamp = nn.TS.UnixNano()
 			}
 
-			pp, err := ygot.StringToPath(strings.Join(nn.Path, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+			pp, err := ygot.StringToPath(pathToString(nn.Path), ygot.StructuredPath, ygot.StringSlicePath)
 			if err != nil {
 				return nil, err
 			}
@@ -383,7 +383,7 @@ func ProtoResponse(notifs ...client.Notification) (*gpb.SubscribeResponse, error
 				n.Timestamp = nn.TS.UnixNano()
 			}
 
-			pp, err := ygot.StringToPath(strings.Join(nn.Path, "/"), ygot.StructuredPath, ygot.StringSlicePath)
+			pp, err := ygot.StringToPath(pathToString(nn.Path), ygot.StructuredPath, ygot.StringSlicePath)
 			if err != nil {
 				return nil, err
 			}
@@ -396,4 +396,15 @@ func ProtoResponse(notifs ...client.Notification) (*gpb.SubscribeResponse, error
 
 	resp := &gpb.SubscribeResponse{Response: &gpb.SubscribeResponse_Update{Update: n}}
 	return resp, nil
+}
+
+func pathToString(q client.Path) string {
+	qq := make(client.Path, len(q))
+	copy(qq, q)
+	// Escape all slashes within a path element. ygot.StringToPath will handle
+	// these escapes.
+	for i, e := range qq {
+		qq[i] = strings.Replace(e, "/", "\\/", -1)
+	}
+	return strings.Join(qq, "/")
 }
