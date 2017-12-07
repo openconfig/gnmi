@@ -176,7 +176,7 @@ message Error {
 // is expressed as a set of digits with the precision specifying the
 // number of digits following the decimal point in the digit set.
 message Decimal64 {
-  uint64 digits = 1;        // Set of digits.
+  int64 digits = 1;         // Set of digits.
   uint32 precision = 2;     // Number of digits following the decimal point.
 }
 
