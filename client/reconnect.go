@@ -28,10 +28,10 @@ import (
 
 var (
 	// ReconnectBaseDelay is the minimum delay between re-Subscribe attempts in
-	// Reconnect.
+	// Reconnect. You can change this before creating ReconnectClient instances.
 	ReconnectBaseDelay = time.Second
 	// ReconnectMaxDelay is the maximum delay between re-Subscribe attempts in
-	// Reconnect.
+	// Reconnect. You can change this before creating ReconnectClient instances.
 	ReconnectMaxDelay = time.Minute
 )
 
@@ -56,10 +56,11 @@ var _ Client = &ReconnectClient{}
 
 // Reconnect wraps c and returns a new ReconnectClient using it.
 //
-// disconnect is called each time the underlying Subscribe returns, it may be
-// nil.
-// reset is called each time the underlying Subscribe is retried, it may be
-// nil.
+// disconnect callback is called each time the underlying Subscribe returns, it
+// may be nil.
+//
+// reset callback is called each time the underlying Subscribe is retried, it
+// may be nil.
 //
 // Closing the returned ReconnectClient will unblock Subscribe.
 func Reconnect(c Client, disconnect, reset func()) *ReconnectClient {

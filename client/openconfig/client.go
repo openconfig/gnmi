@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package client implements a OpenConfig client.
+// Package client contains transport implementation for the parent client
+// library using openconfig.proto.
+//
+// Note: this package should not be used directly. Use
+// github.com/openconfig/gnmi/client instead.
 package client
 
 import (

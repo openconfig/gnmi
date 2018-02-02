@@ -17,6 +17,7 @@ syntax = "proto3";
 
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
+import "github.com/openconfig/gnmi/proto/gnmi_ext/gnmi_ext.proto";
 
 // Package gNMI defines a service specification for the gRPC Network Management
 // Interface. This interface is defined to be a standard interface via which
@@ -36,7 +37,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.5.0";
+option (gnmi_service) = "0.6.0";
 
 service gNMI {
   // Capabilities allows the client to retrieve the set of capabilities that
@@ -200,6 +201,9 @@ message SubscribeRequest {
     Poll poll = 3;                  // Trigger a polled update.
     AliasList aliases = 4;          // Aliases to be created.
   }
+  // Extension messages associated with the SubscribeRequest. See the
+  // gNMI extension specification for further definition.
+  repeated gnmi_ext.Extension extension = 5;
 }
 
 // Poll is sent within a SubscribeRequest to trigger the device to
@@ -224,6 +228,9 @@ message SubscribeResponse {
     // Deprecated in favour of google.golang.org/genproto/googleapis/rpc/status
     Error error = 4 [deprecated=true];
   }
+  // Extension messages associated with the SubscribeResponse. See the
+  // gNMI extension specification for further definition.
+  repeated gnmi_ext.Extension extension = 5;
 }
 
 // SubscriptionList is used within a Subscribe message to specify the list of
@@ -324,6 +331,9 @@ message SetRequest {
   repeated Path delete = 2;       // Paths to be deleted from the data tree.
   repeated Update replace = 3;    // Updates specifying elements to be replaced.
   repeated Update update = 4;     // Updates specifying elements to updated.
+  // Extension messages associated with the SetRequest. See the
+  // gNMI extension specification for further definition.
+  repeated gnmi_ext.Extension extension = 5;
 }
 
 // SetResponse is the response to a SetRequest, sent from the target to the
@@ -340,6 +350,9 @@ message SetResponse {
   repeated UpdateResult response = 2;
   Error message = 3 [deprecated=true]; // The overall status of the transaction.
   int64 timestamp = 4;                 // Timestamp of transaction (ns since epoch).
+  // Extension messages associated with the SetResponse. See the
+  // gNMI extension specification for further definition.
+  repeated gnmi_ext.Extension extension = 5;
 }
 
 // UpdateResult is used within the SetResponse message to communicate the
@@ -385,6 +398,9 @@ message GetRequest {
   DataType type = 3;                    // The type of data being requested.
   Encoding encoding = 5;                // Encoding to be used.
   repeated ModelData use_models = 6;    // The schema models to be used.
+  // Extension messages associated with the GetRequest. See the
+  // gNMI extension specification for further definition.
+  repeated gnmi_ext.Extension extension = 7;
 }
 
 // GetResponse is used by the target to respond to a GetRequest from a client.
@@ -393,13 +409,19 @@ message GetRequest {
 // Reference: gNMI Specification Section 3.3.2
 message GetResponse {
   repeated Notification notification = 1;   // Data values.
-  Error error = 2 [deprecated=true];       // Errors that occurred in the Get.
+  Error error = 2 [deprecated=true];        // Errors that occurred in the Get.
+  // Extension messages associated with the GetResponse. See the
+  // gNMI extension specification for further definition.
+  repeated gnmi_ext.Extension extension = 3;
 }
 
 // CapabilityRequest is sent by the client in the Capabilities RPC to request
 // that the target reports its capabilities.
 // Reference: gNMI Specification Section 3.2.1
 message CapabilityRequest {
+  // Extension messages associated with the CapabilityRequest. See the
+  // gNMI extension specification for further definition.
+  repeated gnmi_ext.Extension extension = 1;
 }
 
 // CapabilityResponse is used by the target to report its capabilities to the
@@ -409,6 +431,9 @@ message CapabilityResponse {
   repeated ModelData supported_models = 1;    // Supported schema models.
   repeated Encoding supported_encodings = 2;  // Supported encodings.
   string gNMI_version = 3;                    // Supported gNMI version.
+  // Extension messages associated with the CapabilityResponse. See the
+  // gNMI extension specification for further definition.
+  repeated gnmi_ext.Extension extension = 4;
 }
 
 // ModelData is used to describe a set of schema modules. It can be used in a

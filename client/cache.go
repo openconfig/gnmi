@@ -25,6 +25,9 @@ import (
 )
 
 // Client adds a caching layer on top of a simple query client.
+//
+// It works similarly to BaseClient and adds the Leaves method to return
+// current tree state.
 type CacheClient struct {
 	*BaseClient
 	*ctree.Tree
@@ -97,7 +100,7 @@ func (c *CacheClient) Synced() <-chan struct{} {
 }
 
 // Leaves returns the current state of the received tree. It's safe to call at
-// any point after New, even before Wait or Close.
+// any point after New.
 func (c *CacheClient) Leaves() Leaves {
 	// Convert node items into Leaf (expand TreeVal leaves).
 	var pvs Leaves

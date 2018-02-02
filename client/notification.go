@@ -23,17 +23,18 @@ type Notification interface {
 	isNotification()
 }
 
-// Update is an update to the leaf in the update.
+// Update is an update to the leaf in the tree.
 type Update Leaf
 
 func (u Update) isNotification() {}
 
-// Delete is an explicit delete to the path in the update.
+// Delete is an explicit delete of the path in the tree.
 type Delete Leaf
 
 func (d Delete) isNotification() {}
 
-// Error is a inband error notification.
+// Error is a inband error notification. It could be received without breaking
+// the query or connection.
 type Error struct {
 	s string
 }
@@ -51,7 +52,7 @@ func (e Error) isNotification() {}
 
 // Sync is an inband notification that the client has sent everything in it's
 // cache at least once. This does not mean EVERYTHING you wanted is there only
-// that the cache has sent everything it currently has... which may be nothing.
+// that the target has sent everything it currently has... which may be nothing.
 type Sync struct{}
 
 func (s Sync) isNotification() {}

@@ -746,3 +746,42 @@ func TestLeafValue(t *testing.T) {
 		}
 	}
 }
+
+func TestString(t *testing.T) {
+	tr := &Tree{}
+	testPaths = [][]string{
+		[]string{"a", "b", "c"},
+		[]string{"a", "d"},
+		[]string{"d"},
+	}
+	buildTreePaths(tr, testPaths)
+	for _, test := range []struct {
+		node *Tree
+		want string
+	}{
+		{
+			node: tr,
+			want: `{ "a": { "b": { "c": "a/b/c" }, "d": "a/d" }, "d": "d" }`,
+		}, {
+			node: tr.Get([]string{"a"}),
+			want: `{ "b": { "c": "a/b/c" }, "d": "a/d" }`,
+		}, {
+			node: tr.Get([]string{"d"}),
+			want: `"d"`,
+		}, {
+			node: nil,
+			want: "",
+		},
+	} {
+		// Test explicitly.
+		got := test.node.String()
+		if got != test.want {
+			t.Errorf("String\n\tgot:  %q\n\twant: %q", got, test.want)
+		}
+		// Test via string format specifier.
+		got = fmt.Sprintf("%s", test.node)
+		if got != test.want {
+			t.Errorf("string format specifier\n\tgot:  %q\n\twant: %q", got, test.want)
+		}
+	}
+}

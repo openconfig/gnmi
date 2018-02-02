@@ -14,105 +14,33 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package client provides generic access layer for streaming telemetry.
+// Package client provides a generic access layer for streaming telemetry
+// providers.
 //
-// The Client interface is implemented by 3 types in this package.
+// The Client interface is implemented by 3 types in this package:
 //
-// BaseClient simply forwards all messages from the underlying connection to
-// NotificationHandler or ProtoHandler (see type Query).
+// - BaseClient simply forwards all messages from the underlying connection to
+//   NotificationHandler or ProtoHandler (see type Query).
 //
-// CacheClient wraps around BaseClient and adds a persistence layer for all
-// notifications. The notifications build up an internal tree which can be
-// queried and walked using CacheClient's methods.
+// - CacheClient wraps around BaseClient and adds a persistence layer for all
+//   notifications. The notifications build up an internal tree which can be
+//   queried and walked using CacheClient's methods.
 //
-// ReconnectClient wraps around any Client implementation (BaseClient,
-// CacheClient or a user-provided one) and adds transparent reconnection loop
-// in Subscribe. Reconnection attempts are done with exponential backoff.
+// - ReconnectClient wraps around any Client implementation (BaseClient,
+//   CacheClient or a user-provided one) and adds transparent reconnection loop
+//   in Subscribe. Reconnection attempts are done with exponential backoff.
 //
-// Underlying transport is abstracted by interface Impl. Implementations of
-// this interface live outside of this package and must be registered via
-// Register.
+// This package uses pluggable transport implementations. For example, for gNMI
+// targets you need to add this blank import:
+//  import _ "github.com/openconfig/gnmi/client/gnmi"
 //
-// Examples:
-//  // Once client will run the query and once complete you can act on the
-//  // returned tree
-//	func ExampleClient_Once() {
-//		q := client.Query{
-//			Addrs:       []string{"127.0.0.1:1234"},
-//			Target:     "dev",
-//			Queries:    []client.Path{{"*"}},
-//			Type:       client.Once,
-//		}
-//		c := client.New()
-//		defer c.Close()
-//		err := c.Subscribe(context.Background(), q, pclient.Type)
-//		if err != nil {
-//			fmt.Println(err)
-//			return
-//		}
-//		for _, v := range c.Leaves() {
-//			fmt.Printf("%v: %v\n", v.Path, v.Val)
-//		}
-//	}
+// That import will automatically register itself as available ClientType in
+// this package (using func init).
 //
-//  // Poll client is like Once client, but can be re-triggered via Poll to
-//  // re-execute the query.
-//	func ExampleClient_Poll() {
-//		q := client.Query{
-//			Addrs:       []string{"127.0.0.1:1234"},
-//			Target:     "dev",
-//			Queries:    []client.Path{{"*"}},
-//			Type:       client.Poll,
-//		}
-//		c := client.New()
-//		defer c.Close()
-//		err := c.Subscribe(context.Background(), q)
-//		if err != nil {
-//			fmt.Println(err)
-//			return
-//		}
-//		for _, v := range c.Leaves() {
-//			fmt.Printf("%v: %v\n", v.Path, v.Val)
-//		}
-//		err = c.Poll() // Poll allows the underyling Query to keep running
-//		if err != nil {
-//			fmt.Println(err)
-//			return
-//		}
-//		for _, v := range c.Leaves() {
-//			fmt.Printf("%v: %v\n", v.Path, v.Val)
-//		}
-//	}
+// If you want to write a custom implementation, implement Impl interface and
+// register it with unique name via func Register.
 //
-//  // Stream client returns the current state for the query and keeps running
-//  // until closed or the underlying connection breaks.
-//	func ExampleClient_Stream() {
-//		q := client.Query{
-//			Addrs:       []string{"127.0.0.1:1234"},
-//			Target:     "dev",
-//			Queries:    []client.Path{{"*"}},
-//			Type:       client.Stream,
-//			NotificationHandler: func(n Notification) error {
-//				switch nn := n.(type) {
-//				case Connected:
-//					fmt.Println("client is connected")
-//				case Sync:
-//					fmt.Println("client is synced")
-//				case Update, Delete:
-//					fmt.Println("update: %+v", nn)
-//				case Error:
-//					fmt.Println("error: %v", nn)
-//				}
-//			},
-//		}
-//		c := client.New()
-//		defer c.Close()
-//		// Note that Subscribe will block.
-//		err := c.Subscribe(context.Background(), q)
-//		if err != nil {
-//			fmt.Println(err)
-//		}
-//	}
+// Take a look at package examples in godoc for typical use cases.
 package client
 
 import (
@@ -138,7 +66,7 @@ type Client interface {
 	// It will try each clientType listed in order until one succeeds. If
 	// clientType is nil, it will try each registered clientType in random
 	// order.
-	Subscribe(context.Context, Query, ...string) error
+	Subscribe(ctx context.Context, q Query, clientType ...string) error
 	// Poll will send a poll request to the server and process all
 	// notifications. It is up the caller to identify the sync and realize the
 	// Poll is complete.
@@ -148,14 +76,15 @@ type Client interface {
 	// Close must be called to release any resources that Impl could have
 	// allocated.
 	Close() error
-	// Impl will return the underlying client implementation.
+	// Impl will return the underlying client implementation. Most users
+	// shouldn't use this.
 	Impl() (Impl, error)
 	// Set will make updates/deletes on the given values in SetRequest.
 	//
 	// Note that SetResponse and inner SetResult's contain Err fields that
 	// should be checked manually. Error from Set is only related to
 	// transport-layer issues in the RPC.
-	Set(context.Context, SetRequest, ...string) (SetResponse, error)
+	Set(ctx context.Context, r SetRequest, clientType ...string) (SetResponse, error)
 }
 
 var (
@@ -174,6 +103,8 @@ var (
 // caller must call Subscribe to perform the actual query. BaseClient stores no
 // state. All updates must be handled by the provided handlers inside of
 // Query.
+//
+// The zero value of BaseClient is ready for use (there is no constructor).
 type BaseClient struct {
 	mu         sync.RWMutex
 	closed     bool

@@ -20,20 +20,20 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"regexp"
 	"time"
 
 	"github.com/golang/protobuf/proto"
 )
 
-// NotificationHandler is a type for the client specific handler function. It
-// is passed from the generic client to the implementation specific library.
-// It provides a callback for each notification handled by the client specific
-// implementation.
+// NotificationHandler is a type for the client specific handler function.
+//
+// Client implementations will pass all kinds of received notifications as they
+// arrive.
 type NotificationHandler func(Notification) error
 
-// ProtoHandler is a type for the raw handling of the RPC layer.  It is exposed
-// here only for very lower level interactions and should only be used when
-// developing a debugging client.
+// ProtoHandler is a type for the raw handling of the RPC layer. Most users
+// should use NotificationHandler instead.
 type ProtoHandler func(proto.Message) error
 
 // Type defines the type of query in a Query.
@@ -78,6 +78,11 @@ var (
 		"poll":    Poll,
 		"stream":  Stream,
 	}
+
+	// Pre-compiled regex to match ASCII characters between [\x20-\x7E]
+	// i.e., printable ASCII characters and space
+	// https://github.com/grpc/blob/master/doc/PROTOCOL-HTTP2.md
+	printableASCII = regexp.MustCompile(`^[\x20-\x7E]*$`).MatchString
 )
 
 // Destination contains data used to connect to a server.
@@ -111,6 +116,9 @@ type Destination struct {
 func (d Destination) Validate() error {
 	if len(d.Addrs) == 0 {
 		return errors.New("Destination.Addrs is empty")
+	}
+	if d.Credentials != nil {
+		return d.Credentials.validate()
 	}
 	return nil
 }
@@ -182,6 +190,17 @@ func (q Query) Destination() Destination {
 type Credentials struct {
 	Username string
 	Password string
+}
+
+// Validates the credentials against printable ASCII characters
+func (c Credentials) validate() error {
+	if !printableASCII(c.Username) {
+		return errors.New("Credentials.Username contains non printable ASCII characters")
+	}
+	if !printableASCII(c.Password) {
+		return errors.New("Credentials.Password contains non printable ASCII characters")
+	}
+	return nil
 }
 
 // Validate validates that query contains valid values that any client should

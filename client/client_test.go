@@ -14,8 +14,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package client_test provides an external package tests for client.
-// ExampleClient_* provide examples of connecting to a backend in various ways.
 package client_test
 
 import (
@@ -244,6 +242,18 @@ func TestQuery(t *testing.T) {
 			Type:                client.Once,
 			NotificationHandler: func(_ client.Notification) error { return nil },
 		},
+	}, {
+		desc: "Password contains forbidden characters",
+		in: client.Query{
+			Credentials: &client.Credentials{Password: "\n"},
+		},
+		err: true,
+	}, {
+		desc: "Username contains forbidden characters",
+		in: client.Query{
+			Credentials: &client.Credentials{Username: "\n"},
+		},
+		err: true,
 	}}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
@@ -473,3 +483,84 @@ func (f fakeStreamingClient) Recv() error {
 }
 
 func (f fakeStreamingClient) Close() error { return nil }
+
+// Once client will run the query and once complete you can act on the
+// returned tree.
+func ExampleClient_Once() {
+	q := client.Query{
+		Addrs:   []string{"127.0.0.1:1234"},
+		Target:  "dev",
+		Queries: []client.Path{{"*"}},
+		Type:    client.Once,
+	}
+	c := client.New()
+	defer c.Close()
+	err := c.Subscribe(context.Background(), q)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, v := range c.Leaves() {
+		fmt.Printf("%v: %v\n", v.Path, v.Val)
+	}
+}
+
+// Poll client is like Once client, but can be re-triggered via Poll to
+// re-execute the query.
+func ExampleClient_Poll() {
+	q := client.Query{
+		Addrs:   []string{"127.0.0.1:1234"},
+		Target:  "dev",
+		Queries: []client.Path{{"*"}},
+		Type:    client.Poll,
+	}
+	c := client.New()
+	defer c.Close()
+	err := c.Subscribe(context.Background(), q)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, v := range c.Leaves() {
+		fmt.Printf("%v: %v\n", v.Path, v.Val)
+	}
+	err = c.Poll() // Poll allows the underyling Query to keep running
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+	for _, v := range c.Leaves() {
+		fmt.Printf("%v: %v\n", v.Path, v.Val)
+	}
+}
+
+// Stream client returns the current state for the query and keeps running
+// until closed or the underlying connection breaks.
+func ExampleClient_Stream() {
+	q := client.Query{
+		Addrs:   []string{"127.0.0.1:1234"},
+		Target:  "dev",
+		Queries: []client.Path{{"*"}},
+		Type:    client.Stream,
+		NotificationHandler: func(n client.Notification) error {
+			switch nn := n.(type) {
+			case client.Connected:
+				fmt.Println("client is connected")
+			case client.Sync:
+				fmt.Println("client is synced")
+			case client.Update, client.Delete:
+				fmt.Printf("update: %+v\n", nn)
+			case client.Error:
+				fmt.Printf("error: %v\n", nn)
+			}
+			return nil
+		},
+	}
+	c := client.New()
+	defer c.Close()
+	// Note that Subscribe will block.
+	err := c.Subscribe(context.Background(), q)
+	if err != nil {
+		fmt.Println(err)
+	}
+}

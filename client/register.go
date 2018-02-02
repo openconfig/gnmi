@@ -36,8 +36,8 @@ var (
 // Default timeout for all queries.
 const defaultTimeout = time.Minute
 
-// Impl is the protocol/RPC specific implementation of the streaming
-// Client.
+// Impl is the protocol/RPC specific implementation of the streaming Client.
+// Unless you're implementing a new RPC format, this shouldn't be used directly.
 type Impl interface {
 	// Subscribe sends a Subscribe request to the server.
 	Subscribe(context.Context, Query) error
@@ -52,10 +52,11 @@ type Impl interface {
 	Set(context.Context, SetRequest) (SetResponse, error)
 }
 
-// InitImpl provides a prototype for all client specific implementations of New.
+// InitImpl is a constructor signature for all transport specific implementations.
 type InitImpl func(context.Context, Destination) (Impl, error)
 
-// Register will register the client specific implementation.
+// Register will register the transport specific implementation.
+// The name must be unique across all transports.
 func Register(t string, f InitImpl) error {
 	mu.Lock()
 	defer mu.Unlock()
@@ -89,6 +90,8 @@ func RegisterTest(t string, f InitImpl) error {
 // NewImpl returns a client implementation based on the registered types.
 // It will try all clientTypes listed in parallel until one succeeds. If
 // clientType is nil, it will try all registered clientTypes.
+//
+// This function is only used internally and is exposed for testing only.
 func NewImpl(ctx context.Context, d Destination, clientType ...string) (Impl, error) {
 	mu.Lock()
 	registeredCount := len(clientImpl)

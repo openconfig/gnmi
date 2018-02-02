@@ -70,7 +70,7 @@ func New(config *fpb.Config, opts []grpc.ServerOption) (*Agent, error) {
 	}
 	var err error
 	if a.lis, err = net.Listen("tcp", fmt.Sprintf(":%d", a.config.Port)); err != nil {
-		return nil, fmt.Errorf("failed to open listener port %s: %s", a.config.Port, err)
+		return nil, fmt.Errorf("failed to open listener port %d: %s", a.config.Port, err)
 	}
 	ocpb.RegisterOpenConfigServer(a.s, a)
 	go a.s.Serve(a.lis)

@@ -24,6 +24,7 @@ package ctree
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"sync"
 )
 
@@ -408,4 +409,28 @@ func (t *Tree) DeleteConditional(subpath []string, condition func(interface{}) b
 func (t *Tree) Delete(subpath []string) [][]string {
 	always := func(interface{}) bool { return true }
 	return t.DeleteConditional(subpath, always)
+}
+
+// String implements the string interface for Tree returning a stable output
+// sorting keys at each level.
+func (t *Tree) String() string {
+	if t == nil {
+		return ""
+	}
+	defer t.mu.RUnlock()
+	t.mu.RLock()
+	if t.isBranch() {
+		b := t.leafBranch.(branch)
+		keys := make([]string, 0, len(b))
+		for k := range b {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+		children := make([]string, 0, len(b))
+		for _, k := range keys {
+			children = append(children, fmt.Sprintf("%q: %s", k, b[k]))
+		}
+		return fmt.Sprintf("{ %s }", strings.Join(children, ", "))
+	}
+	return fmt.Sprintf("%#v", t.leafBranch)
 }

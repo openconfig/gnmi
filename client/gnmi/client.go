@@ -14,7 +14,11 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-// Package client implements a gNMI client.
+// Package client contains transport implementation for the parent client
+// library using gnmi.proto.
+//
+// Note: this package should not be used directly. Use
+// github.com/openconfig/gnmi/client instead.
 package client
 
 import (
@@ -301,6 +305,9 @@ func subscribe(q client.Query) (*gpb.SubscribeRequest, error) {
 			Mode:   getType(q.Type),
 			Prefix: &gpb.Path{Target: q.Target},
 		},
+	}
+	if q.UpdatesOnly {
+		s.Subscribe.UpdatesOnly = true
 	}
 	for _, qq := range q.Queries {
 		pp, err := ygot.StringToPath(pathToString(qq), ygot.StructuredPath, ygot.StringSlicePath)
