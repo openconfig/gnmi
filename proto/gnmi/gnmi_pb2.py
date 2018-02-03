@@ -16,15 +16,16 @@ _sym_db = _symbol_database.Default()
 
 from google.protobuf import any_pb2 as google_dot_protobuf_dot_any__pb2
 from google.protobuf import descriptor_pb2 as google_dot_protobuf_dot_descriptor__pb2
+from github.com.openconfig.gnmi.proto.gnmi_ext import gnmi_ext_pb2 as github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='proto/gnmi/gnmi.proto',
   package='gnmi',
   syntax='proto3',
-  serialized_pb=_b('\n\x15proto/gnmi/gnmi.proto\x12\x04gnmi\x1a\x19google/protobuf/any.proto\x1a google/protobuf/descriptor.proto\"\x86\x01\n\x0cNotification\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\x12\x1a\n\x06prefix\x18\x02 \x01(\x0b\x32\n.gnmi.Path\x12\r\n\x05\x61lias\x18\x03 \x01(\t\x12\x1c\n\x06update\x18\x04 \x03(\x0b\x32\x0c.gnmi.Update\x12\x1a\n\x06\x64\x65lete\x18\x05 \x03(\x0b\x32\n.gnmi.Path\"u\n\x06Update\x12\x18\n\x04path\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12\x1e\n\x05value\x18\x02 \x01(\x0b\x32\x0b.gnmi.ValueB\x02\x18\x01\x12\x1d\n\x03val\x18\x03 \x01(\x0b\x32\x10.gnmi.TypedValue\x12\x12\n\nduplicates\x18\x04 \x01(\r\"\xce\x02\n\nTypedValue\x12\x14\n\nstring_val\x18\x01 \x01(\tH\x00\x12\x11\n\x07int_val\x18\x02 \x01(\x03H\x00\x12\x12\n\x08uint_val\x18\x03 \x01(\x04H\x00\x12\x12\n\x08\x62ool_val\x18\x04 \x01(\x08H\x00\x12\x13\n\tbytes_val\x18\x05 \x01(\x0cH\x00\x12\x13\n\tfloat_val\x18\x06 \x01(\x02H\x00\x12&\n\x0b\x64\x65\x63imal_val\x18\x07 \x01(\x0b\x32\x0f.gnmi.Decimal64H\x00\x12)\n\x0cleaflist_val\x18\x08 \x01(\x0b\x32\x11.gnmi.ScalarArrayH\x00\x12\'\n\x07\x61ny_val\x18\t \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x12\x12\n\x08json_val\x18\n \x01(\x0cH\x00\x12\x17\n\rjson_ietf_val\x18\x0b \x01(\x0cH\x00\x12\x13\n\tascii_val\x18\x0c \x01(\tH\x00\x42\x07\n\x05value\"Y\n\x04Path\x12\x13\n\x07\x65lement\x18\x01 \x03(\tB\x02\x18\x01\x12\x0e\n\x06origin\x18\x02 \x01(\t\x12\x1c\n\x04\x65lem\x18\x03 \x03(\x0b\x32\x0e.gnmi.PathElem\x12\x0e\n\x06target\x18\x04 \x01(\t\"j\n\x08PathElem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12$\n\x03key\x18\x02 \x03(\x0b\x32\x17.gnmi.PathElem.KeyEntry\x1a*\n\x08KeyEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"8\n\x05Value\x12\r\n\x05value\x18\x01 \x01(\x0c\x12\x1c\n\x04type\x18\x02 \x01(\x0e\x32\x0e.gnmi.Encoding:\x02\x18\x01\"N\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\"\n\x04\x64\x61ta\x18\x03 \x01(\x0b\x32\x14.google.protobuf.Any:\x02\x18\x01\".\n\tDecimal64\x12\x0e\n\x06\x64igits\x18\x01 \x01(\x04\x12\x11\n\tprecision\x18\x02 \x01(\r\"0\n\x0bScalarArray\x12!\n\x07\x65lement\x18\x01 \x03(\x0b\x32\x10.gnmi.TypedValue\"\x8a\x01\n\x10SubscribeRequest\x12+\n\tsubscribe\x18\x01 \x01(\x0b\x32\x16.gnmi.SubscriptionListH\x00\x12\x1a\n\x04poll\x18\x03 \x01(\x0b\x32\n.gnmi.PollH\x00\x12\"\n\x07\x61liases\x18\x04 \x01(\x0b\x32\x0f.gnmi.AliasListH\x00\x42\t\n\x07request\"\x06\n\x04Poll\"\x80\x01\n\x11SubscribeResponse\x12$\n\x06update\x18\x01 \x01(\x0b\x32\x12.gnmi.NotificationH\x00\x12\x17\n\rsync_response\x18\x03 \x01(\x08H\x00\x12 \n\x05\x65rror\x18\x04 \x01(\x0b\x32\x0b.gnmi.ErrorB\x02\x18\x01H\x00\x42\n\n\x08response\"\xd7\x02\n\x10SubscriptionList\x12\x1a\n\x06prefix\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12(\n\x0csubscription\x18\x02 \x03(\x0b\x32\x12.gnmi.Subscription\x12\x13\n\x0buse_aliases\x18\x03 \x01(\x08\x12\x1d\n\x03qos\x18\x04 \x01(\x0b\x32\x10.gnmi.QOSMarking\x12)\n\x04mode\x18\x05 \x01(\x0e\x32\x1b.gnmi.SubscriptionList.Mode\x12\x19\n\x11\x61llow_aggregation\x18\x06 \x01(\x08\x12#\n\nuse_models\x18\x07 \x03(\x0b\x32\x0f.gnmi.ModelData\x12 \n\x08\x65ncoding\x18\x08 \x01(\x0e\x32\x0e.gnmi.Encoding\x12\x14\n\x0cupdates_only\x18\t \x01(\x08\"&\n\x04Mode\x12\n\n\x06STREAM\x10\x00\x12\x08\n\x04ONCE\x10\x01\x12\x08\n\x04POLL\x10\x02\"\x9f\x01\n\x0cSubscription\x12\x18\n\x04path\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12$\n\x04mode\x18\x02 \x01(\x0e\x32\x16.gnmi.SubscriptionMode\x12\x17\n\x0fsample_interval\x18\x03 \x01(\x04\x12\x1a\n\x12suppress_redundant\x18\x04 \x01(\x08\x12\x1a\n\x12heartbeat_interval\x18\x05 \x01(\x04\"\x1d\n\nQOSMarking\x12\x0f\n\x07marking\x18\x01 \x01(\r\"0\n\x05\x41lias\x12\x18\n\x04path\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12\r\n\x05\x61lias\x18\x02 \x01(\t\"\'\n\tAliasList\x12\x1a\n\x05\x61lias\x18\x01 \x03(\x0b\x32\x0b.gnmi.Alias\"\x81\x01\n\nSetRequest\x12\x1a\n\x06prefix\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12\x1a\n\x06\x64\x65lete\x18\x02 \x03(\x0b\x32\n.gnmi.Path\x12\x1d\n\x07replace\x18\x03 \x03(\x0b\x32\x0c.gnmi.Update\x12\x1c\n\x06update\x18\x04 \x03(\x0b\x32\x0c.gnmi.Update\"\x84\x01\n\x0bSetResponse\x12\x1a\n\x06prefix\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12$\n\x08response\x18\x02 \x03(\x0b\x32\x12.gnmi.UpdateResult\x12 \n\x07message\x18\x03 \x01(\x0b\x32\x0b.gnmi.ErrorB\x02\x18\x01\x12\x11\n\ttimestamp\x18\x04 \x01(\x03\"\xca\x01\n\x0cUpdateResult\x12\x15\n\ttimestamp\x18\x01 \x01(\x03\x42\x02\x18\x01\x12\x18\n\x04path\x18\x02 \x01(\x0b\x32\n.gnmi.Path\x12 \n\x07message\x18\x03 \x01(\x0b\x32\x0b.gnmi.ErrorB\x02\x18\x01\x12(\n\x02op\x18\x04 \x01(\x0e\x32\x1c.gnmi.UpdateResult.Operation\"=\n\tOperation\x12\x0b\n\x07INVALID\x10\x00\x12\n\n\x06\x44\x45LETE\x10\x01\x12\x0b\n\x07REPLACE\x10\x02\x12\n\n\x06UPDATE\x10\x03\"\xef\x01\n\nGetRequest\x12\x1a\n\x06prefix\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12\x18\n\x04path\x18\x02 \x03(\x0b\x32\n.gnmi.Path\x12\'\n\x04type\x18\x03 \x01(\x0e\x32\x19.gnmi.GetRequest.DataType\x12 \n\x08\x65ncoding\x18\x05 \x01(\x0e\x32\x0e.gnmi.Encoding\x12#\n\nuse_models\x18\x06 \x03(\x0b\x32\x0f.gnmi.ModelData\";\n\x08\x44\x61taType\x12\x07\n\x03\x41LL\x10\x00\x12\n\n\x06\x43ONFIG\x10\x01\x12\t\n\x05STATE\x10\x02\x12\x0f\n\x0bOPERATIONAL\x10\x03\"W\n\x0bGetResponse\x12(\n\x0cnotification\x18\x01 \x03(\x0b\x32\x12.gnmi.Notification\x12\x1e\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x0b.gnmi.ErrorB\x02\x18\x01\"\x13\n\x11\x43\x61pabilityRequest\"\x82\x01\n\x12\x43\x61pabilityResponse\x12)\n\x10supported_models\x18\x01 \x03(\x0b\x32\x0f.gnmi.ModelData\x12+\n\x13supported_encodings\x18\x02 \x03(\x0e\x32\x0e.gnmi.Encoding\x12\x14\n\x0cgNMI_version\x18\x03 \x01(\t\"@\n\tModelData\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0corganization\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t*D\n\x08\x45ncoding\x12\x08\n\x04JSON\x10\x00\x12\t\n\x05\x42YTES\x10\x01\x12\t\n\x05PROTO\x10\x02\x12\t\n\x05\x41SCII\x10\x03\x12\r\n\tJSON_IETF\x10\x04*A\n\x10SubscriptionMode\x12\x12\n\x0eTARGET_DEFINED\x10\x00\x12\r\n\tON_CHANGE\x10\x01\x12\n\n\x06SAMPLE\x10\x02\x32\xe3\x01\n\x04gNMI\x12\x41\n\x0c\x43\x61pabilities\x12\x17.gnmi.CapabilityRequest\x1a\x18.gnmi.CapabilityResponse\x12*\n\x03Get\x12\x10.gnmi.GetRequest\x1a\x11.gnmi.GetResponse\x12*\n\x03Set\x12\x10.gnmi.SetRequest\x1a\x11.gnmi.SetResponse\x12@\n\tSubscribe\x12\x16.gnmi.SubscribeRequest\x1a\x17.gnmi.SubscribeResponse(\x01\x30\x01:3\n\x0cgnmi_service\x12\x1c.google.protobuf.FileOptions\x18\xe9\x07 \x01(\tB\x08\xca>\x05\x30.5.0b\x06proto3')
+  serialized_pb=_b('\n\x15proto/gnmi/gnmi.proto\x12\x04gnmi\x1a\x19google/protobuf/any.proto\x1a google/protobuf/descriptor.proto\x1a\x38github.com/openconfig/gnmi/proto/gnmi_ext/gnmi_ext.proto\"\x86\x01\n\x0cNotification\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\x12\x1a\n\x06prefix\x18\x02 \x01(\x0b\x32\n.gnmi.Path\x12\r\n\x05\x61lias\x18\x03 \x01(\t\x12\x1c\n\x06update\x18\x04 \x03(\x0b\x32\x0c.gnmi.Update\x12\x1a\n\x06\x64\x65lete\x18\x05 \x03(\x0b\x32\n.gnmi.Path\"u\n\x06Update\x12\x18\n\x04path\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12\x1e\n\x05value\x18\x02 \x01(\x0b\x32\x0b.gnmi.ValueB\x02\x18\x01\x12\x1d\n\x03val\x18\x03 \x01(\x0b\x32\x10.gnmi.TypedValue\x12\x12\n\nduplicates\x18\x04 \x01(\r\"\xce\x02\n\nTypedValue\x12\x14\n\nstring_val\x18\x01 \x01(\tH\x00\x12\x11\n\x07int_val\x18\x02 \x01(\x03H\x00\x12\x12\n\x08uint_val\x18\x03 \x01(\x04H\x00\x12\x12\n\x08\x62ool_val\x18\x04 \x01(\x08H\x00\x12\x13\n\tbytes_val\x18\x05 \x01(\x0cH\x00\x12\x13\n\tfloat_val\x18\x06 \x01(\x02H\x00\x12&\n\x0b\x64\x65\x63imal_val\x18\x07 \x01(\x0b\x32\x0f.gnmi.Decimal64H\x00\x12)\n\x0cleaflist_val\x18\x08 \x01(\x0b\x32\x11.gnmi.ScalarArrayH\x00\x12\'\n\x07\x61ny_val\x18\t \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x12\x12\n\x08json_val\x18\n \x01(\x0cH\x00\x12\x17\n\rjson_ietf_val\x18\x0b \x01(\x0cH\x00\x12\x13\n\tascii_val\x18\x0c \x01(\tH\x00\x42\x07\n\x05value\"Y\n\x04Path\x12\x13\n\x07\x65lement\x18\x01 \x03(\tB\x02\x18\x01\x12\x0e\n\x06origin\x18\x02 \x01(\t\x12\x1c\n\x04\x65lem\x18\x03 \x03(\x0b\x32\x0e.gnmi.PathElem\x12\x0e\n\x06target\x18\x04 \x01(\t\"j\n\x08PathElem\x12\x0c\n\x04name\x18\x01 \x01(\t\x12$\n\x03key\x18\x02 \x03(\x0b\x32\x17.gnmi.PathElem.KeyEntry\x1a*\n\x08KeyEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"8\n\x05Value\x12\r\n\x05value\x18\x01 \x01(\x0c\x12\x1c\n\x04type\x18\x02 \x01(\x0e\x32\x0e.gnmi.Encoding:\x02\x18\x01\"N\n\x05\x45rror\x12\x0c\n\x04\x63ode\x18\x01 \x01(\r\x12\x0f\n\x07message\x18\x02 \x01(\t\x12\"\n\x04\x64\x61ta\x18\x03 \x01(\x0b\x32\x14.google.protobuf.Any:\x02\x18\x01\".\n\tDecimal64\x12\x0e\n\x06\x64igits\x18\x01 \x01(\x03\x12\x11\n\tprecision\x18\x02 \x01(\r\"0\n\x0bScalarArray\x12!\n\x07\x65lement\x18\x01 \x03(\x0b\x32\x10.gnmi.TypedValue\"\xb2\x01\n\x10SubscribeRequest\x12+\n\tsubscribe\x18\x01 \x01(\x0b\x32\x16.gnmi.SubscriptionListH\x00\x12\x1a\n\x04poll\x18\x03 \x01(\x0b\x32\n.gnmi.PollH\x00\x12\"\n\x07\x61liases\x18\x04 \x01(\x0b\x32\x0f.gnmi.AliasListH\x00\x12&\n\textension\x18\x05 \x03(\x0b\x32\x13.gnmi_ext.ExtensionB\t\n\x07request\"\x06\n\x04Poll\"\xa8\x01\n\x11SubscribeResponse\x12$\n\x06update\x18\x01 \x01(\x0b\x32\x12.gnmi.NotificationH\x00\x12\x17\n\rsync_response\x18\x03 \x01(\x08H\x00\x12 \n\x05\x65rror\x18\x04 \x01(\x0b\x32\x0b.gnmi.ErrorB\x02\x18\x01H\x00\x12&\n\textension\x18\x05 \x03(\x0b\x32\x13.gnmi_ext.ExtensionB\n\n\x08response\"\xd7\x02\n\x10SubscriptionList\x12\x1a\n\x06prefix\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12(\n\x0csubscription\x18\x02 \x03(\x0b\x32\x12.gnmi.Subscription\x12\x13\n\x0buse_aliases\x18\x03 \x01(\x08\x12\x1d\n\x03qos\x18\x04 \x01(\x0b\x32\x10.gnmi.QOSMarking\x12)\n\x04mode\x18\x05 \x01(\x0e\x32\x1b.gnmi.SubscriptionList.Mode\x12\x19\n\x11\x61llow_aggregation\x18\x06 \x01(\x08\x12#\n\nuse_models\x18\x07 \x03(\x0b\x32\x0f.gnmi.ModelData\x12 \n\x08\x65ncoding\x18\x08 \x01(\x0e\x32\x0e.gnmi.Encoding\x12\x14\n\x0cupdates_only\x18\t \x01(\x08\"&\n\x04Mode\x12\n\n\x06STREAM\x10\x00\x12\x08\n\x04ONCE\x10\x01\x12\x08\n\x04POLL\x10\x02\"\x9f\x01\n\x0cSubscription\x12\x18\n\x04path\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12$\n\x04mode\x18\x02 \x01(\x0e\x32\x16.gnmi.SubscriptionMode\x12\x17\n\x0fsample_interval\x18\x03 \x01(\x04\x12\x1a\n\x12suppress_redundant\x18\x04 \x01(\x08\x12\x1a\n\x12heartbeat_interval\x18\x05 \x01(\x04\"\x1d\n\nQOSMarking\x12\x0f\n\x07marking\x18\x01 \x01(\r\"0\n\x05\x41lias\x12\x18\n\x04path\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12\r\n\x05\x61lias\x18\x02 \x01(\t\"\'\n\tAliasList\x12\x1a\n\x05\x61lias\x18\x01 \x03(\x0b\x32\x0b.gnmi.Alias\"\xa9\x01\n\nSetRequest\x12\x1a\n\x06prefix\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12\x1a\n\x06\x64\x65lete\x18\x02 \x03(\x0b\x32\n.gnmi.Path\x12\x1d\n\x07replace\x18\x03 \x03(\x0b\x32\x0c.gnmi.Update\x12\x1c\n\x06update\x18\x04 \x03(\x0b\x32\x0c.gnmi.Update\x12&\n\textension\x18\x05 \x03(\x0b\x32\x13.gnmi_ext.Extension\"\xac\x01\n\x0bSetResponse\x12\x1a\n\x06prefix\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12$\n\x08response\x18\x02 \x03(\x0b\x32\x12.gnmi.UpdateResult\x12 \n\x07message\x18\x03 \x01(\x0b\x32\x0b.gnmi.ErrorB\x02\x18\x01\x12\x11\n\ttimestamp\x18\x04 \x01(\x03\x12&\n\textension\x18\x05 \x03(\x0b\x32\x13.gnmi_ext.Extension\"\xca\x01\n\x0cUpdateResult\x12\x15\n\ttimestamp\x18\x01 \x01(\x03\x42\x02\x18\x01\x12\x18\n\x04path\x18\x02 \x01(\x0b\x32\n.gnmi.Path\x12 \n\x07message\x18\x03 \x01(\x0b\x32\x0b.gnmi.ErrorB\x02\x18\x01\x12(\n\x02op\x18\x04 \x01(\x0e\x32\x1c.gnmi.UpdateResult.Operation\"=\n\tOperation\x12\x0b\n\x07INVALID\x10\x00\x12\n\n\x06\x44\x45LETE\x10\x01\x12\x0b\n\x07REPLACE\x10\x02\x12\n\n\x06UPDATE\x10\x03\"\x97\x02\n\nGetRequest\x12\x1a\n\x06prefix\x18\x01 \x01(\x0b\x32\n.gnmi.Path\x12\x18\n\x04path\x18\x02 \x03(\x0b\x32\n.gnmi.Path\x12\'\n\x04type\x18\x03 \x01(\x0e\x32\x19.gnmi.GetRequest.DataType\x12 \n\x08\x65ncoding\x18\x05 \x01(\x0e\x32\x0e.gnmi.Encoding\x12#\n\nuse_models\x18\x06 \x03(\x0b\x32\x0f.gnmi.ModelData\x12&\n\textension\x18\x07 \x03(\x0b\x32\x13.gnmi_ext.Extension\";\n\x08\x44\x61taType\x12\x07\n\x03\x41LL\x10\x00\x12\n\n\x06\x43ONFIG\x10\x01\x12\t\n\x05STATE\x10\x02\x12\x0f\n\x0bOPERATIONAL\x10\x03\"\x7f\n\x0bGetResponse\x12(\n\x0cnotification\x18\x01 \x03(\x0b\x32\x12.gnmi.Notification\x12\x1e\n\x05\x65rror\x18\x02 \x01(\x0b\x32\x0b.gnmi.ErrorB\x02\x18\x01\x12&\n\textension\x18\x03 \x03(\x0b\x32\x13.gnmi_ext.Extension\";\n\x11\x43\x61pabilityRequest\x12&\n\textension\x18\x01 \x03(\x0b\x32\x13.gnmi_ext.Extension\"\xaa\x01\n\x12\x43\x61pabilityResponse\x12)\n\x10supported_models\x18\x01 \x03(\x0b\x32\x0f.gnmi.ModelData\x12+\n\x13supported_encodings\x18\x02 \x03(\x0e\x32\x0e.gnmi.Encoding\x12\x14\n\x0cgNMI_version\x18\x03 \x01(\t\x12&\n\textension\x18\x04 \x03(\x0b\x32\x13.gnmi_ext.Extension\"@\n\tModelData\x12\x0c\n\x04name\x18\x01 \x01(\t\x12\x14\n\x0corganization\x18\x02 \x01(\t\x12\x0f\n\x07version\x18\x03 \x01(\t*D\n\x08\x45ncoding\x12\x08\n\x04JSON\x10\x00\x12\t\n\x05\x42YTES\x10\x01\x12\t\n\x05PROTO\x10\x02\x12\t\n\x05\x41SCII\x10\x03\x12\r\n\tJSON_IETF\x10\x04*A\n\x10SubscriptionMode\x12\x12\n\x0eTARGET_DEFINED\x10\x00\x12\r\n\tON_CHANGE\x10\x01\x12\n\n\x06SAMPLE\x10\x02\x32\xe3\x01\n\x04gNMI\x12\x41\n\x0c\x43\x61pabilities\x12\x17.gnmi.CapabilityRequest\x1a\x18.gnmi.CapabilityResponse\x12*\n\x03Get\x12\x10.gnmi.GetRequest\x1a\x11.gnmi.GetResponse\x12*\n\x03Set\x12\x10.gnmi.SetRequest\x1a\x11.gnmi.SetResponse\x12@\n\tSubscribe\x12\x16.gnmi.SubscribeRequest\x1a\x17.gnmi.SubscribeResponse(\x01\x30\x01:3\n\x0cgnmi_service\x12\x1c.google.protobuf.FileOptions\x18\xe9\x07 \x01(\tB\x08\xca>\x05\x30.6.0b\x06proto3')
   ,
-  dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,google_dot_protobuf_dot_descriptor__pb2.DESCRIPTOR,])
+  dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,google_dot_protobuf_dot_descriptor__pb2.DESCRIPTOR,github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2.DESCRIPTOR,])
 
 _ENCODING = _descriptor.EnumDescriptor(
   name='Encoding',
@@ -55,8 +56,8 @@ _ENCODING = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3053,
-  serialized_end=3121,
+  serialized_start=3431,
+  serialized_end=3499,
 )
 _sym_db.RegisterEnumDescriptor(_ENCODING)
 
@@ -82,8 +83,8 @@ _SUBSCRIPTIONMODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=3123,
-  serialized_end=3188,
+  serialized_start=3501,
+  serialized_end=3566,
 )
 _sym_db.RegisterEnumDescriptor(_SUBSCRIPTIONMODE)
 
@@ -104,7 +105,7 @@ gnmi_service = _descriptor.FieldDescriptor(
   has_default_value=False, default_value=_b("").decode('utf-8'),
   message_type=None, enum_type=None, containing_type=None,
   is_extension=True, extension_scope=None,
-  options=None)
+  options=None, file=DESCRIPTOR)
 
 _SUBSCRIPTIONLIST_MODE = _descriptor.EnumDescriptor(
   name='Mode',
@@ -127,8 +128,8 @@ _SUBSCRIPTIONLIST_MODE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1706,
-  serialized_end=1744,
+  serialized_start=1844,
+  serialized_end=1882,
 )
 _sym_db.RegisterEnumDescriptor(_SUBSCRIPTIONLIST_MODE)
 
@@ -157,8 +158,8 @@ _UPDATERESULT_OPERATION = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2439,
-  serialized_end=2500,
+  serialized_start=2657,
+  serialized_end=2718,
 )
 _sym_db.RegisterEnumDescriptor(_UPDATERESULT_OPERATION)
 
@@ -187,8 +188,8 @@ _GETREQUEST_DATATYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=2683,
-  serialized_end=2742,
+  serialized_start=2941,
+  serialized_end=3000,
 )
 _sym_db.RegisterEnumDescriptor(_GETREQUEST_DATATYPE)
 
@@ -206,35 +207,35 @@ _NOTIFICATION = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='prefix', full_name='gnmi.Notification.prefix', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='alias', full_name='gnmi.Notification.alias', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='update', full_name='gnmi.Notification.update', index=3,
       number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delete', full_name='gnmi.Notification.delete', index=4,
       number=5, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -247,8 +248,8 @@ _NOTIFICATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=93,
-  serialized_end=227,
+  serialized_start=151,
+  serialized_end=285,
 )
 
 
@@ -265,28 +266,28 @@ _UPDATE = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='gnmi.Update.value', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='val', full_name='gnmi.Update.val', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='duplicates', full_name='gnmi.Update.duplicates', index=3,
       number=4, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -299,8 +300,8 @@ _UPDATE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=229,
-  serialized_end=346,
+  serialized_start=287,
+  serialized_end=404,
 )
 
 
@@ -317,84 +318,84 @@ _TYPEDVALUE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='int_val', full_name='gnmi.TypedValue.int_val', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='uint_val', full_name='gnmi.TypedValue.uint_val', index=2,
       number=3, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='bool_val', full_name='gnmi.TypedValue.bool_val', index=3,
       number=4, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='bytes_val', full_name='gnmi.TypedValue.bytes_val', index=4,
       number=5, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='float_val', full_name='gnmi.TypedValue.float_val', index=5,
       number=6, type=2, cpp_type=6, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='decimal_val', full_name='gnmi.TypedValue.decimal_val', index=6,
       number=7, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='leaflist_val', full_name='gnmi.TypedValue.leaflist_val', index=7,
       number=8, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='any_val', full_name='gnmi.TypedValue.any_val', index=8,
       number=9, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='json_val', full_name='gnmi.TypedValue.json_val', index=9,
       number=10, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='json_ietf_val', full_name='gnmi.TypedValue.json_ietf_val', index=10,
       number=11, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='ascii_val', full_name='gnmi.TypedValue.ascii_val', index=11,
       number=12, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -410,8 +411,8 @@ _TYPEDVALUE = _descriptor.Descriptor(
       name='value', full_name='gnmi.TypedValue.value',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=349,
-  serialized_end=683,
+  serialized_start=407,
+  serialized_end=741,
 )
 
 
@@ -428,28 +429,28 @@ _PATH = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='origin', full_name='gnmi.Path.origin', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='elem', full_name='gnmi.Path.elem', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='target', full_name='gnmi.Path.target', index=3,
       number=4, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -462,8 +463,8 @@ _PATH = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=685,
-  serialized_end=774,
+  serialized_start=743,
+  serialized_end=832,
 )
 
 
@@ -480,14 +481,14 @@ _PATHELEM_KEYENTRY = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='gnmi.PathElem.KeyEntry.value', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -500,8 +501,8 @@ _PATHELEM_KEYENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=840,
-  serialized_end=882,
+  serialized_start=898,
+  serialized_end=940,
 )
 
 _PATHELEM = _descriptor.Descriptor(
@@ -517,14 +518,14 @@ _PATHELEM = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='key', full_name='gnmi.PathElem.key', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -537,8 +538,8 @@ _PATHELEM = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=776,
-  serialized_end=882,
+  serialized_start=834,
+  serialized_end=940,
 )
 
 
@@ -555,14 +556,14 @@ _VALUE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='type', full_name='gnmi.Value.type', index=1,
       number=2, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -575,8 +576,8 @@ _VALUE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=884,
-  serialized_end=940,
+  serialized_start=942,
+  serialized_end=998,
 )
 
 
@@ -593,21 +594,21 @@ _ERROR = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='message', full_name='gnmi.Error.message', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='data', full_name='gnmi.Error.data', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -620,8 +621,8 @@ _ERROR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=942,
-  serialized_end=1020,
+  serialized_start=1000,
+  serialized_end=1078,
 )
 
 
@@ -634,18 +635,18 @@ _DECIMAL64 = _descriptor.Descriptor(
   fields=[
     _descriptor.FieldDescriptor(
       name='digits', full_name='gnmi.Decimal64.digits', index=0,
-      number=1, type=4, cpp_type=4, label=1,
+      number=1, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='precision', full_name='gnmi.Decimal64.precision', index=1,
       number=2, type=13, cpp_type=3, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -658,8 +659,8 @@ _DECIMAL64 = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1022,
-  serialized_end=1068,
+  serialized_start=1080,
+  serialized_end=1126,
 )
 
 
@@ -676,7 +677,7 @@ _SCALARARRAY = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -689,8 +690,8 @@ _SCALARARRAY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1070,
-  serialized_end=1118,
+  serialized_start=1128,
+  serialized_end=1176,
 )
 
 
@@ -707,21 +708,28 @@ _SUBSCRIBEREQUEST = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='poll', full_name='gnmi.SubscribeRequest.poll', index=1,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='aliases', full_name='gnmi.SubscribeRequest.aliases', index=2,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extension', full_name='gnmi.SubscribeRequest.extension', index=3,
+      number=5, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -737,8 +745,8 @@ _SUBSCRIBEREQUEST = _descriptor.Descriptor(
       name='request', full_name='gnmi.SubscribeRequest.request',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1121,
-  serialized_end=1259,
+  serialized_start=1179,
+  serialized_end=1357,
 )
 
 
@@ -761,8 +769,8 @@ _POLL = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1261,
-  serialized_end=1267,
+  serialized_start=1359,
+  serialized_end=1365,
 )
 
 
@@ -779,21 +787,28 @@ _SUBSCRIBERESPONSE = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='sync_response', full_name='gnmi.SubscribeResponse.sync_response', index=1,
       number=3, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='error', full_name='gnmi.SubscribeResponse.error', index=2,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extension', full_name='gnmi.SubscribeResponse.extension', index=3,
+      number=5, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -809,8 +824,8 @@ _SUBSCRIBERESPONSE = _descriptor.Descriptor(
       name='response', full_name='gnmi.SubscribeResponse.response',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1270,
-  serialized_end=1398,
+  serialized_start=1368,
+  serialized_end=1536,
 )
 
 
@@ -827,63 +842,63 @@ _SUBSCRIPTIONLIST = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='subscription', full_name='gnmi.SubscriptionList.subscription', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='use_aliases', full_name='gnmi.SubscriptionList.use_aliases', index=2,
       number=3, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='qos', full_name='gnmi.SubscriptionList.qos', index=3,
       number=4, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='mode', full_name='gnmi.SubscriptionList.mode', index=4,
       number=5, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='allow_aggregation', full_name='gnmi.SubscriptionList.allow_aggregation', index=5,
       number=6, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='use_models', full_name='gnmi.SubscriptionList.use_models', index=6,
       number=7, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='encoding', full_name='gnmi.SubscriptionList.encoding', index=7,
       number=8, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='updates_only', full_name='gnmi.SubscriptionList.updates_only', index=8,
       number=9, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -897,8 +912,8 @@ _SUBSCRIPTIONLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1401,
-  serialized_end=1744,
+  serialized_start=1539,
+  serialized_end=1882,
 )
 
 
@@ -915,35 +930,35 @@ _SUBSCRIPTION = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='mode', full_name='gnmi.Subscription.mode', index=1,
       number=2, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='sample_interval', full_name='gnmi.Subscription.sample_interval', index=2,
       number=3, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='suppress_redundant', full_name='gnmi.Subscription.suppress_redundant', index=3,
       number=4, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='heartbeat_interval', full_name='gnmi.Subscription.heartbeat_interval', index=4,
       number=5, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -956,8 +971,8 @@ _SUBSCRIPTION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1747,
-  serialized_end=1906,
+  serialized_start=1885,
+  serialized_end=2044,
 )
 
 
@@ -974,7 +989,7 @@ _QOSMARKING = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -987,8 +1002,8 @@ _QOSMARKING = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1908,
-  serialized_end=1937,
+  serialized_start=2046,
+  serialized_end=2075,
 )
 
 
@@ -1005,14 +1020,14 @@ _ALIAS = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='alias', full_name='gnmi.Alias.alias', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1025,8 +1040,8 @@ _ALIAS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1939,
-  serialized_end=1987,
+  serialized_start=2077,
+  serialized_end=2125,
 )
 
 
@@ -1043,7 +1058,7 @@ _ALIASLIST = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1056,8 +1071,8 @@ _ALIASLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1989,
-  serialized_end=2028,
+  serialized_start=2127,
+  serialized_end=2166,
 )
 
 
@@ -1074,28 +1089,35 @@ _SETREQUEST = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delete', full_name='gnmi.SetRequest.delete', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='replace', full_name='gnmi.SetRequest.replace', index=2,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='update', full_name='gnmi.SetRequest.update', index=3,
       number=4, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extension', full_name='gnmi.SetRequest.extension', index=4,
+      number=5, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1108,8 +1130,8 @@ _SETREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2031,
-  serialized_end=2160,
+  serialized_start=2169,
+  serialized_end=2338,
 )
 
 
@@ -1126,28 +1148,35 @@ _SETRESPONSE = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='response', full_name='gnmi.SetResponse.response', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='message', full_name='gnmi.SetResponse.message', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='timestamp', full_name='gnmi.SetResponse.timestamp', index=3,
       number=4, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extension', full_name='gnmi.SetResponse.extension', index=4,
+      number=5, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1160,8 +1189,8 @@ _SETRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2163,
-  serialized_end=2295,
+  serialized_start=2341,
+  serialized_end=2513,
 )
 
 
@@ -1178,28 +1207,28 @@ _UPDATERESULT = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='path', full_name='gnmi.UpdateResult.path', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='message', full_name='gnmi.UpdateResult.message', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='op', full_name='gnmi.UpdateResult.op', index=3,
       number=4, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1213,8 +1242,8 @@ _UPDATERESULT = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2298,
-  serialized_end=2500,
+  serialized_start=2516,
+  serialized_end=2718,
 )
 
 
@@ -1231,35 +1260,42 @@ _GETREQUEST = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='path', full_name='gnmi.GetRequest.path', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='type', full_name='gnmi.GetRequest.type', index=2,
       number=3, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='encoding', full_name='gnmi.GetRequest.encoding', index=3,
       number=5, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='use_models', full_name='gnmi.GetRequest.use_models', index=4,
       number=6, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extension', full_name='gnmi.GetRequest.extension', index=5,
+      number=7, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1273,8 +1309,8 @@ _GETREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2503,
-  serialized_end=2742,
+  serialized_start=2721,
+  serialized_end=3000,
 )
 
 
@@ -1291,14 +1327,21 @@ _GETRESPONSE = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='error', full_name='gnmi.GetResponse.error', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extension', full_name='gnmi.GetResponse.extension', index=2,
+      number=3, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1311,8 +1354,8 @@ _GETRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2744,
-  serialized_end=2831,
+  serialized_start=3002,
+  serialized_end=3129,
 )
 
 
@@ -1323,6 +1366,13 @@ _CAPABILITYREQUEST = _descriptor.Descriptor(
   file=DESCRIPTOR,
   containing_type=None,
   fields=[
+    _descriptor.FieldDescriptor(
+      name='extension', full_name='gnmi.CapabilityRequest.extension', index=0,
+      number=1, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1335,8 +1385,8 @@ _CAPABILITYREQUEST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2833,
-  serialized_end=2852,
+  serialized_start=3131,
+  serialized_end=3190,
 )
 
 
@@ -1353,21 +1403,28 @@ _CAPABILITYRESPONSE = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='supported_encodings', full_name='gnmi.CapabilityResponse.supported_encodings', index=1,
       number=2, type=14, cpp_type=8, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='gNMI_version', full_name='gnmi.CapabilityResponse.gNMI_version', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='extension', full_name='gnmi.CapabilityResponse.extension', index=3,
+      number=4, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1380,8 +1437,8 @@ _CAPABILITYRESPONSE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2855,
-  serialized_end=2985,
+  serialized_start=3193,
+  serialized_end=3363,
 )
 
 
@@ -1398,21 +1455,21 @@ _MODELDATA = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='organization', full_name='gnmi.ModelData.organization', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='version', full_name='gnmi.ModelData.version', index=2,
       number=3, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -1425,8 +1482,8 @@ _MODELDATA = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=2987,
-  serialized_end=3051,
+  serialized_start=3365,
+  serialized_end=3429,
 )
 
 _NOTIFICATION.fields_by_name['prefix'].message_type = _PATH
@@ -1483,6 +1540,7 @@ _SCALARARRAY.fields_by_name['element'].message_type = _TYPEDVALUE
 _SUBSCRIBEREQUEST.fields_by_name['subscribe'].message_type = _SUBSCRIPTIONLIST
 _SUBSCRIBEREQUEST.fields_by_name['poll'].message_type = _POLL
 _SUBSCRIBEREQUEST.fields_by_name['aliases'].message_type = _ALIASLIST
+_SUBSCRIBEREQUEST.fields_by_name['extension'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2._EXTENSION
 _SUBSCRIBEREQUEST.oneofs_by_name['request'].fields.append(
   _SUBSCRIBEREQUEST.fields_by_name['subscribe'])
 _SUBSCRIBEREQUEST.fields_by_name['subscribe'].containing_oneof = _SUBSCRIBEREQUEST.oneofs_by_name['request']
@@ -1494,6 +1552,7 @@ _SUBSCRIBEREQUEST.oneofs_by_name['request'].fields.append(
 _SUBSCRIBEREQUEST.fields_by_name['aliases'].containing_oneof = _SUBSCRIBEREQUEST.oneofs_by_name['request']
 _SUBSCRIBERESPONSE.fields_by_name['update'].message_type = _NOTIFICATION
 _SUBSCRIBERESPONSE.fields_by_name['error'].message_type = _ERROR
+_SUBSCRIBERESPONSE.fields_by_name['extension'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2._EXTENSION
 _SUBSCRIBERESPONSE.oneofs_by_name['response'].fields.append(
   _SUBSCRIBERESPONSE.fields_by_name['update'])
 _SUBSCRIBERESPONSE.fields_by_name['update'].containing_oneof = _SUBSCRIBERESPONSE.oneofs_by_name['response']
@@ -1518,9 +1577,11 @@ _SETREQUEST.fields_by_name['prefix'].message_type = _PATH
 _SETREQUEST.fields_by_name['delete'].message_type = _PATH
 _SETREQUEST.fields_by_name['replace'].message_type = _UPDATE
 _SETREQUEST.fields_by_name['update'].message_type = _UPDATE
+_SETREQUEST.fields_by_name['extension'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2._EXTENSION
 _SETRESPONSE.fields_by_name['prefix'].message_type = _PATH
 _SETRESPONSE.fields_by_name['response'].message_type = _UPDATERESULT
 _SETRESPONSE.fields_by_name['message'].message_type = _ERROR
+_SETRESPONSE.fields_by_name['extension'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2._EXTENSION
 _UPDATERESULT.fields_by_name['path'].message_type = _PATH
 _UPDATERESULT.fields_by_name['message'].message_type = _ERROR
 _UPDATERESULT.fields_by_name['op'].enum_type = _UPDATERESULT_OPERATION
@@ -1530,11 +1591,15 @@ _GETREQUEST.fields_by_name['path'].message_type = _PATH
 _GETREQUEST.fields_by_name['type'].enum_type = _GETREQUEST_DATATYPE
 _GETREQUEST.fields_by_name['encoding'].enum_type = _ENCODING
 _GETREQUEST.fields_by_name['use_models'].message_type = _MODELDATA
+_GETREQUEST.fields_by_name['extension'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2._EXTENSION
 _GETREQUEST_DATATYPE.containing_type = _GETREQUEST
 _GETRESPONSE.fields_by_name['notification'].message_type = _NOTIFICATION
 _GETRESPONSE.fields_by_name['error'].message_type = _ERROR
+_GETRESPONSE.fields_by_name['extension'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2._EXTENSION
+_CAPABILITYREQUEST.fields_by_name['extension'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2._EXTENSION
 _CAPABILITYRESPONSE.fields_by_name['supported_models'].message_type = _MODELDATA
 _CAPABILITYRESPONSE.fields_by_name['supported_encodings'].enum_type = _ENCODING
+_CAPABILITYRESPONSE.fields_by_name['extension'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi__ext_dot_gnmi__ext__pb2._EXTENSION
 DESCRIPTOR.message_types_by_name['Notification'] = _NOTIFICATION
 DESCRIPTOR.message_types_by_name['Update'] = _UPDATE
 DESCRIPTOR.message_types_by_name['TypedValue'] = _TYPEDVALUE
@@ -1751,7 +1816,7 @@ _sym_db.RegisterMessage(ModelData)
 google_dot_protobuf_dot_descriptor__pb2.FileOptions.RegisterExtension(gnmi_service)
 
 DESCRIPTOR.has_options = True
-DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(), _b('\312>\0050.5.0'))
+DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(), _b('\312>\0050.6.0'))
 _UPDATE.fields_by_name['value'].has_options = True
 _UPDATE.fields_by_name['value']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))
 _PATH.fields_by_name['element'].has_options = True
@@ -1772,266 +1837,55 @@ _UPDATERESULT.fields_by_name['message'].has_options = True
 _UPDATERESULT.fields_by_name['message']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))
 _GETRESPONSE.fields_by_name['error'].has_options = True
 _GETRESPONSE.fields_by_name['error']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))
-try:
-  # THESE ELEMENTS WILL BE DEPRECATED.
-  # Please use the generated *_pb2_grpc.py files instead.
-  import grpc
-  from grpc.beta import implementations as beta_implementations
-  from grpc.beta import interfaces as beta_interfaces
-  from grpc.framework.common import cardinality
-  from grpc.framework.interfaces.face import utilities as face_utilities
 
+_GNMI = _descriptor.ServiceDescriptor(
+  name='gNMI',
+  full_name='gnmi.gNMI',
+  file=DESCRIPTOR,
+  index=0,
+  options=None,
+  serialized_start=3569,
+  serialized_end=3796,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Capabilities',
+    full_name='gnmi.gNMI.Capabilities',
+    index=0,
+    containing_service=None,
+    input_type=_CAPABILITYREQUEST,
+    output_type=_CAPABILITYRESPONSE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Get',
+    full_name='gnmi.gNMI.Get',
+    index=1,
+    containing_service=None,
+    input_type=_GETREQUEST,
+    output_type=_GETRESPONSE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Set',
+    full_name='gnmi.gNMI.Set',
+    index=2,
+    containing_service=None,
+    input_type=_SETREQUEST,
+    output_type=_SETRESPONSE,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Subscribe',
+    full_name='gnmi.gNMI.Subscribe',
+    index=3,
+    containing_service=None,
+    input_type=_SUBSCRIBEREQUEST,
+    output_type=_SUBSCRIBERESPONSE,
+    options=None,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_GNMI)
 
-  class gNMIStub(object):
-    # missing associated documentation comment in .proto file
-    pass
+DESCRIPTOR.services_by_name['gNMI'] = _GNMI
 
-    def __init__(self, channel):
-      """Constructor.
-
-      Args:
-        channel: A grpc.Channel.
-      """
-      self.Capabilities = channel.unary_unary(
-          '/gnmi.gNMI/Capabilities',
-          request_serializer=CapabilityRequest.SerializeToString,
-          response_deserializer=CapabilityResponse.FromString,
-          )
-      self.Get = channel.unary_unary(
-          '/gnmi.gNMI/Get',
-          request_serializer=GetRequest.SerializeToString,
-          response_deserializer=GetResponse.FromString,
-          )
-      self.Set = channel.unary_unary(
-          '/gnmi.gNMI/Set',
-          request_serializer=SetRequest.SerializeToString,
-          response_deserializer=SetResponse.FromString,
-          )
-      self.Subscribe = channel.stream_stream(
-          '/gnmi.gNMI/Subscribe',
-          request_serializer=SubscribeRequest.SerializeToString,
-          response_deserializer=SubscribeResponse.FromString,
-          )
-
-
-  class gNMIServicer(object):
-    # missing associated documentation comment in .proto file
-    pass
-
-    def Capabilities(self, request, context):
-      """Capabilities allows the client to retrieve the set of capabilities that
-      is supported by the target. This allows the target to validate the
-      service version that is implemented and retrieve the set of models that
-      the target supports. The models can then be specified in subsequent RPCs
-      to restrict the set of data that is utilized.
-      Reference: gNMI Specification Section 3.2
-      """
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def Get(self, request, context):
-      """Retrieve a snapshot of data from the target. A Get RPC requests that the
-      target snapshots a subset of the data tree as specified by the paths
-      included in the message and serializes this to be returned to the
-      client using the specified encoding.
-      Reference: gNMI Specification Section 3.3
-      """
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def Set(self, request, context):
-      """Set allows the client to modify the state of data on the target. The
-      paths to modified along with the new values that the client wishes
-      to set the value to.
-      Reference: gNMI Specification Section 3.4
-      """
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def Subscribe(self, request_iterator, context):
-      """Subscribe allows a client to request the target to send it values
-      of particular paths within the data tree. These values may be streamed
-      at a particular cadence (STREAM), sent one off on a long-lived channel
-      (POLL), or sent as a one-off retrieval (ONCE).
-      Reference: gNMI Specification Section 3.5
-      """
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-
-  def add_gNMIServicer_to_server(servicer, server):
-    rpc_method_handlers = {
-        'Capabilities': grpc.unary_unary_rpc_method_handler(
-            servicer.Capabilities,
-            request_deserializer=CapabilityRequest.FromString,
-            response_serializer=CapabilityResponse.SerializeToString,
-        ),
-        'Get': grpc.unary_unary_rpc_method_handler(
-            servicer.Get,
-            request_deserializer=GetRequest.FromString,
-            response_serializer=GetResponse.SerializeToString,
-        ),
-        'Set': grpc.unary_unary_rpc_method_handler(
-            servicer.Set,
-            request_deserializer=SetRequest.FromString,
-            response_serializer=SetResponse.SerializeToString,
-        ),
-        'Subscribe': grpc.stream_stream_rpc_method_handler(
-            servicer.Subscribe,
-            request_deserializer=SubscribeRequest.FromString,
-            response_serializer=SubscribeResponse.SerializeToString,
-        ),
-    }
-    generic_handler = grpc.method_handlers_generic_handler(
-        'gnmi.gNMI', rpc_method_handlers)
-    server.add_generic_rpc_handlers((generic_handler,))
-
-
-  class BetagNMIServicer(object):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This class was generated
-    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-    # missing associated documentation comment in .proto file
-    pass
-    def Capabilities(self, request, context):
-      """Capabilities allows the client to retrieve the set of capabilities that
-      is supported by the target. This allows the target to validate the
-      service version that is implemented and retrieve the set of models that
-      the target supports. The models can then be specified in subsequent RPCs
-      to restrict the set of data that is utilized.
-      Reference: gNMI Specification Section 3.2
-      """
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def Get(self, request, context):
-      """Retrieve a snapshot of data from the target. A Get RPC requests that the
-      target snapshots a subset of the data tree as specified by the paths
-      included in the message and serializes this to be returned to the
-      client using the specified encoding.
-      Reference: gNMI Specification Section 3.3
-      """
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def Set(self, request, context):
-      """Set allows the client to modify the state of data on the target. The
-      paths to modified along with the new values that the client wishes
-      to set the value to.
-      Reference: gNMI Specification Section 3.4
-      """
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def Subscribe(self, request_iterator, context):
-      """Subscribe allows a client to request the target to send it values
-      of particular paths within the data tree. These values may be streamed
-      at a particular cadence (STREAM), sent one off on a long-lived channel
-      (POLL), or sent as a one-off retrieval (ONCE).
-      Reference: gNMI Specification Section 3.5
-      """
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-
-
-  class BetagNMIStub(object):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This class was generated
-    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-    # missing associated documentation comment in .proto file
-    pass
-    def Capabilities(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      """Capabilities allows the client to retrieve the set of capabilities that
-      is supported by the target. This allows the target to validate the
-      service version that is implemented and retrieve the set of models that
-      the target supports. The models can then be specified in subsequent RPCs
-      to restrict the set of data that is utilized.
-      Reference: gNMI Specification Section 3.2
-      """
-      raise NotImplementedError()
-    Capabilities.future = None
-    def Get(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      """Retrieve a snapshot of data from the target. A Get RPC requests that the
-      target snapshots a subset of the data tree as specified by the paths
-      included in the message and serializes this to be returned to the
-      client using the specified encoding.
-      Reference: gNMI Specification Section 3.3
-      """
-      raise NotImplementedError()
-    Get.future = None
-    def Set(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      """Set allows the client to modify the state of data on the target. The
-      paths to modified along with the new values that the client wishes
-      to set the value to.
-      Reference: gNMI Specification Section 3.4
-      """
-      raise NotImplementedError()
-    Set.future = None
-    def Subscribe(self, request_iterator, timeout, metadata=None, with_call=False, protocol_options=None):
-      """Subscribe allows a client to request the target to send it values
-      of particular paths within the data tree. These values may be streamed
-      at a particular cadence (STREAM), sent one off on a long-lived channel
-      (POLL), or sent as a one-off retrieval (ONCE).
-      Reference: gNMI Specification Section 3.5
-      """
-      raise NotImplementedError()
-
-
-  def beta_create_gNMI_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This function was
-    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
-    request_deserializers = {
-      ('gnmi.gNMI', 'Capabilities'): CapabilityRequest.FromString,
-      ('gnmi.gNMI', 'Get'): GetRequest.FromString,
-      ('gnmi.gNMI', 'Set'): SetRequest.FromString,
-      ('gnmi.gNMI', 'Subscribe'): SubscribeRequest.FromString,
-    }
-    response_serializers = {
-      ('gnmi.gNMI', 'Capabilities'): CapabilityResponse.SerializeToString,
-      ('gnmi.gNMI', 'Get'): GetResponse.SerializeToString,
-      ('gnmi.gNMI', 'Set'): SetResponse.SerializeToString,
-      ('gnmi.gNMI', 'Subscribe'): SubscribeResponse.SerializeToString,
-    }
-    method_implementations = {
-      ('gnmi.gNMI', 'Capabilities'): face_utilities.unary_unary_inline(servicer.Capabilities),
-      ('gnmi.gNMI', 'Get'): face_utilities.unary_unary_inline(servicer.Get),
-      ('gnmi.gNMI', 'Set'): face_utilities.unary_unary_inline(servicer.Set),
-      ('gnmi.gNMI', 'Subscribe'): face_utilities.stream_stream_inline(servicer.Subscribe),
-    }
-    server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
-    return beta_implementations.server(method_implementations, options=server_options)
-
-
-  def beta_create_gNMI_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This function was
-    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
-    request_serializers = {
-      ('gnmi.gNMI', 'Capabilities'): CapabilityRequest.SerializeToString,
-      ('gnmi.gNMI', 'Get'): GetRequest.SerializeToString,
-      ('gnmi.gNMI', 'Set'): SetRequest.SerializeToString,
-      ('gnmi.gNMI', 'Subscribe'): SubscribeRequest.SerializeToString,
-    }
-    response_deserializers = {
-      ('gnmi.gNMI', 'Capabilities'): CapabilityResponse.FromString,
-      ('gnmi.gNMI', 'Get'): GetResponse.FromString,
-      ('gnmi.gNMI', 'Set'): SetResponse.FromString,
-      ('gnmi.gNMI', 'Subscribe'): SubscribeResponse.FromString,
-    }
-    cardinalities = {
-      'Capabilities': cardinality.Cardinality.UNARY_UNARY,
-      'Get': cardinality.Cardinality.UNARY_UNARY,
-      'Set': cardinality.Cardinality.UNARY_UNARY,
-      'Subscribe': cardinality.Cardinality.STREAM_STREAM,
-    }
-    stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
-    return beta_implementations.dynamic_stub(channel, 'gnmi.gNMI', cardinalities, options=stub_options)
-except ImportError:
-  pass
 # @@protoc_insertion_point(module_scope)
