@@ -79,7 +79,7 @@ func (Config_ClientType) EnumDescriptor() ([]byte, []int) {
 // server.  Each config describes a single agent hosted on the server.
 type Configuration struct {
 	// Repeated list of targets to emulate.
-	Config               []*Config `protobuf:"bytes,1,rep,name=config" json:"config,omitempty"`
+	Config               []*Config `protobuf:"bytes,1,rep,name=config,proto3" json:"config,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}  `json:"-"`
 	XXX_unrecognized     []byte    `json:"-"`
 	XXX_sizecache        int32     `json:"-"`
@@ -117,8 +117,8 @@ func (m *Configuration) GetConfig() []*Config {
 }
 
 type Credentials struct {
-	Username             string   `protobuf:"bytes,1,opt,name=username" json:"username,omitempty"`
-	Password             string   `protobuf:"bytes,2,opt,name=password" json:"password,omitempty"`
+	Username             string   `protobuf:"bytes,1,opt,name=username,proto3" json:"username,omitempty"`
+	Password             string   `protobuf:"bytes,2,opt,name=password,proto3" json:"password,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -166,33 +166,33 @@ func (m *Credentials) GetPassword() string {
 // for one or more fake devices.
 type Config struct {
 	// The target for which the fake will publish values for.
-	Target string `protobuf:"bytes,1,opt,name=target" json:"target,omitempty"`
+	Target string `protobuf:"bytes,1,opt,name=target,proto3" json:"target,omitempty"`
 	// Port for the agent to listen on. If 0 or unset the agent will pick a port
 	// for this agent.
-	Port int64 `protobuf:"varint,2,opt,name=port" json:"port,omitempty"`
+	Port int64 `protobuf:"varint,2,opt,name=port,proto3" json:"port,omitempty"`
 	// A global random seed used in generating subsequent values. Set to have
 	// reproducible results.
-	Seed int64 `protobuf:"varint,6,opt,name=seed" json:"seed,omitempty"` // Deprecated: Do not use.
+	Seed int64 `protobuf:"varint,6,opt,name=seed,proto3" json:"seed,omitempty"` // Deprecated: Do not use.
 	// The list of values generated.  Each value will contain its corresponding
 	// target as the first string in the event.GetValue().path meaning that it is
 	// possible to generate streams that will be rejected by the cache for testing
 	// purposes.
-	Values []*Value `protobuf:"bytes,3,rep,name=values" json:"values,omitempty"` // Deprecated: Do not use.
+	Values []*Value `protobuf:"bytes,3,rep,name=values,proto3" json:"values,omitempty"` // Deprecated: Do not use.
 	// Setting disable sync will keep the configured client from autogenerating a
 	// sync message. This allows negative testing on sync handling.
-	DisableSync bool `protobuf:"varint,4,opt,name=disable_sync,json=disableSync" json:"disable_sync,omitempty"`
+	DisableSync bool `protobuf:"varint,4,opt,name=disable_sync,json=disableSync,proto3" json:"disable_sync,omitempty"`
 	// Type of client to fake either Stubby or GRPC based fake.
-	ClientType Config_ClientType `protobuf:"varint,5,opt,name=client_type,json=clientType,enum=gnmi.fake.Config_ClientType" json:"client_type,omitempty"`
+	ClientType Config_ClientType `protobuf:"varint,5,opt,name=client_type,json=clientType,proto3,enum=gnmi.fake.Config_ClientType" json:"client_type,omitempty"`
 	// Disable EOF will hold open the subscription and not automagically close
 	// the stream once the value queue is empty.
-	DisableEof bool `protobuf:"varint,7,opt,name=disable_eof,json=disableEof" json:"disable_eof,omitempty"`
+	DisableEof bool `protobuf:"varint,7,opt,name=disable_eof,json=disableEof,proto3" json:"disable_eof,omitempty"`
 	// Per RPC credentials for the agent. If not set no per RPC auth will be used.
-	Credentials *Credentials `protobuf:"bytes,8,opt,name=credentials" json:"credentials,omitempty"`
+	Credentials *Credentials `protobuf:"bytes,8,opt,name=credentials,proto3" json:"credentials,omitempty"`
 	// TLS cert for use on the agent. If not set the transport will not be TLS.
 	Cert []byte `protobuf:"bytes,9,opt,name=cert,proto3" json:"cert,omitempty"`
 	// Honor the delay between events in the generated value streams. Default will
 	// play events as fast as the can be streamed.
-	EnableDelay bool `protobuf:"varint,10,opt,name=enable_delay,json=enableDelay" json:"enable_delay,omitempty"`
+	EnableDelay bool `protobuf:"varint,10,opt,name=enable_delay,json=enableDelay,proto3" json:"enable_delay,omitempty"`
 	// Generator for value series for the target.
 	//
 	// Types that are valid to be assigned to Generator:
@@ -234,13 +234,13 @@ type isConfig_Generator interface {
 }
 
 type Config_Custom struct {
-	Custom *any.Any `protobuf:"bytes,100,opt,name=custom,oneof"`
+	Custom *any.Any `protobuf:"bytes,100,opt,name=custom,proto3,oneof"`
 }
 type Config_Random struct {
-	Random *RandomGenerator `protobuf:"bytes,101,opt,name=random,oneof"`
+	Random *RandomGenerator `protobuf:"bytes,101,opt,name=random,proto3,oneof"`
 }
 type Config_Fixed struct {
-	Fixed *FixedGenerator `protobuf:"bytes,102,opt,name=fixed,oneof"`
+	Fixed *FixedGenerator `protobuf:"bytes,102,opt,name=fixed,proto3,oneof"`
 }
 
 func (*Config_Custom) isConfig_Generator() {}
@@ -441,7 +441,7 @@ func _Config_OneofSizer(msg proto.Message) (n int) {
 }
 
 type FixedGenerator struct {
-	Responses            []*gnmi.SubscribeResponse `protobuf:"bytes,1,rep,name=responses" json:"responses,omitempty"`
+	Responses            []*gnmi.SubscribeResponse `protobuf:"bytes,1,rep,name=responses,proto3" json:"responses,omitempty"`
 	XXX_NoUnkeyedLiteral struct{}                  `json:"-"`
 	XXX_unrecognized     []byte                    `json:"-"`
 	XXX_sizecache        int32                     `json:"-"`
@@ -479,8 +479,8 @@ func (m *FixedGenerator) GetResponses() []*gnmi.SubscribeResponse {
 }
 
 type RandomGenerator struct {
-	Seed                 int64    `protobuf:"varint,1,opt,name=seed" json:"seed,omitempty"`
-	Values               []*Value `protobuf:"bytes,2,rep,name=values" json:"values,omitempty"`
+	Seed                 int64    `protobuf:"varint,1,opt,name=seed,proto3" json:"seed,omitempty"`
+	Values               []*Value `protobuf:"bytes,2,rep,name=values,proto3" json:"values,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -560,17 +560,17 @@ var xxx_messageInfo_DeleteValue proto.InternalMessageInfo
 // device for integration tests.
 type Value struct {
 	// The device specific, or OpenConfig path corresponding to a value.
-	Path []string `protobuf:"bytes,1,rep,name=path" json:"path,omitempty"`
+	Path []string `protobuf:"bytes,1,rep,name=path,proto3" json:"path,omitempty"`
 	// The initial timestamp and configuration on how the timestamp will change
 	// for subsequent values. If timestamp is not set the default will assume to
 	// be the current system time.
-	Timestamp *Timestamp `protobuf:"bytes,2,opt,name=timestamp" json:"timestamp,omitempty"`
+	Timestamp *Timestamp `protobuf:"bytes,2,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// If set, repeat indicates that the value should be repeated this many times,
 	// otherwise it is repeated indefinitely.
-	Repeat int32 `protobuf:"varint,6,opt,name=repeat" json:"repeat,omitempty"`
+	Repeat int32 `protobuf:"varint,6,opt,name=repeat,proto3" json:"repeat,omitempty"`
 	// A local random seed used in generating subsequent values for this path. If
 	// not set, will share the global random source with seed defined in Config.
-	Seed int64 `protobuf:"varint,7,opt,name=seed" json:"seed,omitempty"`
+	Seed int64 `protobuf:"varint,7,opt,name=seed,proto3" json:"seed,omitempty"`
 	// The initial value of the chosen type including configuration on how the
 	// value will mutate for subsequent updates.
 	//
@@ -615,19 +615,19 @@ type isValue_Value interface {
 }
 
 type Value_IntValue struct {
-	IntValue *IntValue `protobuf:"bytes,100,opt,name=int_value,json=intValue,oneof"`
+	IntValue *IntValue `protobuf:"bytes,100,opt,name=int_value,json=intValue,proto3,oneof"`
 }
 type Value_DoubleValue struct {
-	DoubleValue *DoubleValue `protobuf:"bytes,101,opt,name=double_value,json=doubleValue,oneof"`
+	DoubleValue *DoubleValue `protobuf:"bytes,101,opt,name=double_value,json=doubleValue,proto3,oneof"`
 }
 type Value_StringValue struct {
-	StringValue *StringValue `protobuf:"bytes,102,opt,name=string_value,json=stringValue,oneof"`
+	StringValue *StringValue `protobuf:"bytes,102,opt,name=string_value,json=stringValue,proto3,oneof"`
 }
 type Value_Sync struct {
-	Sync uint64 `protobuf:"varint,103,opt,name=sync,oneof"`
+	Sync uint64 `protobuf:"varint,103,opt,name=sync,proto3,oneof"`
 }
 type Value_Delete struct {
-	Delete *DeleteValue `protobuf:"bytes,104,opt,name=delete,oneof"`
+	Delete *DeleteValue `protobuf:"bytes,104,opt,name=delete,proto3,oneof"`
 }
 
 func (*Value_IntValue) isValue_Value()    {}
@@ -837,12 +837,12 @@ type Timestamp struct {
 	// This value need have no relation to absolute real-time as the stream of
 	// of updates is generated without regard to the real clock and can be run
 	// repeatably at any time if the seed is set in the corresponding Value.
-	Timestamp int64 `protobuf:"varint,1,opt,name=timestamp" json:"timestamp,omitempty"`
+	Timestamp int64 `protobuf:"varint,1,opt,name=timestamp,proto3" json:"timestamp,omitempty"`
 	// These values will vary the change in the timestamp for subsequent outputs
 	// by a value between delta_min and delta_max.  Set to the same value to force
 	// a set periodic interval.
-	DeltaMin             int64    `protobuf:"varint,2,opt,name=delta_min,json=deltaMin" json:"delta_min,omitempty"`
-	DeltaMax             int64    `protobuf:"varint,3,opt,name=delta_max,json=deltaMax" json:"delta_max,omitempty"`
+	DeltaMin             int64    `protobuf:"varint,2,opt,name=delta_min,json=deltaMin,proto3" json:"delta_min,omitempty"`
+	DeltaMax             int64    `protobuf:"varint,3,opt,name=delta_max,json=deltaMax,proto3" json:"delta_max,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -900,7 +900,7 @@ type IntValue struct {
 	// mutates.
 	// If no distribution is set, value is used as it mutates, i.e. constant
 	// update.
-	Value int64 `protobuf:"varint,1,opt,name=value" json:"value,omitempty"`
+	Value int64 `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Types that are valid to be assigned to Distribution:
 	//	*IntValue_Range
 	//	*IntValue_List
@@ -939,10 +939,10 @@ type isIntValue_Distribution interface {
 }
 
 type IntValue_Range struct {
-	Range *IntRange `protobuf:"bytes,2,opt,name=range,oneof"`
+	Range *IntRange `protobuf:"bytes,2,opt,name=range,proto3,oneof"`
 }
 type IntValue_List struct {
-	List *IntList `protobuf:"bytes,3,opt,name=list,oneof"`
+	List *IntList `protobuf:"bytes,3,opt,name=list,proto3,oneof"`
 }
 
 func (*IntValue_Range) isIntValue_Distribution() {}
@@ -1052,15 +1052,15 @@ func _IntValue_OneofSizer(msg proto.Message) (n int) {
 
 type IntRange struct {
 	// The range of the value allowed.
-	Minimum int64 `protobuf:"varint,1,opt,name=minimum" json:"minimum,omitempty"`
-	Maximum int64 `protobuf:"varint,2,opt,name=maximum" json:"maximum,omitempty"`
+	Minimum int64 `protobuf:"varint,1,opt,name=minimum,proto3" json:"minimum,omitempty"`
+	Maximum int64 `protobuf:"varint,2,opt,name=maximum,proto3" json:"maximum,omitempty"`
 	// If set, the value is cumulative and the subsequent value is value + delta
 	// where delta is randomly chosen between delta_min and delta_max.  The range
 	// minimum and maximum are still respected and values will saturate at the
 	// boundaries if they are exceeded. If not set subsequent value is a value
 	// randomly chosen between minimum and maximum.
-	DeltaMin             int64    `protobuf:"varint,3,opt,name=delta_min,json=deltaMin" json:"delta_min,omitempty"`
-	DeltaMax             int64    `protobuf:"varint,4,opt,name=delta_max,json=deltaMax" json:"delta_max,omitempty"`
+	DeltaMin             int64    `protobuf:"varint,3,opt,name=delta_min,json=deltaMin,proto3" json:"delta_min,omitempty"`
+	DeltaMax             int64    `protobuf:"varint,4,opt,name=delta_max,json=deltaMax,proto3" json:"delta_max,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1120,10 +1120,10 @@ func (m *IntRange) GetDeltaMax() int64 {
 
 type IntList struct {
 	// The set of values which can be used.
-	Options []int64 `protobuf:"varint,1,rep,packed,name=options" json:"options,omitempty"`
+	Options []int64 `protobuf:"varint,1,rep,packed,name=options,proto3" json:"options,omitempty"`
 	// Set to true to randomize selection of value from options. If false, the
 	// values are cycled in order, starting at index 0.
-	Random               bool     `protobuf:"varint,2,opt,name=random" json:"random,omitempty"`
+	Random               bool     `protobuf:"varint,2,opt,name=random,proto3" json:"random,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1174,7 +1174,7 @@ type DoubleValue struct {
 	// mutates.
 	// If no distribution is set, value is used as it mutates, i.e. constant
 	// update.
-	Value float64 `protobuf:"fixed64,1,opt,name=value" json:"value,omitempty"`
+	Value float64 `protobuf:"fixed64,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Types that are valid to be assigned to Distribution:
 	//	*DoubleValue_Range
 	//	*DoubleValue_List
@@ -1213,10 +1213,10 @@ type isDoubleValue_Distribution interface {
 }
 
 type DoubleValue_Range struct {
-	Range *DoubleRange `protobuf:"bytes,2,opt,name=range,oneof"`
+	Range *DoubleRange `protobuf:"bytes,2,opt,name=range,proto3,oneof"`
 }
 type DoubleValue_List struct {
-	List *DoubleList `protobuf:"bytes,3,opt,name=list,oneof"`
+	List *DoubleList `protobuf:"bytes,3,opt,name=list,proto3,oneof"`
 }
 
 func (*DoubleValue_Range) isDoubleValue_Distribution() {}
@@ -1326,14 +1326,14 @@ func _DoubleValue_OneofSizer(msg proto.Message) (n int) {
 
 type DoubleRange struct {
 	// The range of the value allowed.
-	Minimum float64 `protobuf:"fixed64,1,opt,name=minimum" json:"minimum,omitempty"`
-	Maximum float64 `protobuf:"fixed64,2,opt,name=maximum" json:"maximum,omitempty"`
+	Minimum float64 `protobuf:"fixed64,1,opt,name=minimum,proto3" json:"minimum,omitempty"`
+	Maximum float64 `protobuf:"fixed64,2,opt,name=maximum,proto3" json:"maximum,omitempty"`
 	// If set, the value is cumulative and the subsequent value is value + delta
 	// where delta is randomly chosen between delta_min and delta_max. The range
 	// minimum and maximum are still respected. If not set subsequent value is a
 	// value randomly chosen between minimum and maximum.
-	DeltaMin             float64  `protobuf:"fixed64,3,opt,name=delta_min,json=deltaMin" json:"delta_min,omitempty"`
-	DeltaMax             float64  `protobuf:"fixed64,4,opt,name=delta_max,json=deltaMax" json:"delta_max,omitempty"`
+	DeltaMin             float64  `protobuf:"fixed64,3,opt,name=delta_min,json=deltaMin,proto3" json:"delta_min,omitempty"`
+	DeltaMax             float64  `protobuf:"fixed64,4,opt,name=delta_max,json=deltaMax,proto3" json:"delta_max,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1393,10 +1393,10 @@ func (m *DoubleRange) GetDeltaMax() float64 {
 
 type DoubleList struct {
 	// The set of values which can be used.
-	Options []float64 `protobuf:"fixed64,1,rep,packed,name=options" json:"options,omitempty"`
+	Options []float64 `protobuf:"fixed64,1,rep,packed,name=options,proto3" json:"options,omitempty"`
 	// Set to true to randomize selection of value from options. If false, the
 	// values are cycled in order.
-	Random               bool     `protobuf:"varint,2,opt,name=random" json:"random,omitempty"`
+	Random               bool     `protobuf:"varint,2,opt,name=random,proto3" json:"random,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
@@ -1445,7 +1445,7 @@ type StringValue struct {
 	// mutates.
 	// If no distribution is set, value is used as it mutates, i.e. constant
 	// update.
-	Value string `protobuf:"bytes,1,opt,name=value" json:"value,omitempty"`
+	Value string `protobuf:"bytes,1,opt,name=value,proto3" json:"value,omitempty"`
 	// Types that are valid to be assigned to Distribution:
 	//	*StringValue_List
 	Distribution         isStringValue_Distribution `protobuf_oneof:"distribution"`
@@ -1483,7 +1483,7 @@ type isStringValue_Distribution interface {
 }
 
 type StringValue_List struct {
-	List *StringList `protobuf:"bytes,2,opt,name=list,oneof"`
+	List *StringList `protobuf:"bytes,2,opt,name=list,proto3,oneof"`
 }
 
 func (*StringValue_List) isStringValue_Distribution() {}
@@ -1566,10 +1566,10 @@ func _StringValue_OneofSizer(msg proto.Message) (n int) {
 
 type StringList struct {
 	// The set of strings which can be used.
-	Options []string `protobuf:"bytes,1,rep,name=options" json:"options,omitempty"`
+	Options []string `protobuf:"bytes,1,rep,name=options,proto3" json:"options,omitempty"`
 	// Set to true to randomize selection of value from options. If false, the
 	// values are cycled in order, starting at index 0.
-	Random               bool     `protobuf:"varint,2,opt,name=random" json:"random,omitempty"`
+	Random               bool     `protobuf:"varint,2,opt,name=random,proto3" json:"random,omitempty"`
 	XXX_NoUnkeyedLiteral struct{} `json:"-"`
 	XXX_unrecognized     []byte   `json:"-"`
 	XXX_sizecache        int32    `json:"-"`
