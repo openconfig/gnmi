@@ -24,6 +24,7 @@ import (
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"github.com/openconfig/gnmi/unimplemented"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -36,7 +37,7 @@ func TestLookup(t *testing.T) {
 	srv := grpc.NewServer()
 	defer srv.Stop()
 
-	gpb.RegisterGNMIServer(srv, unimplementedGNMIServer{})
+	gpb.RegisterGNMIServer(srv, &unimplemented.Server{})
 	reflection.Register(srv)
 
 	go srv.Serve(l)
@@ -68,16 +69,3 @@ func TestLookup(t *testing.T) {
 	})
 
 }
-
-type unimplementedGNMIServer struct{}
-
-func (unimplementedGNMIServer) Capabilities(context.Context, *gpb.CapabilityRequest) (*gpb.CapabilityResponse, error) {
-	return nil, nil
-}
-func (unimplementedGNMIServer) Get(context.Context, *gpb.GetRequest) (*gpb.GetResponse, error) {
-	return nil, nil
-}
-func (unimplementedGNMIServer) Set(context.Context, *gpb.SetRequest) (*gpb.SetResponse, error) {
-	return nil, nil
-}
-func (unimplementedGNMIServer) Subscribe(gpb.GNMI_SubscribeServer) error { return nil }

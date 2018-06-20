@@ -16,7 +16,11 @@ limitations under the License.
 
 package coalesce
 
-import "testing"
+import (
+	"testing"
+
+	"context"
+)
 
 func TestInsert(t *testing.T) {
 	q := NewQueue()
@@ -47,7 +51,7 @@ func TestNext(t *testing.T) {
 	q := NewQueue()
 	type stringCount struct {
 		s     string
-		count int
+		count uint32
 	}
 	tests := []struct {
 		s    []string
@@ -63,7 +67,7 @@ func TestNext(t *testing.T) {
 			q.Insert(s)
 		}
 		for _, want := range tt.want {
-			i, count, err := q.Next()
+			i, count, err := q.Next(context.Background())
 			if err != nil {
 				t.Errorf("#%d: q.Next() unexpected error %v", x, err)
 				continue
@@ -80,7 +84,26 @@ func TestNext(t *testing.T) {
 	}
 }
 
+func TestNextCancelContext(t *testing.T) {
+	q := NewQueue()
+	start := make(chan struct{})
+	done := make(chan struct{})
+	ctx, cancel := context.WithCancel(context.Background())
+	go func() {
+		close(start)
+		_, _, err := q.Next(ctx)
+		if err == nil {
+			t.Error("got nil error, want error")
+		}
+		close(done)
+	}()
+	<-start
+	cancel()
+	<-done
+}
+
 func TestClose(t *testing.T) {
+	ctx := context.Background()
 	for _, tt := range [][]string{
 		{},
 		{"a"},
@@ -105,7 +128,7 @@ func TestClose(t *testing.T) {
 			t.Errorf("q.Insert() got %v, want %v", err, errClosedQueue)
 		}
 		for x, want := range tt {
-			i, _, err := q.Next()
+			i, _, err := q.Next(ctx)
 			got, ok := i.(string)
 			switch {
 			case err != nil:
@@ -114,7 +137,7 @@ func TestClose(t *testing.T) {
 				t.Errorf("#%d: q.Next(): got %q, want %q", x, got, want)
 			}
 		}
-		if _, _, err := q.Next(); !IsClosedQueue(err) {
+		if _, _, err := q.Next(ctx); !IsClosedQueue(err) {
 			t.Errorf("q.Next(): got %v, want %v", err, errClosedQueue)
 		}
 		if _, err := q.Insert("foo"); !IsClosedQueue(err) {

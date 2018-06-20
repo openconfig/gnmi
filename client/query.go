@@ -24,6 +24,8 @@ import (
 	"time"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/openconfig/gnmi/path"
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 // NotificationHandler is a type for the client specific handler function.
@@ -166,6 +168,9 @@ type Query struct {
 	// Extra contains arbitrary additional metadata to be passed to the
 	// target. Optional.
 	Extra map[string]string
+	// SubReq is an optional field. If not nil, gnmi client implementation uses
+	// it rather than generating from client.Query while sending gnmi Subscribe RPC.
+	SubReq *gpb.SubscribeRequest
 }
 
 // Destination extracts a Destination instance out of Query fields.
@@ -203,6 +208,51 @@ func (c Credentials) validate() error {
 	return nil
 }
 
+// NewQuery returns a populated Query from given gnmi SubscribeRequest.
+// Query fields that are not part of SubscribeRequest must be set on
+// the returned object.
+// During transtion to support only gnmi, having Query and SubscribeRequest
+// in sync is important. There are two approaches to ensure that; one is
+// validating whether Query and SubscribeRequest are same after they are set, the other is
+// populating the fields of Query from SubscribeRequest and filling out the rest
+// on the returned object. NewQuery embraces the latter option.
+func NewQuery(sr *gpb.SubscribeRequest) (Query, error) {
+	q := Query{}
+	if sr == nil {
+		return q, errors.New("input is nil")
+	}
+
+	s, ok := sr.Request.(*gpb.SubscribeRequest_Subscribe)
+	if !ok {
+		return q, fmt.Errorf("got %T, want gpb.SubscribeRequest_Subscribe as input", sr)
+	}
+
+	if s.Subscribe == nil {
+		return q, errors.New("Subscribe field in SubscribeRequest_Subscribe is nil")
+	}
+
+	if s.Subscribe.Prefix == nil {
+		return q, errors.New("Prefix field in SubscriptionList is nil")
+	}
+	q.Target = s.Subscribe.Prefix.Target
+	q.UpdatesOnly = s.Subscribe.UpdatesOnly
+	switch s.Subscribe.Mode {
+	case gpb.SubscriptionList_ONCE:
+		q.Type = Once
+	case gpb.SubscriptionList_POLL:
+		q.Type = Poll
+	case gpb.SubscriptionList_STREAM:
+		q.Type = Stream
+	}
+
+	for _, su := range s.Subscribe.Subscription {
+		q.Queries = append(q.Queries, path.ToStrings(su.Path, false))
+	}
+	q.SubReq = sr
+
+	return q, nil
+}
+
 // Validate validates that query contains valid values that any client should
 // be able use to form a valid backend request.
 func (q Query) Validate() error {
@@ -220,36 +270,4 @@ func (q Query) Validate() error {
 		return errors.New("one of Notification or ProtoHandler must be set")
 	}
 	return nil
-}
-
-// SetRequest contains slices of changes to apply.
-//
-// The difference between Update and Replace is that on non-primitive values
-// (lists/maps), Update acts as "append"; it only overwrites an existing value
-// in the container when the key matches.
-// Replace overwrites the entire container regardless of current contents.
-type SetRequest struct {
-	Destination
-
-	Delete  []Path
-	Update  []Leaf
-	Replace []Leaf
-}
-
-// Validate validates that SetRequest contains valid values that any client
-// should be able use to form a valid backend request.
-func (r SetRequest) Validate() error {
-	if err := r.Destination.Validate(); err != nil {
-		return fmt.Errorf("SetRequest.Destination validation failed: %v", err)
-	}
-
-	if len(r.Delete) == 0 && len(r.Update) == 0 && len(r.Replace) == 0 {
-		return errors.New("at least one of Delete/Update/Replace must be set")
-	}
-	return nil
-}
-
-// SetResponse contains the timestamp of an applied SetRequest.
-type SetResponse struct {
-	TS time.Time
 }

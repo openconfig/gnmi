@@ -20,9 +20,6 @@ package match
 
 import (
 	"sync"
-
-	"github.com/openconfig/gnmi/client"
-	"github.com/openconfig/gnmi/ctree"
 )
 
 // Glob is a special string used to indicate a match of any path node.
@@ -30,7 +27,7 @@ const Glob = "*"
 
 // Client is a interface for a callback invoked for all matching updates.
 type Client interface {
-	Update(*ctree.Leaf)
+	Update(interface{})
 }
 
 type branch struct {
@@ -103,18 +100,13 @@ func (b *branch) removeQuery(query []string, client Client) (empty bool) {
 }
 
 // Update invokes all client callbacks for queries that match the supplied node.
-func (m *Match) Update(n *ctree.Leaf) {
+func (m *Match) Update(n interface{}, p []string) {
 	defer m.mu.RUnlock()
 	m.mu.RLock()
-	switch v := n.Value().(type) {
-	case client.Delete:
-		m.tree.update(n, v.Path)
-	case client.Update:
-		m.tree.update(n, v.Path)
-	}
+	m.tree.update(n, p)
 }
 
-func (b *branch) update(n *ctree.Leaf, path []string) {
+func (b *branch) update(n interface{}, path []string) {
 	// Update all clients at this level.
 	for client := range b.clients {
 		client.Update(n)
@@ -130,12 +122,22 @@ func (b *branch) update(n *ctree.Leaf, path []string) {
 		}
 		return
 	}
-	// Update all glob clients.
-	if sb, ok := b.children[Glob]; ok {
-		sb.update(n, path[1:])
-	}
-	// Update all explicit clients.
-	if sb, ok := b.children[path[0]]; ok {
-		sb.update(n, path[1:])
+	// This captures only target delete gnmi.Notification as it is going
+	// to have Glob in the path elem in addition to device name.
+	// For target delete client.Notification, device name is sufficient,
+	// so it will not satisfy this case.
+	if path[0] == Glob {
+		for _, c := range b.children {
+			c.update(n, path[1:])
+		}
+	} else {
+		// Update all glob clients.
+		if sb, ok := b.children[Glob]; ok {
+			sb.update(n, path[1:])
+		}
+		// Update all explicit clients.
+		if sb, ok := b.children[path[0]]; ok {
+			sb.update(n, path[1:])
+		}
 	}
 }

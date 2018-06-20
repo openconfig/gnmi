@@ -18,11 +18,9 @@ package client
 
 import (
 	"crypto/tls"
-	"reflect"
 	"testing"
 	"time"
 
-	log "github.com/golang/glog"
 	"context"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
@@ -253,140 +251,181 @@ func TestClient(t *testing.T) {
 	}
 }
 
+func TestGNMIMessageUpdates(t *testing.T) {
+	var gotNoti []client.Notification
+	q := client.Query{
+		Target:  "dev",
+		Type:    client.Stream,
+		Queries: []client.Path{{"a"}},
+		TLS:     &tls.Config{InsecureSkipVerify: true},
+		NotificationHandler: func(n client.Notification) error {
+			gotNoti = append(gotNoti, n)
+			return nil
+		},
+	}
+	updates := []*gpb.SubscribeResponse{
+		{Response: &gpb.SubscribeResponse_Update{
+			Update: &gpb.Notification{
+				Timestamp: 200,
+				Update: []*gpb.Update{
+					{
+						Path: &gpb.Path{Element: []string{"dev", "a"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}},
+					},
+				},
+			},
+		}},
+		{Response: &gpb.SubscribeResponse_Update{
+			Update: &gpb.Notification{
+				Timestamp: 300,
+				Prefix:    &gpb.Path{Target: "dev", Element: []string{"a"}},
+				Update: []*gpb.Update{
+					{
+						Path: &gpb.Path{Element: []string{"b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}},
+					},
+				},
+			},
+		}},
+		{Response: &gpb.SubscribeResponse_Update{
+			Update: &gpb.Notification{
+				Timestamp: 400,
+				Prefix:    &gpb.Path{Target: "dev", Origin: "oc", Element: []string{"a"}},
+				Update: []*gpb.Update{
+					{
+						Path: &gpb.Path{Element: []string{"b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}},
+					},
+				},
+			},
+		}},
+	}
+	wantNoti := []client.Notification{
+		client.Connected{},
+		client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 200), Val: 5},
+		client.Update{Path: []string{"dev", "a", "b"}, TS: time.Unix(0, 300), Val: 5},
+		client.Update{Path: []string{"dev", "oc", "a", "b"}, TS: time.Unix(0, 400), Val: 5},
+		client.Sync{},
+	}
+	opt, err := config.WithSelfTLSCert()
+	if err != nil {
+		t.Fatalf("failed to generate cert: %v", err)
+	}
+	s, err := gnmi.New(
+		&fpb.Config{
+			Generator: &fpb.Config_Fixed{Fixed: &fpb.FixedGenerator{Responses: updates}},
+		},
+		[]grpc.ServerOption{opt},
+	)
+	go s.Serve()
+	if err != nil {
+		t.Fatal("failed to start test server")
+	}
+	defer s.Close()
+	q.Addrs = []string{s.Address()}
+	c := client.New()
+	defer c.Close()
+	err = c.Subscribe(context.Background(), q)
+	if diff := pretty.Compare(wantNoti, gotNoti); diff != "" {
+		t.Errorf("unexpected updates:\n%s", diff)
+	}
+}
+
+func TestGNMIWithSubscribeRequest(t *testing.T) {
+	q, err := client.NewQuery(&gpb.SubscribeRequest{
+		Request: &gpb.SubscribeRequest_Subscribe{
+			Subscribe: &gpb.SubscriptionList{
+				Mode:   gpb.SubscriptionList_STREAM,
+				Prefix: &gpb.Path{Target: "dev"},
+				Subscription: []*gpb.Subscription{
+					{Path: &gpb.Path{Element: []string{"a"}}},
+				},
+			},
+		},
+	})
+	if err != nil {
+		t.Fatalf("failed to create Query from gnmi SubscribeRequest: %v", err)
+	}
+	q.TLS = &tls.Config{InsecureSkipVerify: true}
+	var gotNoti []client.Notification
+	q.NotificationHandler = func(n client.Notification) error {
+		gotNoti = append(gotNoti, n)
+		return nil
+	}
+	updates := []*gpb.SubscribeResponse{
+		{Response: &gpb.SubscribeResponse_Update{
+			Update: &gpb.Notification{
+				Timestamp: 200,
+				Update: []*gpb.Update{
+					{
+						Path: &gpb.Path{Element: []string{"dev", "a"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}},
+					},
+				},
+			},
+		}},
+		{Response: &gpb.SubscribeResponse_Update{
+			Update: &gpb.Notification{
+				Timestamp: 300,
+				Prefix:    &gpb.Path{Target: "dev", Element: []string{"a"}},
+				Update: []*gpb.Update{
+					{
+						Path: &gpb.Path{Element: []string{"b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}},
+					},
+				},
+			},
+		}},
+		{Response: &gpb.SubscribeResponse_Update{
+			Update: &gpb.Notification{
+				Timestamp: 400,
+				Prefix:    &gpb.Path{Target: "dev", Origin: "oc", Element: []string{"a"}},
+				Update: []*gpb.Update{
+					{
+						Path: &gpb.Path{Element: []string{"b"}},
+						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}},
+					},
+				},
+			},
+		}},
+	}
+	wantNoti := []client.Notification{
+		client.Connected{},
+		client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 200), Val: 5},
+		client.Update{Path: []string{"dev", "a", "b"}, TS: time.Unix(0, 300), Val: 5},
+		client.Update{Path: []string{"dev", "oc", "a", "b"}, TS: time.Unix(0, 400), Val: 5},
+		client.Sync{},
+	}
+	opt, err := config.WithSelfTLSCert()
+	if err != nil {
+		t.Fatalf("failed to generate cert: %v", err)
+	}
+	s, err := gnmi.New(
+		&fpb.Config{
+			Generator: &fpb.Config_Fixed{Fixed: &fpb.FixedGenerator{Responses: updates}},
+		},
+		[]grpc.ServerOption{opt},
+	)
+	go s.Serve()
+	if err != nil {
+		t.Fatal("failed to start test server")
+	}
+	defer s.Close()
+	q.Addrs = []string{s.Address()}
+	c := client.New()
+	defer c.Close()
+	err = c.Subscribe(context.Background(), q)
+	if diff := pretty.Compare(wantNoti, gotNoti); diff != "" {
+		t.Errorf("unexpected updates:\n%s\nwantnoti:%v\ngotnoti:%v\n", diff, wantNoti, gotNoti)
+	}
+}
+
 func stringToPath(p string) *gpb.Path {
 	pp, err := ygot.StringToPath(p, ygot.StructuredPath, ygot.StringSlicePath)
 	if err != nil {
 		panic(err)
 	}
 	return pp
-}
-
-func TestConvertSetRequest(t *testing.T) {
-	sr := client.SetRequest{
-		Delete: []client.Path{
-			{"a", "b"},
-			{"c", "d"},
-		},
-		Update: []client.Leaf{
-			{Path: client.Path{"e"}, Val: 2},
-			{Path: client.Path{"f", "g"}, Val: "foo"},
-		},
-		Replace: []client.Leaf{
-			{Path: client.Path{"h", "i"}, Val: true},
-			{Path: client.Path{"j"}, Val: 5},
-		},
-	}
-	want := &gpb.SetRequest{
-		Delete: []*gpb.Path{
-			stringToPath("a/b"),
-			stringToPath("c/d"),
-		},
-		Update: []*gpb.Update{
-			{
-				Path:  stringToPath("e"),
-				Val:   &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte(`2`)}},
-				Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`2`)},
-			},
-			{
-				Path:  stringToPath("f/g"),
-				Val:   &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte(`"foo"`)}},
-				Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`"foo"`)},
-			},
-		},
-		Replace: []*gpb.Update{
-			{
-				Path:  stringToPath("h/i"),
-				Val:   &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte(`true`)}},
-				Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`true`)},
-			},
-			{
-				Path:  stringToPath("j"),
-				Val:   &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte(`5`)}},
-				Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: []byte(`5`)},
-			},
-		},
-	}
-
-	got, err := convertSetRequest(sr)
-	if err != nil {
-		log.Errorf("got error %v, want nil", err)
-	}
-
-	if diff := pretty.Compare(got, want); diff != "" {
-		t.Errorf("diff:\n%s", diff)
-	}
-}
-
-func TestConvertSetResponse(t *testing.T) {
-	tests := []struct {
-		desc    string
-		sr      *gpb.SetResponse
-		want    client.SetResponse
-		wantErr string
-	}{
-		{
-			desc: "one update",
-			sr: &gpb.SetResponse{
-				Timestamp: 1,
-				Response: []*gpb.UpdateResult{
-					{},
-				},
-			},
-			want: client.SetResponse{TS: time.Unix(0, 1)},
-		},
-		{
-			desc: "one update with error",
-			sr: &gpb.SetResponse{
-				Timestamp: 1,
-				Response: []*gpb.UpdateResult{
-					{Message: &gpb.Error{Message: "foo"}},
-				},
-			},
-			wantErr: `message:"foo" `,
-		},
-		{
-			desc: "two updates with one error",
-			sr: &gpb.SetResponse{
-				Timestamp: 1,
-				Response: []*gpb.UpdateResult{
-					{},
-					{Message: &gpb.Error{Message: "foo"}},
-				},
-			},
-			wantErr: `message:"foo" `,
-		},
-		{
-			desc: "two updates with two errors",
-			sr: &gpb.SetResponse{
-				Timestamp: 1,
-				Response: []*gpb.UpdateResult{
-					{Message: &gpb.Error{Message: "foo"}},
-					{Message: &gpb.Error{Message: "bar"}},
-				},
-			},
-			wantErr: `message:"foo" ; message:"bar" `,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.desc, func(t *testing.T) {
-			got, err := convertSetResponse(tt.sr)
-			switch {
-			case err != nil && tt.wantErr == "":
-				t.Errorf("got error %q, want nil", err)
-			case err == nil && tt.wantErr != "":
-				t.Errorf("got nil error, want %q", tt.wantErr)
-			case err != nil && tt.wantErr != "":
-				if err.Error() != tt.wantErr {
-					t.Errorf("got error %q, want %q", err, tt.wantErr)
-				}
-			default:
-				if !reflect.DeepEqual(got, tt.want) {
-					t.Errorf("got %#v, want %#v", got, tt.want)
-				}
-			}
-		})
-	}
 }
 
 func TestNoti(t *testing.T) {

@@ -123,8 +123,75 @@ func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 	return i, nil
 }
 
-// decimalToFloat converts a *gnmi_proto.Decimal64 to a float32. Downcasting to float32 is performed as the
-// precision of a float64 is not required.
+// decimalToFloat converts a *gnmi_proto.Decimal64 to a float32. Downcasting to
+// float32 is performed as the precision of a float64 is not required.
 func decimalToFloat(d *pb.Decimal64) float32 {
 	return float32(float64(d.Digits) / math.Pow(10, float64(d.Precision)))
+}
+
+// Equal returns true if the values in a and b are the same.  This method
+// handles only the primitive types and ScalarArrays and returns false for all
+// other types.
+func Equal(a, b *pb.TypedValue) bool {
+	switch av := a.Value.(type) {
+	case *pb.TypedValue_StringVal:
+		bv, ok := b.Value.(*pb.TypedValue_StringVal)
+		if !ok {
+			return false
+		}
+		return av.StringVal == bv.StringVal
+	case *pb.TypedValue_IntVal:
+		bv, ok := b.Value.(*pb.TypedValue_IntVal)
+		if !ok {
+			return false
+		}
+		return av.IntVal == bv.IntVal
+	case *pb.TypedValue_UintVal:
+		bv, ok := b.Value.(*pb.TypedValue_UintVal)
+		if !ok {
+			return false
+		}
+		return av.UintVal == bv.UintVal
+	case *pb.TypedValue_BoolVal:
+		bv, ok := b.Value.(*pb.TypedValue_BoolVal)
+		if !ok {
+			return false
+		}
+		return av.BoolVal == bv.BoolVal
+	case *pb.TypedValue_BytesVal:
+		bv, ok := b.Value.(*pb.TypedValue_BytesVal)
+		if !ok {
+			return false
+		}
+		return string(av.BytesVal) == string(bv.BytesVal)
+	case *pb.TypedValue_FloatVal:
+		bv, ok := b.Value.(*pb.TypedValue_FloatVal)
+		if !ok {
+			return false
+		}
+		return av.FloatVal == bv.FloatVal
+	case *pb.TypedValue_DecimalVal:
+		bv, ok := b.Value.(*pb.TypedValue_DecimalVal)
+		if !ok {
+			return false
+		}
+		return av.DecimalVal.Digits == bv.DecimalVal.Digits && av.DecimalVal.Precision == bv.DecimalVal.Precision
+	case *pb.TypedValue_LeaflistVal:
+		bv, ok := b.Value.(*pb.TypedValue_LeaflistVal)
+		if !ok {
+			return false
+		}
+		ae, be := av.LeaflistVal.Element, bv.LeaflistVal.Element
+		if len(ae) != len(be) {
+			return false
+		}
+		for i := range ae {
+			if !Equal(ae[i], be[i]) {
+				return false
+			}
+		}
+		return true
+	}
+	// Types that are not primitive or ScalarArray are not considered.
+	return false
 }

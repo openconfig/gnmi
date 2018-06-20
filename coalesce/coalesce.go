@@ -23,6 +23,8 @@ package coalesce
 import (
 	"errors"
 	"sync"
+
+	"context"
 )
 
 // Queue is a structure that implements in-order delivery of coalesced inputs.
@@ -38,7 +40,7 @@ type Queue struct {
 	closed chan struct{}
 	// coalesced tracks the number of values per interface that have been
 	// coalesced.
-	coalesced map[interface{}]int
+	coalesced map[interface{}]uint32
 	// queue is the in-order values transferred from producer to consumer.
 	queue []interface{}
 }
@@ -48,7 +50,7 @@ func NewQueue() *Queue {
 	return &Queue{
 		inserted:  make(chan struct{}, 1),
 		closed:    make(chan struct{}),
-		coalesced: make(map[interface{}]int),
+		coalesced: make(map[interface{}]uint32),
 	}
 }
 
@@ -96,7 +98,7 @@ func (q *Queue) insert(i interface{}) bool {
 // Next returns the next item in the queue and the number of duplicates that
 // were dropped, or an error if the Queue is empty and has been closed. Calls to
 // Next are blocking.
-func (q *Queue) Next() (interface{}, int, error) {
+func (q *Queue) Next(ctx context.Context) (interface{}, uint32, error) {
 	for {
 		i, coalesced, valid := q.next()
 		if valid {
@@ -104,6 +106,8 @@ func (q *Queue) Next() (interface{}, int, error) {
 		}
 		// Wait for an insert or a close.
 		select {
+		case <-ctx.Done():
+			return nil, 0, ctx.Err()
 		case <-q.inserted:
 		case <-q.closed:
 			// Make sure all values are delivered.
@@ -117,7 +121,7 @@ func (q *Queue) Next() (interface{}, int, error) {
 // next returns the next item and the number of coalesced duplicates if there is
 // an item to consume as indicated by the bool.  If the bool is false, the
 // caller has to option to block and try again or return an error.
-func (q *Queue) next() (interface{}, int, bool) {
+func (q *Queue) next() (interface{}, uint32, bool) {
 	defer q.Unlock()
 	q.Lock()
 	if len(q.queue) == 0 {

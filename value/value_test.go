@@ -21,6 +21,7 @@ import (
 	"testing"
 
 	"github.com/golang/protobuf/proto"
+	"github.com/golang/protobuf/ptypes"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -187,5 +188,151 @@ func TestToScalar(t *testing.T) {
 		case !reflect.DeepEqual(v, tt.intf):
 			t.Errorf("ToScalar(%v): got %#v, want %#v", tt.msg, v, tt.intf)
 		}
+	}
+}
+
+func TestEqual(t *testing.T) {
+	anyVal, err := ptypes.MarshalAny(&pb.TypedValue{Value: &pb.TypedValue_StringVal{"any val"}})
+	if err != nil {
+		t.Errorf("MarshalAny: %v", err)
+	}
+	for _, test := range []struct {
+		name string
+		a, b *pb.TypedValue
+		want bool
+	}{
+		// Equality is true.
+		{
+			name: "String equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_StringVal{"foo"}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_StringVal{"foo"}},
+			want: true,
+		}, {
+			name: "Int equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_IntVal{1234}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_IntVal{1234}},
+			want: true,
+		}, {
+			name: "Uint equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_UintVal{1234}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_UintVal{1234}},
+			want: true,
+		}, {
+			name: "Bool equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_BoolVal{true}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_BoolVal{true}},
+			want: true,
+		}, {
+			name: "Bytes equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_BytesVal{[]byte{1, 2, 3}}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_BytesVal{[]byte{1, 2, 3}}},
+			want: true,
+		}, {
+			name: "Float equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_FloatVal{1234.56789}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_FloatVal{1234.56789}},
+			want: true,
+		}, {
+			name: "Decimal equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+			want: true,
+		}, {
+			name: "Leaflist equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{Element: []*pb.TypedValue{{Value: &pb.TypedValue_StringVal{"one"}}, {Value: &pb.TypedValue_StringVal{"two"}}, {Value: &pb.TypedValue_StringVal{"three"}}}}}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{Element: []*pb.TypedValue{{Value: &pb.TypedValue_StringVal{"one"}}, {Value: &pb.TypedValue_StringVal{"two"}}, {Value: &pb.TypedValue_StringVal{"three"}}}}}},
+			want: true,
+		},
+		// Equality is false.
+		{
+			name: "String not equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_StringVal{"foo"}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_StringVal{"bar"}},
+		}, {
+			name: "Int not equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_IntVal{1234}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_IntVal{123456789}},
+		}, {
+			name: "Uint not equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_UintVal{1234}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_UintVal{123456789}},
+		}, {
+			name: "Bool not equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_BoolVal{false}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_BoolVal{true}},
+		}, {
+			name: "Bytes not equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_BytesVal{[]byte{2, 3}}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_BytesVal{[]byte{1, 2, 3}}},
+		}, {
+			name: "Float not equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_FloatVal{12340.56789}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_FloatVal{1234.56789}},
+		}, {
+			name: "Decimal not equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 11}}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+		}, {
+			name: "Leaflist not equal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{Element: []*pb.TypedValue{{Value: &pb.TypedValue_StringVal{"one"}}, {Value: &pb.TypedValue_StringVal{"two"}}, {Value: &pb.TypedValue_StringVal{"three"}}}}}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{Element: []*pb.TypedValue{{Value: &pb.TypedValue_StringVal{"one"}}, {Value: &pb.TypedValue_StringVal{"two"}}, {Value: &pb.TypedValue_StringVal{"four"}}}}}},
+		}, {
+			name: "Types not equal - String",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_StringVal{"foo"}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+		}, {
+			name: "Types not equal - Int",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_IntVal{5}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+		}, {
+			name: "Types not equal - Uint",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_UintVal{5}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+		}, {
+			name: "Types not equal - Bool",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_BoolVal{true}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+		}, {
+			name: "Types not equal - Float",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_FloatVal{5.25}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+		}, {
+			name: "Types not equal - Decimal",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_DecimalVal{&pb.Decimal64{Digits: 1234, Precision: 10}}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_IntVal{5}},
+		}, {
+			name: "Types not equal - Leaflist",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_LeaflistVal{&pb.ScalarArray{Element: []*pb.TypedValue{{Value: &pb.TypedValue_StringVal{"one"}}, {Value: &pb.TypedValue_StringVal{"two"}}, {Value: &pb.TypedValue_StringVal{"three"}}}}}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_IntVal{5}},
+		},
+		// Equality is not checked, expect false.
+		{
+			name: "Empty values not compared",
+			a:    &pb.TypedValue{},
+			b:    &pb.TypedValue{},
+		}, {
+			name: "Proto values not compared",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_AnyVal{anyVal}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_AnyVal{anyVal}},
+		}, {
+			name: "JSON values not compared",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_JsonVal{[]byte("5")}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_JsonVal{[]byte("5")}},
+		}, {
+			name: "JSON IETF values not compared",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_JsonIetfVal{[]byte("10.5")}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_JsonIetfVal{[]byte("10.5")}},
+		}, {
+			name: "ASCII values not compared",
+			a:    &pb.TypedValue{Value: &pb.TypedValue_AsciiVal{"foo"}},
+			b:    &pb.TypedValue{Value: &pb.TypedValue_AsciiVal{"foo"}},
+		},
+	} {
+		t.Run(test.name, func(t *testing.T) {
+			got := Equal(test.a, test.b)
+			if got != test.want {
+				t.Errorf("got: %t, want: %t", got, test.want)
+			}
+		})
 	}
 }

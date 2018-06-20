@@ -37,7 +37,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.6.0";
+option (gnmi_service) = "0.7.0";
 
 service gNMI {
   // Capabilities allows the client to retrieve the set of capabilities that
@@ -82,6 +82,9 @@ message Notification {
   string alias = 3;
   repeated Update update = 4;   // Data elements that have changed values.
   repeated Path delete = 5;     // Data elements that have been deleted.
+  // This notification contains a set of paths that are always updated together
+  // referenced by a globally unique prefix.
+  bool atomic = 6;
 }
 
 // Update is a re-usable message that is used to store a particular Path,
@@ -115,6 +118,11 @@ message TypedValue {
     bytes json_val = 10;              // JSON-encoded text.
     bytes json_ietf_val = 11;         // JSON-encoded text per RFC7951.
     string ascii_val = 12;            // Arbitrary ASCII text.
+    // Protobuf binary encoded bytes. The message type is not included.
+    // See the specification at
+    // github.com/openconfig/reference/blob/master/rpc/gnmi/protobuf-vals.md
+    // for a complete specification.
+    bytes proto_bytes = 13;
   }
 }
 

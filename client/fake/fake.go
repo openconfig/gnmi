@@ -156,11 +156,6 @@ func (c *Client) Poll() error {
 	return nil
 }
 
-// Set is not supported in fake.
-func (c *Client) Set(context.Context, client.SetRequest) (client.SetResponse, error) {
-	return client.SetResponse{}, client.ErrUnsupported
-}
-
 // Block is a special update that lets the stream of updates to be paused.
 // See Client docs for usage example.
 type Block chan struct{}

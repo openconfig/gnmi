@@ -79,12 +79,6 @@ type Client interface {
 	// Impl will return the underlying client implementation. Most users
 	// shouldn't use this.
 	Impl() (Impl, error)
-	// Set will make updates/deletes on the given values in SetRequest.
-	//
-	// Note that SetResponse and inner SetResult's contain Err fields that
-	// should be checked manually. Error from Set is only related to
-	// transport-layer issues in the RPC.
-	Set(ctx context.Context, r SetRequest, clientType ...string) (SetResponse, error)
 }
 
 var (
@@ -189,19 +183,6 @@ func (c *BaseClient) Impl() (Impl, error) {
 		return nil, ErrClientInit
 	}
 	return c.clientImpl, nil
-}
-
-// Set implements the Client interface.
-func (c *BaseClient) Set(ctx context.Context, r SetRequest, clientType ...string) (SetResponse, error) {
-	impl, err := NewImpl(ctx, r.Destination, clientType...)
-	if err != nil {
-		return SetResponse{}, err
-	}
-	c.mu.Lock()
-	c.clientImpl = impl
-	c.mu.Unlock()
-
-	return impl.Set(ctx, r)
 }
 
 func (c *BaseClient) run(impl Impl) error {

@@ -48,8 +48,6 @@ type Impl interface {
 	Close() error
 	// Poll will send an implementation specific Poll request to the server.
 	Poll() error
-	// Set will make updates/deletes on the given values in SetRequest.
-	Set(context.Context, SetRequest) (SetResponse, error)
 }
 
 // InitImpl is a constructor signature for all transport specific implementations.

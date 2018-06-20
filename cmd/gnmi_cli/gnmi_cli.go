@@ -26,6 +26,7 @@ package main
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -36,16 +37,17 @@ import (
 	"unicode/utf8"
 
 	"flag"
+	
 	log "github.com/golang/glog"
 	"context"
+	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/ssh/terminal"
 	"github.com/openconfig/gnmi/cli"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/flags"
-
-	// Register supported client types.
 	gclient "github.com/openconfig/gnmi/client/gnmi"
-	_ "github.com/openconfig/gnmi/client/openconfig"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 var (
@@ -62,10 +64,11 @@ var (
 	queryType   = flag.String("query_type", client.Once.String(), "Type of result, one of: (o, once, p, polling, s, streaming).")
 	queryAddr   = flags.NewStringList(&q.Addrs, nil)
 
-	setFlag  = flag.Bool("set", false, `When set, CLI will perform a Set request. At least one of --delete/--update/--replace must be set. Usage: gnmi_cli --set --update="..." --delete="..." --replace="..." other_flags...`)
-	deletes  = &flags.StringList{}
-	updates  = &flags.StringMap{}
-	replaces = &flags.StringMap{}
+	reqProto = flag.String("proto", "", "Text proto for gNMI request.")
+
+	capabilitiesFlag = flag.Bool("capabilities", false, `When set, CLI will perform a Capabilities request. Usage: gnmi_cli -capabilities [-proto <gnmi.CapabilityRequest>] -address <address> [other flags ...]`)
+	getFlag          = flag.Bool("get", false, `When set, CLI will perform a Get request. Usage: gnmi_cli -get -proto <gnmi.GetRequest> -address <address> [other flags ...]`)
+	setFlag          = flag.Bool("set", false, `When set, CLI will perform a Set request. Usage: gnmi_cli -set -proto <gnmi.SetRequest> -address <address> [other flags ...]`)
 
 	withUserPass = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
 
@@ -94,9 +97,6 @@ func init() {
 	flag.StringVar(&cfg.Timestamp, "timestamp", "", "Specify timestamp formatting in output.  One of (<empty string>, on, raw, <FORMAT>) where <empty string> is disabled, on is human readable, raw is int64 nanos since epoch, and <FORMAT> is according to golang time.Format(<FORMAT>)")
 	flag.BoolVar(&cfg.DisplaySize, "display_size", false, "Display the total size of query response.")
 	flag.BoolVar(&cfg.Latency, "latency", false, "Display the latency for receiving each update (Now - update timestamp).")
-	flag.Var(deletes, "delete", `List of paths to delete; --set flag must be set. Format is "path1,path2,path3"`)
-	flag.Var(updates, "update", `List of paths to update; --set flag must be set. Format is "path1=val1,path2=val2,path3=val3"`)
-	flag.Var(replaces, "replace", `List of paths to replace; --set flag must be set. Format is "path1=val1,path2=val2,path3=val3"`)
 	flag.StringVar(&q.TLS.ServerName, "server_name", "", "When set, CLI will use this hostname to verify server certificate during TLS handshake.")
 	flag.BoolVar(&q.TLS.InsecureSkipVerify, "insecure", false, "When set, CLI will not verify the server certificate during TLS handshake.")
 
@@ -114,6 +114,7 @@ func init() {
 	flag.DurationVar(&cfg.PollingInterval, "pi", cfg.PollingInterval, "Short for polling_interval.")
 	flag.BoolVar(&cfg.DisplaySize, "ds", cfg.DisplaySize, "Short for display_size.")
 	flag.BoolVar(&cfg.Latency, "l", cfg.Latency, "Short for latency.")
+	flag.StringVar(reqProto, "p", *reqProto, "Short for request proto.")
 }
 
 func main() {
@@ -164,62 +165,127 @@ func main() {
 		q.TLS.Certificates = []tls.Certificate{certificate}
 	}
 
-	if *setFlag {
-		if err := executeSet(ctx); err != nil {
-			log.Error(err)
+	var err error
+	switch {
+	case *capabilitiesFlag: // gnmi.Capabilities
+		err = executeCapabilities(ctx)
+	case *setFlag: // gnmi.Set
+		err = executeSet(ctx)
+	case *getFlag: // gnmi.Get
+		err = executeGet(ctx)
+	default: // gnmi.Subscribe
+		err = executeSubscribe(ctx)
+	}
+	if err != nil {
+		log.Error(err)
+	}
+}
+
+func executeCapabilities(ctx context.Context) error {
+	r := &gpb.CapabilityRequest{}
+	if err := proto.UnmarshalText(*reqProto, r); err != nil {
+		return fmt.Errorf("unable to parse gnmi.CapabilityRequest from %q : %v", *reqProto, err)
+	}
+	c, err := gclient.New(ctx, client.Destination{
+		Addrs:       q.Addrs,
+		Target:      q.Target,
+		Timeout:     q.Timeout,
+		Credentials: q.Credentials,
+		TLS:         q.TLS,
+	})
+	if err != nil {
+		return fmt.Errorf("could not create a gNMI client: %v", err)
+	}
+	response, err := c.(*gclient.Client).Capabilities(ctx, r)
+	if err != nil {
+		return fmt.Errorf("target returned RPC error for Capabilities(%q): %v", r.String(), err)
+	}
+	cfg.Display([]byte(proto.MarshalTextString(response)))
+	return nil
+}
+
+func executeGet(ctx context.Context) error {
+	if *reqProto == "" {
+		return errors.New("-proto must be set")
+	}
+	r := &gpb.GetRequest{}
+	if err := proto.UnmarshalText(*reqProto, r); err != nil {
+		return fmt.Errorf("unable to parse gnmi.GetRequest from %q : %v", *reqProto, err)
+	}
+	c, err := gclient.New(ctx, client.Destination{
+		Addrs:       q.Addrs,
+		Target:      q.Target,
+		Timeout:     q.Timeout,
+		Credentials: q.Credentials,
+		TLS:         q.TLS,
+	})
+	if err != nil {
+		return fmt.Errorf("could not create a gNMI client: %v", err)
+	}
+	response, err := c.(*gclient.Client).Get(ctx, r)
+	if err != nil {
+		return fmt.Errorf("target returned RPC error for Get(%q): %v", r.String(), err)
+	}
+	cfg.Display([]byte(proto.MarshalTextString(response)))
+	return nil
+}
+
+func executeSet(ctx context.Context) error {
+	if *reqProto == "" {
+		return errors.New("-proto must be set")
+	}
+	r := &gpb.SetRequest{}
+	if err := proto.UnmarshalText(*reqProto, r); err != nil {
+		return fmt.Errorf("unable to parse gnmi.SetRequest from %q : %v", *reqProto, err)
+	}
+	c, err := gclient.New(ctx, client.Destination{
+		Addrs:       q.Addrs,
+		Target:      q.Target,
+		Timeout:     q.Timeout,
+		Credentials: q.Credentials,
+		TLS:         q.TLS,
+	})
+	if err != nil {
+		return fmt.Errorf("could not create a gNMI client: %v", err)
+	}
+	response, err := c.(*gclient.Client).Set(ctx, r)
+	if err != nil {
+		return fmt.Errorf("target returned RPC error for Set(%q) : %v", r, err)
+	}
+	cfg.Display([]byte(proto.MarshalTextString(response)))
+	return nil
+}
+
+func executeSubscribe(ctx context.Context) error {
+	if *reqProto != "" {
+		// Convert SubscribeRequest to a client.Query
+		tq, err := cli.ParseSubscribeProto(*reqProto)
+		if err != nil {
+			log.Exitf("failed to parse gNMI SubscribeRequest text proto: %v", err)
 		}
-		return
+		// Set the fields that are not set as part of conversion above.
+		tq.Addrs = q.Addrs
+		tq.Credentials = q.Credentials
+		tq.Timeout = q.Timeout
+		tq.TLS = q.TLS
+		return cli.QueryDisplay(ctx, tq, &cfg)
 	}
 
 	if q.Type = cli.QueryType(*queryType); q.Type == client.Unknown {
-		log.Exit("--query_type must be one of: (o, once, p, polling, s, streaming)")
+		return errors.New("--query_type must be one of: (o, once, p, polling, s, streaming)")
 	}
 	// Parse queryFlag into appropriate format.
 	if len(*queryFlag) == 0 {
-		log.Exit("--query must be set")
+		return errors.New("--query must be set")
 	}
 	for _, path := range *queryFlag {
 		query, err := parseQuery(path, cfg.Delimiter)
 		if err != nil {
-			log.Exitf("invalid query %q : %v", path, err)
+			return fmt.Errorf("invalid query %q : %v", path, err)
 		}
 		q.Queries = append(q.Queries, query)
 	}
-
-	if err := cli.QueryDisplay(ctx, q, &cfg); err != nil {
-		log.Errorf("cli.QueryDisplay:\n\t%v", err)
-	}
-}
-
-func executeSet(ctx context.Context) error {
-	req := client.SetRequest{
-		Destination: client.Destination{
-			Addrs:       q.Addrs,
-			Target:      q.Target,
-			Timeout:     q.Timeout,
-			Credentials: q.Credentials,
-			TLS:         q.TLS,
-		},
-	}
-
-	for _, p := range *deletes {
-		req.Delete = append(req.Delete, strings.Split(p, cfg.Delimiter))
-	}
-
-	for p, v := range *updates {
-		req.Update = append(req.Update, client.Leaf{
-			Path: strings.Split(p, cfg.Delimiter),
-			Val:  v,
-		})
-	}
-	for p, v := range *replaces {
-		req.Replace = append(req.Replace, client.Leaf{
-			Path: strings.Split(p, cfg.Delimiter),
-			Val:  v,
-		})
-	}
-
-	return cli.Set(ctx, req, &cfg)
+	return cli.QueryDisplay(ctx, q, &cfg)
 }
 
 func readCredentials() (*client.Credentials, error) {

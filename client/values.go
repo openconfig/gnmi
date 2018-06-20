@@ -25,8 +25,8 @@ import "time"
 type Leaf struct {
 	Path Path
 	Val  interface{}
-	// TS contains the timestamp of last update to this leaf.
-	TS time.Time
+	TS   time.Time // TS is the timestamp of last update to this leaf.
+	Dups uint32    // Dups is the number of coalesced duplicates for this leaf.
 }
 
 // Leaves implements sort.Interface over []Leaf based on paths.

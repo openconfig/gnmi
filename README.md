@@ -6,10 +6,10 @@ This repository contains reference Go implementations for gNMI.
 
 The implementations include:
 
-- abstracted client library with pluggable implementations
-- client implementation using `gnmi.proto`
-- client implementation using `openconfig.proto`
-- CLI that supports both of the above implementations
+- client library implementation using `gnmi.proto`
+- CLI for interacting with a gNMI service
+- Caching collector that connects to multiple gNMI targets and makes the data
+  available over a single gNMI Subscribe RPC to clients
 
 ## Installing
 

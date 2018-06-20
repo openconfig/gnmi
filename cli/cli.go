@@ -28,6 +28,8 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/ctree"
+
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
 const layout = "2006-01-02-15:04:05.000000000"
@@ -85,19 +87,15 @@ func QueryDisplay(ctx context.Context, query client.Query, cfg *Config) error {
 	return nil
 }
 
-// Set executes the Set RPC with given SetRequest. Success output is sent to
-// cfg.Display, any issues are returned in an error.
-func Set(ctx context.Context, req client.SetRequest, cfg *Config) error {
-	c := &client.BaseClient{}
-	defer c.Close()
-
-	res, err := c.Set(ctx, req, cfg.ClientTypes...)
-	if err != nil {
-		return fmt.Errorf("Set failed: %v", err)
+// ParseSubscribeProto parses given gNMI SubscribeRequest text proto
+// into client.Query.
+func ParseSubscribeProto(p string) (client.Query, error) {
+	var tq client.Query
+	sr := &gpb.SubscribeRequest{}
+	if err := proto.UnmarshalText(p, sr); err != nil {
+		return tq, err
 	}
-
-	cfg.Display([]byte(fmt.Sprintf("Update succeeded at %v", res.TS)))
-	return nil
+	return client.NewQuery(sr)
 }
 
 // sendQueryAndDisplay directs a query to the specified target. The returned

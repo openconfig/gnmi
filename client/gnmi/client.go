@@ -23,8 +23,8 @@ package client
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
+	"math"
 	"strings"
 	"time"
 
@@ -36,6 +36,7 @@ import (
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/grpcutil"
+	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/value"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -64,10 +65,16 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 	opts := []grpc.DialOption{
 		grpc.WithTimeout(d.Timeout),
 		grpc.WithBlock(),
+		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),
 	}
-	if d.TLS != nil {
+
+	switch d.TLS {
+	case nil:
+		opts = append(opts, grpc.WithInsecure())
+	default:
 		opts = append(opts, grpc.WithTransportCredentials(credentials.NewTLS(d.TLS)))
 	}
+
 	if d.Credentials != nil {
 		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, true)
 		opts = append(opts, grpc.WithPerRPCCredentials(pc))
@@ -105,12 +112,17 @@ func (c *Client) Subscribe(ctx context.Context, q client.Query) error {
 	if err != nil {
 		return fmt.Errorf("gpb.GNMIClient.Subscribe(%v) failed to initialize Subscribe RPC: %v", q, err)
 	}
-	qq, err := subscribe(q)
-	if err != nil {
-		return fmt.Errorf("generating SubscribeRequest proto: %v", err)
+
+	sr := q.SubReq
+	if sr == nil {
+		sr, err = subscribe(q)
+		if err != nil {
+			return fmt.Errorf("generating SubscribeRequest proto: %v", err)
+		}
 	}
-	if err := sub.Send(qq); err != nil {
-		return fmt.Errorf("client.Send(%+v): %v", qq, err)
+
+	if err := sub.Send(sr); err != nil {
+		return fmt.Errorf("client.Send(%+v): %v", sr, err)
 	}
 
 	c.sub = sub
@@ -180,14 +192,7 @@ func (c *Client) defaultRecv(msg proto.Message) error {
 		}
 	case *gpb.SubscribeResponse_Update:
 		n := v.Update
-		var p []string
-		if n.Prefix != nil {
-			var err error
-			p, err = ygot.PathToStrings(n.Prefix)
-			if err != nil {
-				return err
-			}
-		}
+		p := path.ToStrings(n.Prefix, true)
 		ts := time.Unix(0, n.Timestamp)
 		for _, u := range n.Update {
 			if u.Path == nil {
@@ -210,81 +215,19 @@ func (c *Client) defaultRecv(msg proto.Message) error {
 	return nil
 }
 
-// Set calls the Set RPC, converting request/response to appropriate protos.
-func (c *Client) Set(ctx context.Context, sr client.SetRequest) (client.SetResponse, error) {
-	req, err := convertSetRequest(sr)
-	if err != nil {
-		return client.SetResponse{}, err
-	}
-
-	resp, err := c.client.Set(ctx, req)
-	if err != nil {
-		return client.SetResponse{}, err
-	}
-
-	return convertSetResponse(resp)
+// Capabilities calls the gNMI Capabilities RPC.
+func (c *Client) Capabilities(ctx context.Context, r *gpb.CapabilityRequest) (*gpb.CapabilityResponse, error) {
+	return c.client.Capabilities(ctx, r)
 }
 
-func convertSetRequest(sr client.SetRequest) (*gpb.SetRequest, error) {
-	req := &gpb.SetRequest{}
-	for _, d := range sr.Delete {
-		pp, err := ygot.StringToPath(pathToString(d), ygot.StructuredPath, ygot.StringSlicePath)
-		if err != nil {
-			return nil, fmt.Errorf("invalid delete path %q: %v", d, err)
-		}
-		req.Delete = append(req.Delete, pp)
-	}
-
-	genUpdate := func(v client.Leaf) (*gpb.Update, error) {
-		buf, err := json.Marshal(v.Val)
-		if err != nil {
-			return nil, err
-		}
-		pp, err := ygot.StringToPath(pathToString(v.Path), ygot.StructuredPath, ygot.StringSlicePath)
-		if err != nil {
-			return nil, fmt.Errorf("invalid update path %q: %v", v.Path, err)
-		}
-		return &gpb.Update{
-			Path: pp,
-			Val:  &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{buf}},
-			// Value is deprecated, remove it at some point.
-			Value: &gpb.Value{Type: gpb.Encoding_JSON, Value: buf},
-		}, nil
-	}
-
-	for _, u := range sr.Update {
-		uu, err := genUpdate(u)
-		if err != nil {
-			return nil, err
-		}
-		req.Update = append(req.Update, uu)
-	}
-	for _, u := range sr.Replace {
-		uu, err := genUpdate(u)
-		if err != nil {
-			return nil, err
-		}
-		req.Replace = append(req.Replace, uu)
-	}
-
-	return req, nil
+// Get calls the gNMI Get RPC.
+func (c *Client) Get(ctx context.Context, r *gpb.GetRequest) (*gpb.GetResponse, error) {
+	return c.client.Get(ctx, r)
 }
 
-func convertSetResponse(sr *gpb.SetResponse) (client.SetResponse, error) {
-	resp := client.SetResponse{
-		TS: time.Unix(0, sr.GetTimestamp()),
-	}
-	var errs []string
-	for _, r := range sr.GetResponse() {
-		if r.Message != nil {
-			errs = append(errs, r.GetMessage().String())
-		}
-	}
-	if len(errs) > 0 {
-		return resp, errors.New(strings.Join(errs, "; "))
-	}
-
-	return resp, nil
+// Set calls the gNMI Set RPC.
+func (c *Client) Set(ctx context.Context, r *gpb.SetRequest) (*gpb.SetResponse, error) {
+	return c.client.Set(ctx, r)
 }
 
 func getType(t client.Type) gpb.SubscriptionList_Mode {
@@ -320,10 +263,7 @@ func subscribe(q client.Query) (*gpb.SubscribeRequest, error) {
 }
 
 func noti(prefix []string, pp *gpb.Path, ts time.Time, u *gpb.Update) (client.Notification, error) {
-	sp, err := ygot.PathToStrings(pp)
-	if err != nil {
-		return nil, fmt.Errorf("converting path %v to []string: %v", u.GetPath(), err)
-	}
+	sp := path.ToStrings(pp, false)
 	// Make a full new copy of prefix + u.Path to avoid any reuse of underlying
 	// slice arrays.
 	p := make([]string, 0, len(prefix)+len(sp))
@@ -338,17 +278,17 @@ func noti(prefix []string, pp *gpb.Path, ts time.Time, u *gpb.Update) (client.No
 		if err != nil {
 			return nil, err
 		}
-		return client.Update{Path: p, TS: ts, Val: val}, nil
+		return client.Update{Path: p, TS: ts, Val: val, Dups: u.Duplicates}, nil
 	}
 	switch v := u.Value; v.Type {
 	case gpb.Encoding_BYTES:
-		return client.Update{Path: p, TS: ts, Val: v.Value}, nil
+		return client.Update{Path: p, TS: ts, Val: v.Value, Dups: u.Duplicates}, nil
 	case gpb.Encoding_JSON, gpb.Encoding_JSON_IETF:
 		var val interface{}
 		if err := json.Unmarshal(v.Value, &val); err != nil {
 			return nil, fmt.Errorf("json.Unmarshal(%q, val): %v", v, err)
 		}
-		return client.Update{Path: p, TS: ts, Val: val}, nil
+		return client.Update{Path: p, TS: ts, Val: val, Dups: u.Duplicates}, nil
 	default:
 		return nil, fmt.Errorf("Unsupported value type: %v", v.Type)
 	}
@@ -370,7 +310,6 @@ func ProtoResponse(notifs ...client.Notification) (*gpb.SubscribeResponse, error
 			if n.Timestamp == 0 {
 				n.Timestamp = nn.TS.UnixNano()
 			}
-
 			pp, err := ygot.StringToPath(pathToString(nn.Path), ygot.StructuredPath, ygot.StringSlicePath)
 			if err != nil {
 				return nil, err

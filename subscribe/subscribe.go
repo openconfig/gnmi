@@ -23,6 +23,7 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
@@ -31,6 +32,7 @@ import (
 	"github.com/openconfig/gnmi/coalesce"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/match"
+	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/unimplemented"
 	"github.com/openconfig/gnmi/value"
 
@@ -76,21 +78,36 @@ func NewServer(c *cache.Cache) (*Server, error) {
 
 // Update passes a streaming update to registered clients.
 func (s *Server) Update(n *ctree.Leaf) {
-	s.m.Update(n)
+	switch v := n.Value().(type) {
+	case client.Delete:
+		s.m.Update(n, v.Path)
+	case client.Update:
+		s.m.Update(n, v.Path)
+	case *pb.Notification:
+		p := path.ToStrings(v.Prefix, true)
+		if len(v.Update) > 0 {
+			p = append(p, path.ToStrings(v.Update[0].Path, false)...)
+		} else if len(v.Delete) > 0 {
+			p = append(p, path.ToStrings(v.Delete[0], false)...)
+		}
+		// If neither update nor delete notification exists,
+		// just go with the path in the prefix
+		s.m.Update(n, p)
+	default:
+		log.Errorf("update is not a known type; type is %T", v)
+	}
 }
 
 // addSubscription registers all subscriptions for this client for update matching.
-func addSubscription(m *match.Match, target string, s *pb.SubscriptionList, c *matchClient) (remove func()) {
+func addSubscription(m *match.Match, s *pb.SubscriptionList, c *matchClient) (remove func()) {
 	var removes []func()
-	prefix := []string{target}
-	if s.Prefix != nil {
-		prefix = append(prefix, s.Prefix.Element...)
-	}
+	prefix := path.ToStrings(s.Prefix, true)
 	for _, p := range s.Subscription {
 		if p.Path == nil {
 			continue
 		}
-		path := append(prefix, p.Path.Element...)
+		// TODO(yusufsn) : Origin field in the Path may need to be included
+		path := append(prefix, path.ToStrings(p.Path, false)...)
 		removes = append(removes, m.AddQuery(path, c))
 	}
 	return func() {
@@ -106,22 +123,25 @@ func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
 	c := streamClient{stream: stream}
 	var err error
 	c.sr, err = stream.Recv()
-	if err == io.EOF {
+
+	switch {
+	case err == io.EOF:
 		return nil
-	}
-	if err != nil {
+	case err != nil:
 		return err
-	}
-	if c.target = c.sr.GetSubscribe().GetPrefix().GetTarget(); c.target == "" {
+	case c.sr.GetSubscribe() == nil:
+		return status.Errorf(codes.InvalidArgument, "request must contain a subscription %#v", c.sr)
+	case c.sr.GetSubscribe().GetPrefix() == nil:
+		return status.Errorf(codes.InvalidArgument, "request must contain a prefix %#v", c.sr)
+	case c.sr.GetSubscribe().GetPrefix().GetTarget() == "":
 		return status.Error(codes.InvalidArgument, "missing target")
 	}
+
+	c.target = c.sr.GetSubscribe().GetPrefix().GetTarget()
 	if !s.c.HasTarget(c.target) {
 		return status.Errorf(codes.NotFound, "no such target: %q", c.target)
 	}
 	peer, _ := peer.FromContext(stream.Context())
-	if c.sr.GetSubscribe() == nil {
-		return status.Errorf(codes.InvalidArgument, "request must contain a subscription %#v", c.sr)
-	}
 	mode := c.sr.GetSubscribe().Mode
 
 	log.Infof("peer: %v target: %q subscription: %s", peer.Addr, c.target, c.sr)
@@ -146,9 +166,9 @@ func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
 		go s.processPollingSubscription(&c)
 	case pb.SubscriptionList_STREAM:
 		if c.sr.GetSubscribe().GetUpdatesOnly() {
-			c.queue.Insert(sync{})
+			c.queue.Insert(syncMarker{})
 		}
-		remove := addSubscription(s.m, c.target, c.sr.GetSubscribe(), &matchClient{q: c.queue})
+		remove := addSubscription(s.m, c.sr.GetSubscribe(), &matchClient{q: c.queue})
 		defer remove()
 		if !c.sr.GetSubscribe().GetUpdatesOnly() {
 			go s.processSubscription(&c)
@@ -165,7 +185,7 @@ func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
 type resp struct {
 	stream pb.GNMI_SubscribeServer
 	n      *ctree.Leaf
-	dup    int
+	dup    uint32
 	t      *time.Timer // Timer used to timout the subscription.
 }
 
@@ -174,12 +194,10 @@ type resp struct {
 // initial walk of the results as well as streamed updates and use a queue to
 // ensure order.
 func (s *Server) sendSubscribeResponse(r *resp) error {
-	notification, err := MakeSubscribeResponse(r.n.Value())
+	notification, err := MakeSubscribeResponse(r.n.Value(), r.dup)
 	if err != nil {
 		return status.Errorf(codes.Unknown, err.Error())
 	}
-	// gNMI Update does not include a field to report coalesced duplicates.  When
-	// it does, r.dup holds the duplicates for this value.
 	// Start the timeout before attempting to send.
 	r.t.Reset(s.timeout)
 	// Clear the timeout upon sending.
@@ -195,7 +213,7 @@ func (s *Server) sendSubscribeResponse(r *resp) error {
 // once for STREAMING queries.
 var subscribeSync = &pb.SubscribeResponse{Response: &pb.SubscribeResponse_SyncResponse{true}}
 
-type sync struct{}
+type syncMarker struct{}
 
 // cacheClient implements match.Client interface.
 type matchClient struct {
@@ -204,7 +222,7 @@ type matchClient struct {
 }
 
 // Update implements the match.Client Update interface for coalesce.Queue.
-func (c matchClient) Update(n *ctree.Leaf) {
+func (c matchClient) Update(n interface{}) {
 	// Stop processing updates on error.
 	if c.err != nil {
 		return
@@ -250,14 +268,10 @@ func (s *Server) processSubscription(c *streamClient) {
 		}()
 	}
 	if !c.sr.GetSubscribe().GetUpdatesOnly() {
-		var prefix []string
-		if s := c.sr.GetSubscribe(); s != nil {
-			if p := s.Prefix; p != nil {
-				prefix = p.Element
-			}
-		}
+		// remove the target name from the index string
+		prefix := path.ToStrings(c.sr.GetSubscribe().Prefix, true)[1:]
 		for _, subscription := range c.sr.GetSubscribe().Subscription {
-			path := append(prefix, subscription.Path.Element...)
+			path := append(prefix, path.ToStrings(subscription.Path, false)...)
 			s.c.Query(c.target, path, func(_ []string, l *ctree.Leaf, _ interface{}) {
 				// Stop processing query results on error.
 				if err != nil {
@@ -271,7 +285,7 @@ func (s *Server) processSubscription(c *streamClient) {
 		}
 	}
 
-	_, err = c.queue.Insert(sync{})
+	_, err = c.queue.Insert(syncMarker{})
 }
 
 // processPollingSubscription handles the POLL mode Subscription RPC.
@@ -302,7 +316,8 @@ func (s *Server) processPollingSubscription(c *streamClient) {
 // sendStreamingResults forwards all streaming updates to a given streaming
 // Subscription RPC client.
 func (s *Server) sendStreamingResults(c *streamClient) {
-	peer, _ := peer.FromContext(c.stream.Context())
+	ctx := c.stream.Context()
+	peer, _ := peer.FromContext(ctx)
 	t := time.NewTimer(s.timeout)
 	// Make sure the timer doesn't expire waiting for a value to send, only
 	// waiting to send.
@@ -320,7 +335,7 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 		}
 	}()
 	for {
-		item, dup, err := c.queue.Next()
+		item, dup, err := c.queue.Next(ctx)
 		if coalesce.IsClosedQueue(err) {
 			c.errC <- nil
 			return
@@ -331,7 +346,7 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 		}
 
 		// s.processSubscription will send a sync marker, handle it separately.
-		if _, ok := item.(sync); ok {
+		if _, ok := item.(syncMarker); ok {
 			if err = c.stream.Send(subscribeSync); err != nil {
 				break
 			}
@@ -361,25 +376,53 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 	}
 }
 
-// MakeSubscribeResponse produces a gnmi_proto.SubscribeResponse from a client Notification.
-func MakeSubscribeResponse(n interface{}) (*pb.SubscribeResponse, error) {
-	notification := &pb.Notification{}
+// MakeSubscribeResponse produces a gnmi_proto.SubscribeResponse from either
+// client.Notification or gnmi_proto.Notification
+//
+// This function modifies the message to set the duplicate count if it is
+// greater than 0. The funciton clones the gnmi notification if the duplicate count needs to be set.
+// You have to be working on a cloned message if you need to modify the message in any way.
+func MakeSubscribeResponse(n interface{}, dup uint32) (*pb.SubscribeResponse, error) {
+	var notification *pb.Notification
+	switch cache.Type {
+	case cache.GnmiNoti:
+		var ok bool
+		notification, ok = n.(*pb.Notification)
+		if !ok {
+			return nil, status.Errorf(codes.Internal, "invalid notification type: %#v", n)
+		}
+
+		// There may be multiple updates in a notification. Since duplicate count is just
+		// an indicator that coalescion is happening, not a critical data, just the first
+		// update is set with duplicate count to be on the side of efficiency.
+		// Only attempt to set the duplicate count if it is greater than 0. The default
+		// value in the message is already 0.
+		if dup > 0 && len(notification.Update) > 0 {
+			// We need a copy of the cached notification before writing a client specific
+			// duplicate count as the notification is shared across all clients.
+			notification = proto.Clone(notification).(*pb.Notification)
+			notification.Update[0].Duplicates = dup
+		}
+	case cache.ClientLeaf:
+		notification = &pb.Notification{}
+		switch v := n.(type) {
+		case client.Delete:
+			notification.Delete = []*pb.Path{{Element: v.Path}}
+			notification.Timestamp = v.TS.UnixNano()
+		case client.Update:
+			typedVal, err := value.FromScalar(v.Val)
+			if err != nil {
+				return nil, err
+			}
+			notification.Update = []*pb.Update{{Path: &pb.Path{Element: v.Path}, Val: typedVal, Duplicates: dup}}
+			notification.Timestamp = v.TS.UnixNano()
+		}
+	}
 	response := &pb.SubscribeResponse{
 		Response: &pb.SubscribeResponse_Update{
 			Update: notification,
 		},
 	}
-	switch v := n.(type) {
-	case client.Delete:
-		notification.Delete = []*pb.Path{{Element: v.Path}}
-		notification.Timestamp = v.TS.UnixNano()
-	case client.Update:
-		typedVal, err := value.FromScalar(v.Val)
-		if err != nil {
-			return nil, err
-		}
-		notification.Update = []*pb.Update{{Path: &pb.Path{Element: v.Path}, Val: typedVal}}
-		notification.Timestamp = v.TS.UnixNano()
-	}
+
 	return response, nil
 }
