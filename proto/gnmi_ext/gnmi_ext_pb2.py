@@ -20,9 +20,8 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='proto/gnmi_ext/gnmi_ext.proto',
   package='gnmi_ext',
   syntax='proto3',
-  serialized_pb=_b('\n\x1dproto/gnmi_ext/gnmi_ext.proto\x12\x08gnmi_ext\"\x86\x01\n\tExtension\x12\x37\n\x0eregistered_ext\x18\x01 \x01(\x0b\x32\x1d.gnmi_ext.RegisteredExtensionH\x00\x12\x39\n\x12master_arbitration\x18\x02 \x01(\x0b\x32\x1b.gnmi_ext.MasterArbitrationH\x00\x42\x05\n\x03\x65xt\"E\n\x13RegisteredExtension\x12!\n\x02id\x18\x01 \x01(\x0e\x32\x15.gnmi_ext.ExtensionID\x12\x0b\n\x03msg\x18\x02 \x01(\x0c\"Y\n\x11MasterArbitration\x12\x1c\n\x04role\x18\x01 \x01(\x0b\x32\x0e.gnmi_ext.Role\x12&\n\x0b\x65lection_id\x18\x02 \x01(\x0b\x32\x11.gnmi_ext.Uint128\"$\n\x07Uint128\x12\x0c\n\x04high\x18\x01 \x01(\x04\x12\x0b\n\x03low\x18\x02 \x01(\x04\"\x12\n\x04Role\x12\n\n\x02id\x18\x01 \x01(\t*3\n\x0b\x45xtensionID\x12\r\n\tEID_UNSET\x10\x00\x12\x15\n\x10\x45ID_EXPERIMENTAL\x10\xe7\x07\x62\x06proto3')
+  serialized_pb=_b('\n\x1dproto/gnmi_ext/gnmi_ext.proto\x12\x08gnmi_ext\"\x86\x01\n\tExtension\x12\x37\n\x0eregistered_ext\x18\x01 \x01(\x0b\x32\x1d.gnmi_ext.RegisteredExtensionH\x00\x12\x39\n\x12master_arbitration\x18\x02 \x01(\x0b\x32\x1b.gnmi_ext.MasterArbitrationH\x00\x42\x05\n\x03\x65xt\"E\n\x13RegisteredExtension\x12!\n\x02id\x18\x01 \x01(\x0e\x32\x15.gnmi_ext.ExtensionID\x12\x0b\n\x03msg\x18\x02 \x01(\x0c\"Y\n\x11MasterArbitration\x12\x1c\n\x04role\x18\x01 \x01(\x0b\x32\x0e.gnmi_ext.Role\x12&\n\x0b\x65lection_id\x18\x02 \x01(\x0b\x32\x11.gnmi_ext.Uint128\"$\n\x07Uint128\x12\x0c\n\x04high\x18\x01 \x01(\x04\x12\x0b\n\x03low\x18\x02 \x01(\x04\"\x12\n\x04Role\x12\n\n\x02id\x18\x01 \x01(\t*3\n\x0b\x45xtensionID\x12\r\n\tEID_UNSET\x10\x00\x12\x15\n\x10\x45ID_EXPERIMENTAL\x10\xe7\x07\x42+Z)github.com/openconfig/gnmi/proto/gnmi_extb\x06proto3')
 )
-_sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 _EXTENSIONID = _descriptor.EnumDescriptor(
   name='ExtensionID',
@@ -65,14 +64,14 @@ _EXTENSION = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='master_arbitration', full_name='gnmi_ext.Extension.master_arbitration', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -106,14 +105,14 @@ _REGISTEREDEXTENSION = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='msg', full_name='gnmi_ext.RegisteredExtension.msg', index=1,
       number=2, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -144,14 +143,14 @@ _MASTERARBITRATION = _descriptor.Descriptor(
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='election_id', full_name='gnmi_ext.MasterArbitration.election_id', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -182,14 +181,14 @@ _UINT128 = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='low', full_name='gnmi_ext.Uint128.low', index=1,
       number=2, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -220,7 +219,7 @@ _ROLE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -254,6 +253,7 @@ DESCRIPTOR.message_types_by_name['MasterArbitration'] = _MASTERARBITRATION
 DESCRIPTOR.message_types_by_name['Uint128'] = _UINT128
 DESCRIPTOR.message_types_by_name['Role'] = _ROLE
 DESCRIPTOR.enum_types_by_name['ExtensionID'] = _EXTENSIONID
+_sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Extension = _reflection.GeneratedProtocolMessageType('Extension', (_message.Message,), dict(
   DESCRIPTOR = _EXTENSION,
@@ -291,14 +291,6 @@ Role = _reflection.GeneratedProtocolMessageType('Role', (_message.Message,), dic
 _sym_db.RegisterMessage(Role)
 
 
-try:
-  # THESE ELEMENTS WILL BE DEPRECATED.
-  # Please use the generated *_pb2_grpc.py files instead.
-  import grpc
-  from grpc.framework.common import cardinality
-  from grpc.framework.interfaces.face import utilities as face_utilities
-  from grpc.beta import implementations as beta_implementations
-  from grpc.beta import interfaces as beta_interfaces
-except ImportError:
-  pass
+DESCRIPTOR.has_options = True
+DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(), _b('Z)github.com/openconfig/gnmi/proto/gnmi_ext'))
 # @@protoc_insertion_point(module_scope)

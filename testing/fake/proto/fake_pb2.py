@@ -15,17 +15,16 @@ _sym_db = _symbol_database.Default()
 
 
 from google.protobuf import any_pb2 as google_dot_protobuf_dot_any__pb2
-from github.com.openconfig.gnmi.proto.gnmi import gnmi_pb2 as github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi_dot_gnmi__pb2
+from gnmi import gnmi_pb2 as gnmi_dot_gnmi__pb2
 
 
 DESCRIPTOR = _descriptor.FileDescriptor(
   name='testing/fake/proto/fake.proto',
   package='gnmi.fake',
   syntax='proto3',
-  serialized_pb=_b('\n\x1dtesting/fake/proto/fake.proto\x12\tgnmi.fake\x1a\x19google/protobuf/any.proto\x1a\x30github.com/openconfig/gnmi/proto/gnmi/gnmi.proto\"2\n\rConfiguration\x12!\n\x06\x63onfig\x18\x01 \x03(\x0b\x32\x11.gnmi.fake.Config\"1\n\x0b\x43redentials\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"\xe3\x03\n\x06\x43onfig\x12\x0e\n\x06target\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x03\x12\x10\n\x04seed\x18\x06 \x01(\x03\x42\x02\x18\x01\x12$\n\x06values\x18\x03 \x03(\x0b\x32\x10.gnmi.fake.ValueB\x02\x18\x01\x12\x14\n\x0c\x64isable_sync\x18\x04 \x01(\x08\x12\x31\n\x0b\x63lient_type\x18\x05 \x01(\x0e\x32\x1c.gnmi.fake.Config.ClientType\x12\x13\n\x0b\x64isable_eof\x18\x07 \x01(\x08\x12+\n\x0b\x63redentials\x18\x08 \x01(\x0b\x32\x16.gnmi.fake.Credentials\x12\x0c\n\x04\x63\x65rt\x18\t \x01(\x0c\x12\x14\n\x0c\x65nable_delay\x18\n \x01(\x08\x12&\n\x06\x63ustom\x18\x64 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x12,\n\x06random\x18\x65 \x01(\x0b\x32\x1a.gnmi.fake.RandomGeneratorH\x00\x12*\n\x05\x66ixed\x18\x66 \x01(\x0b\x32\x19.gnmi.fake.FixedGeneratorH\x00\"E\n\nClientType\x12\x08\n\x04GRPC\x10\x00\x12\n\n\x06STUBBY\x10\x01\x12\r\n\tGRPC_GNMI\x10\x02\x12\x12\n\x0eGRPC_GNMI_PROD\x10\x03\x42\x0b\n\tgenerator\"<\n\x0e\x46ixedGenerator\x12*\n\tresponses\x18\x01 \x03(\x0b\x32\x17.gnmi.SubscribeResponse\"A\n\x0fRandomGenerator\x12\x0c\n\x04seed\x18\x01 \x01(\x03\x12 \n\x06values\x18\x02 \x03(\x0b\x32\x10.gnmi.fake.Value\"\r\n\x0b\x44\x65leteValue\"\xa9\x02\n\x05Value\x12\x0c\n\x04path\x18\x01 \x03(\t\x12\'\n\ttimestamp\x18\x02 \x01(\x0b\x32\x14.gnmi.fake.Timestamp\x12\x0e\n\x06repeat\x18\x06 \x01(\x05\x12\x0c\n\x04seed\x18\x07 \x01(\x03\x12(\n\tint_value\x18\x64 \x01(\x0b\x32\x13.gnmi.fake.IntValueH\x00\x12.\n\x0c\x64ouble_value\x18\x65 \x01(\x0b\x32\x16.gnmi.fake.DoubleValueH\x00\x12.\n\x0cstring_value\x18\x66 \x01(\x0b\x32\x16.gnmi.fake.StringValueH\x00\x12\x0e\n\x04sync\x18g \x01(\x04H\x00\x12(\n\x06\x64\x65lete\x18h \x01(\x0b\x32\x16.gnmi.fake.DeleteValueH\x00\x42\x07\n\x05value\"D\n\tTimestamp\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\x12\x11\n\tdelta_min\x18\x02 \x01(\x03\x12\x11\n\tdelta_max\x18\x03 \x01(\x03\"s\n\x08IntValue\x12\r\n\x05value\x18\x01 \x01(\x03\x12$\n\x05range\x18\x02 \x01(\x0b\x32\x13.gnmi.fake.IntRangeH\x00\x12\"\n\x04list\x18\x03 \x01(\x0b\x32\x12.gnmi.fake.IntListH\x00\x42\x0e\n\x0c\x64istribution\"R\n\x08IntRange\x12\x0f\n\x07minimum\x18\x01 \x01(\x03\x12\x0f\n\x07maximum\x18\x02 \x01(\x03\x12\x11\n\tdelta_min\x18\x03 \x01(\x03\x12\x11\n\tdelta_max\x18\x04 \x01(\x03\"*\n\x07IntList\x12\x0f\n\x07options\x18\x01 \x03(\x03\x12\x0e\n\x06random\x18\x02 \x01(\x08\"|\n\x0b\x44oubleValue\x12\r\n\x05value\x18\x01 \x01(\x01\x12\'\n\x05range\x18\x02 \x01(\x0b\x32\x16.gnmi.fake.DoubleRangeH\x00\x12%\n\x04list\x18\x03 \x01(\x0b\x32\x15.gnmi.fake.DoubleListH\x00\x42\x0e\n\x0c\x64istribution\"U\n\x0b\x44oubleRange\x12\x0f\n\x07minimum\x18\x01 \x01(\x01\x12\x0f\n\x07maximum\x18\x02 \x01(\x01\x12\x11\n\tdelta_min\x18\x03 \x01(\x01\x12\x11\n\tdelta_max\x18\x04 \x01(\x01\"-\n\nDoubleList\x12\x0f\n\x07options\x18\x01 \x03(\x01\x12\x0e\n\x06random\x18\x02 \x01(\x08\"S\n\x0bStringValue\x12\r\n\x05value\x18\x01 \x01(\t\x12%\n\x04list\x18\x02 \x01(\x0b\x32\x15.gnmi.fake.StringListH\x00\x42\x0e\n\x0c\x64istribution\"-\n\nStringList\x12\x0f\n\x07options\x18\x01 \x03(\t\x12\x0e\n\x06random\x18\x02 \x01(\x08*+\n\x05State\x12\x0b\n\x07STOPPED\x10\x00\x12\x08\n\x04INIT\x10\x01\x12\x0b\n\x07RUNNING\x10\x02\x32\x98\x01\n\x0c\x41gentManager\x12+\n\x03\x41\x64\x64\x12\x11.gnmi.fake.Config\x1a\x11.gnmi.fake.Config\x12.\n\x06Remove\x12\x11.gnmi.fake.Config\x1a\x11.gnmi.fake.Config\x12+\n\x03Get\x12\x11.gnmi.fake.Config\x1a\x11.gnmi.fake.Configb\x06proto3')
+  serialized_pb=_b('\n\x1dtesting/fake/proto/fake.proto\x12\tgnmi.fake\x1a\x19google/protobuf/any.proto\x1a\x0fgnmi/gnmi.proto\"2\n\rConfiguration\x12!\n\x06\x63onfig\x18\x01 \x03(\x0b\x32\x11.gnmi.fake.Config\"1\n\x0b\x43redentials\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\"\xe3\x03\n\x06\x43onfig\x12\x0e\n\x06target\x18\x01 \x01(\t\x12\x0c\n\x04port\x18\x02 \x01(\x03\x12\x10\n\x04seed\x18\x06 \x01(\x03\x42\x02\x18\x01\x12$\n\x06values\x18\x03 \x03(\x0b\x32\x10.gnmi.fake.ValueB\x02\x18\x01\x12\x14\n\x0c\x64isable_sync\x18\x04 \x01(\x08\x12\x31\n\x0b\x63lient_type\x18\x05 \x01(\x0e\x32\x1c.gnmi.fake.Config.ClientType\x12\x13\n\x0b\x64isable_eof\x18\x07 \x01(\x08\x12+\n\x0b\x63redentials\x18\x08 \x01(\x0b\x32\x16.gnmi.fake.Credentials\x12\x0c\n\x04\x63\x65rt\x18\t \x01(\x0c\x12\x14\n\x0c\x65nable_delay\x18\n \x01(\x08\x12&\n\x06\x63ustom\x18\x64 \x01(\x0b\x32\x14.google.protobuf.AnyH\x00\x12,\n\x06random\x18\x65 \x01(\x0b\x32\x1a.gnmi.fake.RandomGeneratorH\x00\x12*\n\x05\x66ixed\x18\x66 \x01(\x0b\x32\x19.gnmi.fake.FixedGeneratorH\x00\"E\n\nClientType\x12\x08\n\x04GRPC\x10\x00\x12\n\n\x06STUBBY\x10\x01\x12\r\n\tGRPC_GNMI\x10\x02\x12\x12\n\x0eGRPC_GNMI_PROD\x10\x03\x42\x0b\n\tgenerator\"<\n\x0e\x46ixedGenerator\x12*\n\tresponses\x18\x01 \x03(\x0b\x32\x17.gnmi.SubscribeResponse\"A\n\x0fRandomGenerator\x12\x0c\n\x04seed\x18\x01 \x01(\x03\x12 \n\x06values\x18\x02 \x03(\x0b\x32\x10.gnmi.fake.Value\"\r\n\x0b\x44\x65leteValue\"\xa9\x02\n\x05Value\x12\x0c\n\x04path\x18\x01 \x03(\t\x12\'\n\ttimestamp\x18\x02 \x01(\x0b\x32\x14.gnmi.fake.Timestamp\x12\x0e\n\x06repeat\x18\x06 \x01(\x05\x12\x0c\n\x04seed\x18\x07 \x01(\x03\x12(\n\tint_value\x18\x64 \x01(\x0b\x32\x13.gnmi.fake.IntValueH\x00\x12.\n\x0c\x64ouble_value\x18\x65 \x01(\x0b\x32\x16.gnmi.fake.DoubleValueH\x00\x12.\n\x0cstring_value\x18\x66 \x01(\x0b\x32\x16.gnmi.fake.StringValueH\x00\x12\x0e\n\x04sync\x18g \x01(\x04H\x00\x12(\n\x06\x64\x65lete\x18h \x01(\x0b\x32\x16.gnmi.fake.DeleteValueH\x00\x42\x07\n\x05value\"D\n\tTimestamp\x12\x11\n\ttimestamp\x18\x01 \x01(\x03\x12\x11\n\tdelta_min\x18\x02 \x01(\x03\x12\x11\n\tdelta_max\x18\x03 \x01(\x03\"s\n\x08IntValue\x12\r\n\x05value\x18\x01 \x01(\x03\x12$\n\x05range\x18\x02 \x01(\x0b\x32\x13.gnmi.fake.IntRangeH\x00\x12\"\n\x04list\x18\x03 \x01(\x0b\x32\x12.gnmi.fake.IntListH\x00\x42\x0e\n\x0c\x64istribution\"R\n\x08IntRange\x12\x0f\n\x07minimum\x18\x01 \x01(\x03\x12\x0f\n\x07maximum\x18\x02 \x01(\x03\x12\x11\n\tdelta_min\x18\x03 \x01(\x03\x12\x11\n\tdelta_max\x18\x04 \x01(\x03\"*\n\x07IntList\x12\x0f\n\x07options\x18\x01 \x03(\x03\x12\x0e\n\x06random\x18\x02 \x01(\x08\"|\n\x0b\x44oubleValue\x12\r\n\x05value\x18\x01 \x01(\x01\x12\'\n\x05range\x18\x02 \x01(\x0b\x32\x16.gnmi.fake.DoubleRangeH\x00\x12%\n\x04list\x18\x03 \x01(\x0b\x32\x15.gnmi.fake.DoubleListH\x00\x42\x0e\n\x0c\x64istribution\"U\n\x0b\x44oubleRange\x12\x0f\n\x07minimum\x18\x01 \x01(\x01\x12\x0f\n\x07maximum\x18\x02 \x01(\x01\x12\x11\n\tdelta_min\x18\x03 \x01(\x01\x12\x11\n\tdelta_max\x18\x04 \x01(\x01\"-\n\nDoubleList\x12\x0f\n\x07options\x18\x01 \x03(\x01\x12\x0e\n\x06random\x18\x02 \x01(\x08\"S\n\x0bStringValue\x12\r\n\x05value\x18\x01 \x01(\t\x12%\n\x04list\x18\x02 \x01(\x0b\x32\x15.gnmi.fake.StringListH\x00\x42\x0e\n\x0c\x64istribution\"-\n\nStringList\x12\x0f\n\x07options\x18\x01 \x03(\t\x12\x0e\n\x06random\x18\x02 \x01(\x08*+\n\x05State\x12\x0b\n\x07STOPPED\x10\x00\x12\x08\n\x04INIT\x10\x01\x12\x0b\n\x07RUNNING\x10\x02\x32\x98\x01\n\x0c\x41gentManager\x12+\n\x03\x41\x64\x64\x12\x11.gnmi.fake.Config\x1a\x11.gnmi.fake.Config\x12.\n\x06Remove\x12\x11.gnmi.fake.Config\x1a\x11.gnmi.fake.Config\x12+\n\x03Get\x12\x11.gnmi.fake.Config\x1a\x11.gnmi.fake.ConfigB/Z-github.com/openconfig/gnmi/testing/fake/protob\x06proto3')
   ,
-  dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi_dot_gnmi__pb2.DESCRIPTOR,])
-_sym_db.RegisterFileDescriptor(DESCRIPTOR)
+  dependencies=[google_dot_protobuf_dot_any__pb2.DESCRIPTOR,gnmi_dot_gnmi__pb2.DESCRIPTOR,])
 
 _STATE = _descriptor.EnumDescriptor(
   name='State',
@@ -48,8 +47,8 @@ _STATE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=1861,
-  serialized_end=1904,
+  serialized_start=1828,
+  serialized_end=1871,
 )
 _sym_db.RegisterEnumDescriptor(_STATE)
 
@@ -84,8 +83,8 @@ _CONFIG_CLIENTTYPE = _descriptor.EnumDescriptor(
   ],
   containing_type=None,
   options=None,
-  serialized_start=626,
-  serialized_end=695,
+  serialized_start=593,
+  serialized_end=662,
 )
 _sym_db.RegisterEnumDescriptor(_CONFIG_CLIENTTYPE)
 
@@ -103,7 +102,7 @@ _CONFIGURATION = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -116,8 +115,8 @@ _CONFIGURATION = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=121,
-  serialized_end=171,
+  serialized_start=88,
+  serialized_end=138,
 )
 
 
@@ -134,14 +133,14 @@ _CREDENTIALS = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='password', full_name='gnmi.fake.Credentials.password', index=1,
       number=2, type=9, cpp_type=9, label=1,
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -154,8 +153,8 @@ _CREDENTIALS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=173,
-  serialized_end=222,
+  serialized_start=140,
+  serialized_end=189,
 )
 
 
@@ -172,91 +171,91 @@ _CONFIG = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='port', full_name='gnmi.fake.Config.port', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='seed', full_name='gnmi.fake.Config.seed', index=2,
       number=6, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='values', full_name='gnmi.fake.Config.values', index=3,
       number=3, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))),
+      options=_descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001')), file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='disable_sync', full_name='gnmi.fake.Config.disable_sync', index=4,
       number=4, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='client_type', full_name='gnmi.fake.Config.client_type', index=5,
       number=5, type=14, cpp_type=8, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='disable_eof', full_name='gnmi.fake.Config.disable_eof', index=6,
       number=7, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='credentials', full_name='gnmi.fake.Config.credentials', index=7,
       number=8, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='cert', full_name='gnmi.fake.Config.cert', index=8,
       number=9, type=12, cpp_type=9, label=1,
       has_default_value=False, default_value=_b(""),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='enable_delay', full_name='gnmi.fake.Config.enable_delay', index=9,
       number=10, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='custom', full_name='gnmi.fake.Config.custom', index=10,
       number=100, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='random', full_name='gnmi.fake.Config.random', index=11,
       number=101, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='fixed', full_name='gnmi.fake.Config.fixed', index=12,
       number=102, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -273,8 +272,8 @@ _CONFIG = _descriptor.Descriptor(
       name='generator', full_name='gnmi.fake.Config.generator',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=225,
-  serialized_end=708,
+  serialized_start=192,
+  serialized_end=675,
 )
 
 
@@ -291,7 +290,7 @@ _FIXEDGENERATOR = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -304,8 +303,8 @@ _FIXEDGENERATOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=710,
-  serialized_end=770,
+  serialized_start=677,
+  serialized_end=737,
 )
 
 
@@ -322,14 +321,14 @@ _RANDOMGENERATOR = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='values', full_name='gnmi.fake.RandomGenerator.values', index=1,
       number=2, type=11, cpp_type=10, label=3,
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -342,8 +341,8 @@ _RANDOMGENERATOR = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=772,
-  serialized_end=837,
+  serialized_start=739,
+  serialized_end=804,
 )
 
 
@@ -366,8 +365,8 @@ _DELETEVALUE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=839,
-  serialized_end=852,
+  serialized_start=806,
+  serialized_end=819,
 )
 
 
@@ -384,63 +383,63 @@ _VALUE = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='timestamp', full_name='gnmi.fake.Value.timestamp', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='repeat', full_name='gnmi.fake.Value.repeat', index=2,
       number=6, type=5, cpp_type=1, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='seed', full_name='gnmi.fake.Value.seed', index=3,
       number=7, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='int_value', full_name='gnmi.fake.Value.int_value', index=4,
       number=100, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='double_value', full_name='gnmi.fake.Value.double_value', index=5,
       number=101, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='string_value', full_name='gnmi.fake.Value.string_value', index=6,
       number=102, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='sync', full_name='gnmi.fake.Value.sync', index=7,
       number=103, type=4, cpp_type=4, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delete', full_name='gnmi.fake.Value.delete', index=8,
       number=104, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -456,8 +455,8 @@ _VALUE = _descriptor.Descriptor(
       name='value', full_name='gnmi.fake.Value.value',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=855,
-  serialized_end=1152,
+  serialized_start=822,
+  serialized_end=1119,
 )
 
 
@@ -474,21 +473,21 @@ _TIMESTAMP = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delta_min', full_name='gnmi.fake.Timestamp.delta_min', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delta_max', full_name='gnmi.fake.Timestamp.delta_max', index=2,
       number=3, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -501,8 +500,8 @@ _TIMESTAMP = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1154,
-  serialized_end=1222,
+  serialized_start=1121,
+  serialized_end=1189,
 )
 
 
@@ -519,21 +518,21 @@ _INTVALUE = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='range', full_name='gnmi.fake.IntValue.range', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='list', full_name='gnmi.fake.IntValue.list', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -549,8 +548,8 @@ _INTVALUE = _descriptor.Descriptor(
       name='distribution', full_name='gnmi.fake.IntValue.distribution',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1224,
-  serialized_end=1339,
+  serialized_start=1191,
+  serialized_end=1306,
 )
 
 
@@ -567,28 +566,28 @@ _INTRANGE = _descriptor.Descriptor(
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='maximum', full_name='gnmi.fake.IntRange.maximum', index=1,
       number=2, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delta_min', full_name='gnmi.fake.IntRange.delta_min', index=2,
       number=3, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delta_max', full_name='gnmi.fake.IntRange.delta_max', index=3,
       number=4, type=3, cpp_type=2, label=1,
       has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -601,8 +600,8 @@ _INTRANGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1341,
-  serialized_end=1423,
+  serialized_start=1308,
+  serialized_end=1390,
 )
 
 
@@ -619,14 +618,14 @@ _INTLIST = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='random', full_name='gnmi.fake.IntList.random', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -639,8 +638,8 @@ _INTLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1425,
-  serialized_end=1467,
+  serialized_start=1392,
+  serialized_end=1434,
 )
 
 
@@ -657,21 +656,21 @@ _DOUBLEVALUE = _descriptor.Descriptor(
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='range', full_name='gnmi.fake.DoubleValue.range', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='list', full_name='gnmi.fake.DoubleValue.list', index=2,
       number=3, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -687,8 +686,8 @@ _DOUBLEVALUE = _descriptor.Descriptor(
       name='distribution', full_name='gnmi.fake.DoubleValue.distribution',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1469,
-  serialized_end=1593,
+  serialized_start=1436,
+  serialized_end=1560,
 )
 
 
@@ -705,28 +704,28 @@ _DOUBLERANGE = _descriptor.Descriptor(
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='maximum', full_name='gnmi.fake.DoubleRange.maximum', index=1,
       number=2, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delta_min', full_name='gnmi.fake.DoubleRange.delta_min', index=2,
       number=3, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='delta_max', full_name='gnmi.fake.DoubleRange.delta_max', index=3,
       number=4, type=1, cpp_type=5, label=1,
       has_default_value=False, default_value=float(0),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -739,8 +738,8 @@ _DOUBLERANGE = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1595,
-  serialized_end=1680,
+  serialized_start=1562,
+  serialized_end=1647,
 )
 
 
@@ -757,14 +756,14 @@ _DOUBLELIST = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='random', full_name='gnmi.fake.DoubleList.random', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -777,8 +776,8 @@ _DOUBLELIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1682,
-  serialized_end=1727,
+  serialized_start=1649,
+  serialized_end=1694,
 )
 
 
@@ -795,14 +794,14 @@ _STRINGVALUE = _descriptor.Descriptor(
       has_default_value=False, default_value=_b("").decode('utf-8'),
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='list', full_name='gnmi.fake.StringValue.list', index=1,
       number=2, type=11, cpp_type=10, label=1,
       has_default_value=False, default_value=None,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -818,8 +817,8 @@ _STRINGVALUE = _descriptor.Descriptor(
       name='distribution', full_name='gnmi.fake.StringValue.distribution',
       index=0, containing_type=None, fields=[]),
   ],
-  serialized_start=1729,
-  serialized_end=1812,
+  serialized_start=1696,
+  serialized_end=1779,
 )
 
 
@@ -836,14 +835,14 @@ _STRINGLIST = _descriptor.Descriptor(
       has_default_value=False, default_value=[],
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='random', full_name='gnmi.fake.StringList.random', index=1,
       number=2, type=8, cpp_type=7, label=1,
       has_default_value=False, default_value=False,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
-      options=None),
+      options=None, file=DESCRIPTOR),
   ],
   extensions=[
   ],
@@ -856,8 +855,8 @@ _STRINGLIST = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=1814,
-  serialized_end=1859,
+  serialized_start=1781,
+  serialized_end=1826,
 )
 
 _CONFIGURATION.fields_by_name['config'].message_type = _CONFIG
@@ -877,7 +876,7 @@ _CONFIG.fields_by_name['random'].containing_oneof = _CONFIG.oneofs_by_name['gene
 _CONFIG.oneofs_by_name['generator'].fields.append(
   _CONFIG.fields_by_name['fixed'])
 _CONFIG.fields_by_name['fixed'].containing_oneof = _CONFIG.oneofs_by_name['generator']
-_FIXEDGENERATOR.fields_by_name['responses'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi_dot_gnmi__pb2._SUBSCRIBERESPONSE
+_FIXEDGENERATOR.fields_by_name['responses'].message_type = gnmi_dot_gnmi__pb2._SUBSCRIBERESPONSE
 _RANDOMGENERATOR.fields_by_name['values'].message_type = _VALUE
 _VALUE.fields_by_name['timestamp'].message_type = _TIMESTAMP
 _VALUE.fields_by_name['int_value'].message_type = _INTVALUE
@@ -936,6 +935,7 @@ DESCRIPTOR.message_types_by_name['DoubleList'] = _DOUBLELIST
 DESCRIPTOR.message_types_by_name['StringValue'] = _STRINGVALUE
 DESCRIPTOR.message_types_by_name['StringList'] = _STRINGLIST
 DESCRIPTOR.enum_types_by_name['State'] = _STATE
+_sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 Configuration = _reflection.GeneratedProtocolMessageType('Configuration', (_message.Message,), dict(
   DESCRIPTOR = _CONFIGURATION,
@@ -1050,183 +1050,52 @@ StringList = _reflection.GeneratedProtocolMessageType('StringList', (_message.Me
 _sym_db.RegisterMessage(StringList)
 
 
+DESCRIPTOR.has_options = True
+DESCRIPTOR._options = _descriptor._ParseOptions(descriptor_pb2.FileOptions(), _b('Z-github.com/openconfig/gnmi/testing/fake/proto'))
 _CONFIG.fields_by_name['seed'].has_options = True
 _CONFIG.fields_by_name['seed']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))
 _CONFIG.fields_by_name['values'].has_options = True
 _CONFIG.fields_by_name['values']._options = _descriptor._ParseOptions(descriptor_pb2.FieldOptions(), _b('\030\001'))
-try:
-  # THESE ELEMENTS WILL BE DEPRECATED.
-  # Please use the generated *_pb2_grpc.py files instead.
-  import grpc
-  from grpc.framework.common import cardinality
-  from grpc.framework.interfaces.face import utilities as face_utilities
-  from grpc.beta import implementations as beta_implementations
-  from grpc.beta import interfaces as beta_interfaces
 
+_AGENTMANAGER = _descriptor.ServiceDescriptor(
+  name='AgentManager',
+  full_name='gnmi.fake.AgentManager',
+  file=DESCRIPTOR,
+  index=0,
+  options=None,
+  serialized_start=1874,
+  serialized_end=2026,
+  methods=[
+  _descriptor.MethodDescriptor(
+    name='Add',
+    full_name='gnmi.fake.AgentManager.Add',
+    index=0,
+    containing_service=None,
+    input_type=_CONFIG,
+    output_type=_CONFIG,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Remove',
+    full_name='gnmi.fake.AgentManager.Remove',
+    index=1,
+    containing_service=None,
+    input_type=_CONFIG,
+    output_type=_CONFIG,
+    options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Get',
+    full_name='gnmi.fake.AgentManager.Get',
+    index=2,
+    containing_service=None,
+    input_type=_CONFIG,
+    output_type=_CONFIG,
+    options=None,
+  ),
+])
+_sym_db.RegisterServiceDescriptor(_AGENTMANAGER)
 
-  class AgentManagerStub(object):
+DESCRIPTOR.services_by_name['AgentManager'] = _AGENTMANAGER
 
-    def __init__(self, channel):
-      """Constructor.
-
-      Args:
-        channel: A grpc.Channel.
-      """
-      self.Add = channel.unary_unary(
-          '/gnmi.fake.AgentManager/Add',
-          request_serializer=Config.SerializeToString,
-          response_deserializer=Config.FromString,
-          )
-      self.Remove = channel.unary_unary(
-          '/gnmi.fake.AgentManager/Remove',
-          request_serializer=Config.SerializeToString,
-          response_deserializer=Config.FromString,
-          )
-      self.Get = channel.unary_unary(
-          '/gnmi.fake.AgentManager/Get',
-          request_serializer=Config.SerializeToString,
-          response_deserializer=Config.FromString,
-          )
-
-
-  class AgentManagerServicer(object):
-
-    def Add(self, request, context):
-      """Add adds an agent to the server.
-      """
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def Remove(self, request, context):
-      """Remove removes an agent from the server.
-      """
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-    def Get(self, request, context):
-      """Get returns the current status of an agent on the server.
-      """
-      context.set_code(grpc.StatusCode.UNIMPLEMENTED)
-      context.set_details('Method not implemented!')
-      raise NotImplementedError('Method not implemented!')
-
-
-  def add_AgentManagerServicer_to_server(servicer, server):
-    rpc_method_handlers = {
-        'Add': grpc.unary_unary_rpc_method_handler(
-            servicer.Add,
-            request_deserializer=Config.FromString,
-            response_serializer=Config.SerializeToString,
-        ),
-        'Remove': grpc.unary_unary_rpc_method_handler(
-            servicer.Remove,
-            request_deserializer=Config.FromString,
-            response_serializer=Config.SerializeToString,
-        ),
-        'Get': grpc.unary_unary_rpc_method_handler(
-            servicer.Get,
-            request_deserializer=Config.FromString,
-            response_serializer=Config.SerializeToString,
-        ),
-    }
-    generic_handler = grpc.method_handlers_generic_handler(
-        'gnmi.fake.AgentManager', rpc_method_handlers)
-    server.add_generic_rpc_handlers((generic_handler,))
-
-
-  class BetaAgentManagerServicer(object):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This class was generated
-    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-    def Add(self, request, context):
-      """Add adds an agent to the server.
-      """
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def Remove(self, request, context):
-      """Remove removes an agent from the server.
-      """
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-    def Get(self, request, context):
-      """Get returns the current status of an agent on the server.
-      """
-      context.code(beta_interfaces.StatusCode.UNIMPLEMENTED)
-
-
-  class BetaAgentManagerStub(object):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This class was generated
-    only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0."""
-    def Add(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      """Add adds an agent to the server.
-      """
-      raise NotImplementedError()
-    Add.future = None
-    def Remove(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      """Remove removes an agent from the server.
-      """
-      raise NotImplementedError()
-    Remove.future = None
-    def Get(self, request, timeout, metadata=None, with_call=False, protocol_options=None):
-      """Get returns the current status of an agent on the server.
-      """
-      raise NotImplementedError()
-    Get.future = None
-
-
-  def beta_create_AgentManager_server(servicer, pool=None, pool_size=None, default_timeout=None, maximum_timeout=None):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This function was
-    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
-    request_deserializers = {
-      ('gnmi.fake.AgentManager', 'Add'): Config.FromString,
-      ('gnmi.fake.AgentManager', 'Get'): Config.FromString,
-      ('gnmi.fake.AgentManager', 'Remove'): Config.FromString,
-    }
-    response_serializers = {
-      ('gnmi.fake.AgentManager', 'Add'): Config.SerializeToString,
-      ('gnmi.fake.AgentManager', 'Get'): Config.SerializeToString,
-      ('gnmi.fake.AgentManager', 'Remove'): Config.SerializeToString,
-    }
-    method_implementations = {
-      ('gnmi.fake.AgentManager', 'Add'): face_utilities.unary_unary_inline(servicer.Add),
-      ('gnmi.fake.AgentManager', 'Get'): face_utilities.unary_unary_inline(servicer.Get),
-      ('gnmi.fake.AgentManager', 'Remove'): face_utilities.unary_unary_inline(servicer.Remove),
-    }
-    server_options = beta_implementations.server_options(request_deserializers=request_deserializers, response_serializers=response_serializers, thread_pool=pool, thread_pool_size=pool_size, default_timeout=default_timeout, maximum_timeout=maximum_timeout)
-    return beta_implementations.server(method_implementations, options=server_options)
-
-
-  def beta_create_AgentManager_stub(channel, host=None, metadata_transformer=None, pool=None, pool_size=None):
-    """The Beta API is deprecated for 0.15.0 and later.
-
-    It is recommended to use the GA API (classes and functions in this
-    file not marked beta) for all further purposes. This function was
-    generated only to ease transition from grpcio<0.15.0 to grpcio>=0.15.0"""
-    request_serializers = {
-      ('gnmi.fake.AgentManager', 'Add'): Config.SerializeToString,
-      ('gnmi.fake.AgentManager', 'Get'): Config.SerializeToString,
-      ('gnmi.fake.AgentManager', 'Remove'): Config.SerializeToString,
-    }
-    response_deserializers = {
-      ('gnmi.fake.AgentManager', 'Add'): Config.FromString,
-      ('gnmi.fake.AgentManager', 'Get'): Config.FromString,
-      ('gnmi.fake.AgentManager', 'Remove'): Config.FromString,
-    }
-    cardinalities = {
-      'Add': cardinality.Cardinality.UNARY_UNARY,
-      'Get': cardinality.Cardinality.UNARY_UNARY,
-      'Remove': cardinality.Cardinality.UNARY_UNARY,
-    }
-    stub_options = beta_implementations.stub_options(host=host, metadata_transformer=metadata_transformer, request_serializers=request_serializers, response_deserializers=response_deserializers, thread_pool=pool, thread_pool_size=pool_size)
-    return beta_implementations.dynamic_stub(channel, 'gnmi.fake.AgentManager', cardinalities, options=stub_options)
-except ImportError:
-  pass
 # @@protoc_insertion_point(module_scope)
