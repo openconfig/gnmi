@@ -17,7 +17,7 @@ syntax = "proto3";
 
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
-import "github.com/openconfig/gnmi/proto/gnmi_ext/gnmi_ext.proto";
+import "gnmi_ext/gnmi_ext.proto";
 
 // Package gNMI defines a service specification for the gRPC Network Management
 // Interface. This interface is defined to be a standard interface via which
@@ -28,6 +28,8 @@ import "github.com/openconfig/gnmi/proto/gnmi_ext/gnmi_ext.proto";
 // This document references the gNMI Specification which can be found at
 // http://github.com/openconfig/reference/blob/master/rpc/gnmi
 package gnmi;
+
+option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 
 // Define a protobuf FileOption that defines the gNMI service version.
 extend google.protobuf.FileOptions {

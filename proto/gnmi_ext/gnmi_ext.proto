@@ -21,6 +21,8 @@ syntax = "proto3";
 // extensions defined outside of this package.
 package gnmi_ext;
 
+option go_package = "github.com/openconfig/gnmi/proto/gnmi_ext";
+
 // The Extension message contains a single gNMI extension.
 message Extension {
   oneof ext {
