@@ -108,7 +108,7 @@ func main() {
 	}
 
 	opts := []grpc.ServerOption{grpc.Creds(credentials.NewTLS(tlsCfg))}
-	cfg.Port = int64(*port)
+	cfg.Port = int32(*port)
 	a, err := gnmi.New(cfg, opts)
 	if err != nil {
 		log.Errorf("Failed to create gNMI server: %v", err)

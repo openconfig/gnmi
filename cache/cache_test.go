@@ -22,6 +22,7 @@ import (
 	"reflect"
 	"runtime"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 	"testing"
@@ -31,6 +32,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/ctree"
+	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/metadata"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -404,6 +406,93 @@ func TestUpdateMeta(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestMetadataStale(t *testing.T) {
+	c := New([]string{"dev1"})
+	for i := 0; i < 10; i++ {
+		c.Update(client.Update{Path: []string{"dev1", "a"}, Val: i, TS: T(int64(10 - i))})
+		c.GetTarget("dev1").updateMeta(nil)
+		path := metadata.Path(metadata.StaleCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+			staleCount := v.(client.Update).Val.(int64)
+			if staleCount != int64(i) {
+				t.Errorf("got staleCount = %d, want %d", staleCount, i)
+			}
+		})
+		path = metadata.Path(metadata.UpdateCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+			updates := v.(client.Update).Val.(int64)
+			if updates != 1 {
+				t.Errorf("got updates %d, want 1", updates)
+			}
+		})
+	}
+}
+
+func TestGNMIUpdateIntermediateUpdate(t *testing.T) {
+	c := New([]string{"dev1"})
+	// Initialize a cache tree for next GnmiUpdate test.
+	n := gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "a", "b", "c"}, 0, "", true)
+	if err := c.GnmiUpdate(n); err != nil {
+		t.Fatalf("GnmiUpdate(%+v): got %v, want nil error", n, err)
+	}
+	// This is a negative test case for invalid path in an update.
+	// For a cache tree initialized above with path "a"/"b"/"c", "a" is a non-leaf node.
+	// Because non-leaf node "a" does not contain notification, error should be returned in following update.
+	n = gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "a"}, 0, "", true)
+	err := c.GnmiUpdate(n)
+	if diff := errdiff.Substring(err, "corrupt schema with collision"); diff != "" {
+		t.Errorf("GnmiUpdate(%+v): %v", n, diff)
+	}
+}
+
+func TestMetadataSuppressed(t *testing.T) {
+	c := New([]string{"dev1"})
+	// Unique values not suppressed.
+	for i := 0; i < 10; i++ {
+		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), strconv.Itoa(i), true))
+		c.GetTarget("dev1").updateMeta(nil)
+		path := metadata.Path(metadata.SuppressedCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+			suppressedCount := v.(client.Update).Val.(int64)
+			if suppressedCount != 0 {
+				t.Errorf("got suppressedCount = %d, want 0", suppressedCount)
+			}
+		})
+		path = metadata.Path(metadata.UpdateCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+			updates := v.(client.Update).Val.(int64)
+			if updates != int64(i+1) {
+				t.Errorf("got updates %d, want %d", updates, i)
+			}
+		})
+	}
+	c.Reset("dev1")
+	// Duplicate values suppressed.
+	for i := 0; i < 10; i++ {
+		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), "same value", true))
+		c.GetTarget("dev1").updateMeta(nil)
+		path := metadata.Path(metadata.SuppressedCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+			suppressedCount := v.(client.Update).Val.(int64)
+			if suppressedCount != int64(i) {
+				t.Errorf("got suppressedCount = %d, want %d", suppressedCount, i)
+			}
+		})
+		path = metadata.Path(metadata.UpdateCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+			updates := v.(client.Update).Val.(int64)
+			if updates != 1 {
+				t.Errorf("got updates %d, want 1", updates)
+			}
+		})
+	}
+}
+
+func TestMetadataLatency(t *testing.T) {
+	c := New([]string{"dev1"})
+
 	for _, path := range [][]string{
 		metadata.Path(metadata.LatencyAvg),
 		metadata.Path(metadata.LatencyMax),
@@ -444,6 +533,8 @@ func TestUpdateMetadata(t *testing.T) {
 		{metadata.Root, metadata.AddCount},
 		{metadata.Root, metadata.UpdateCount},
 		{metadata.Root, metadata.DelCount},
+		{metadata.Root, metadata.StaleCount},
+		{metadata.Root, metadata.SuppressedCount},
 		{metadata.Root, metadata.Connected},
 		{metadata.Root, metadata.Sync},
 		{metadata.Root, metadata.Size},
@@ -548,12 +639,65 @@ func TestIsDeleteTarget(t *testing.T) {
 		noti interface{}
 		want bool
 	}{
-		{"Update", client.Update{Path: client.Path{"a"}}, false},
-		{"Leaf delete", client.Delete{Path: client.Path{"a", "b"}}, false},
-		{"Target delete", client.Delete{Path: client.Path{"target"}}, true},
-		{"Gnmi Update", gnmiNotification("d", []string{}, []string{"a"}, 0, "", true), false},
-		{"Gnmi Delete", gnmiNotification("d", []string{}, []string{"a"}, 0, "", false), false},
-		{"Gnmi Target Delete", gnmiNotification("d", []string{}, []string{"*"}, 0, "", false), true},
+		{
+			name: "Update",
+			noti: client.Update{Path: client.Path{"a"}},
+			want: false,
+		},
+		{
+			name: "Leaf delete",
+			noti: client.Delete{Path: client.Path{"a", "b"}},
+			want: false,
+		},
+		{
+			name: "Target delete",
+			noti: client.Delete{Path: client.Path{"target"}},
+			want: true,
+		},
+		{
+			name: "GNMI Update",
+			noti: &gpb.Notification{
+				Prefix: &gpb.Path{Target: "d", Origin: "o"},
+				Update: []*gpb.Update{
+					{
+						Path: &gpb.Path{
+							Elem: []*gpb.PathElem{{Name: "p"}},
+						},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "GNMI Leaf Delete",
+			noti: &gpb.Notification{
+				Prefix: &gpb.Path{Target: "d", Origin: "o"},
+				Delete: []*gpb.Path{{
+					Elem: []*gpb.PathElem{{Name: "p"}},
+				}},
+			},
+			want: false,
+		},
+		{
+			name: "GNMI Root Delete",
+			noti: &gpb.Notification{
+				Prefix: &gpb.Path{Target: "d", Origin: "o"},
+				Delete: []*gpb.Path{{
+					Elem: []*gpb.PathElem{{Name: "*"}},
+				}},
+			},
+			want: false,
+		},
+		{
+			name: "GNMI Target Delete",
+			noti: &gpb.Notification{
+				Prefix: &gpb.Path{Target: "d"},
+				Delete: []*gpb.Path{{
+					Elem: []*gpb.PathElem{{Name: "*"}},
+				}},
+			},
+			want: true,
+		},
 	}
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -1005,7 +1149,7 @@ func TestGNMIClient(t *testing.T) {
 	}
 	t.Run("remove target", func(t *testing.T) {
 		got = nil
-		want := deleteNoti("dev1", []string{"*"})
+		want := deleteNoti("dev1", "", []string{"*"})
 		want.Timestamp = 0
 		c.Remove("dev1")
 		if len(got) != 1 {

@@ -31,6 +31,7 @@ import (
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
 	gnmiclient "github.com/openconfig/gnmi/client/gnmi"
+	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
 	"github.com/openconfig/gnmi/value"
 
@@ -225,21 +226,21 @@ func TestGNMIOnce(t *testing.T) {
 }
 
 // sendUpdates generates an update for each supplied path incrementing the
-// timestamp for each.
+// timestamp and value for each.
 func sendUpdates(t *testing.T, c *cache.Cache, paths []client.Path, timestamp *time.Time) {
 	t.Helper()
 	switch cache.Type {
 	case cache.ClientLeaf:
 		for _, path := range paths {
 			*timestamp = timestamp.Add(time.Nanosecond)
-			if err := c.Update(client.Update{Path: path, Val: strings.Join(path, "/"), TS: *timestamp}); err != nil {
+			if err := c.Update(client.Update{Path: path, Val: timestamp.UnixNano(), TS: *timestamp}); err != nil {
 				t.Errorf("streamUpdate: %v", err)
 			}
 		}
 	case cache.GnmiNoti:
 		for _, path := range paths {
 			*timestamp = timestamp.Add(time.Nanosecond)
-			sv, err := value.FromScalar(strings.Join(path, "/"))
+			sv, err := value.FromScalar(timestamp.UnixNano())
 			if err != nil {
 				t.Errorf("Scalar value err %v", err)
 				continue
@@ -277,8 +278,6 @@ func TestPoll(t *testing.T) {
 	var timestamp time.Time
 	sendUpdates(t, cache, paths, &timestamp)
 
-	// The streaming Updates change only the timestamp, so the value is used as
-	// a key.
 	m := map[string]time.Time{}
 	sync := 0
 	count := 0
@@ -292,7 +291,7 @@ func TestPoll(t *testing.T) {
 			switch u := n.(type) {
 			case client.Update:
 				count++
-				v, ts := u.Val.(string), u.TS
+				v, ts := strings.Join(u.Path, "/"), u.TS
 				want1, want2 := "dev1/a/b", "dev1/a/c"
 				if v != want1 && v != want2 {
 					t.Fatalf("#%d: got %q, want one of (%q, %q)", count, v, want1, want2)
@@ -366,16 +365,8 @@ func TestGNMIPoll(t *testing.T) {
 			switch r := resp.Response.(type) {
 			case *pb.SubscribeResponse_Update:
 				count++
-				sv, err := value.ToScalar(r.Update.Update[0].Val)
-				if err != nil {
-					t.Errorf("typed value to scalar value conversion failed: %v", err)
-				}
-				v := sv.(string)
 				ts := time.Unix(0, r.Update.GetTimestamp())
-				want1, want2 := "dev1/a/b", "dev1/a/c"
-				if v != want1 && v != want2 {
-					t.Fatalf("#%d: got %q, want one of (%q, %q)", count, v, want1, want2)
-				}
+				v := strings.Join(path.ToStrings(r.Update.Update[0].Path, false), "/")
 				if ts.Before(m[v]) {
 					t.Fatalf("#%d: got timestamp %s, want >= %s for value %q", count, ts, m[v], v)
 				}
@@ -423,8 +414,6 @@ func TestStream(t *testing.T) {
 	var timestamp time.Time
 	sendUpdates(t, cache, paths, &timestamp)
 
-	// The streaming Updates change only the timestamp, so the value is used as
-	// a key.
 	m := map[string]time.Time{}
 	sync := false
 	count := 0
@@ -442,7 +431,7 @@ func TestStream(t *testing.T) {
 				if count == 4 {
 					c.Close()
 				}
-				v, ts := u.Val.(string), u.TS
+				v, ts := strings.Join(u.Path, "/"), u.TS
 				want1, want2 := "dev1/a/b", "dev1/a/c"
 				if v != want1 && v != want2 {
 					t.Fatalf("#%d: got %q, want one of (%q, %q)", count, v, want1, want2)
@@ -498,8 +487,6 @@ func TestGNMIStream(t *testing.T) {
 	var timestamp time.Time
 	sendUpdates(t, cache, paths, &timestamp)
 
-	// The streaming Updates change only the timestamp, so the value is used as
-	// a key.
 	m := map[string]time.Time{}
 	sync := false
 	count := 0
@@ -521,16 +508,8 @@ func TestGNMIStream(t *testing.T) {
 				if count == 4 {
 					c.Close()
 				}
-				sv, err := value.ToScalar(r.Update.Update[0].Val)
-				if err != nil {
-					t.Errorf("typed value to scalar value conversion failed: %v", err)
-				}
-				v := sv.(string)
+				v := strings.Join(path.ToStrings(r.Update.Update[0].Path, false), "/")
 				ts := time.Unix(0, r.Update.GetTimestamp())
-				want1, want2 := "dev1/a/b", "dev1/a/c"
-				if v != want1 && v != want2 {
-					t.Fatalf("#%d: got %q, want one of (%q, %q)", count, v, want1, want2)
-				}
 				if ts.Before(m[v]) {
 					t.Fatalf("#%d: got timestamp %s, want >= %s for value %q", count, ts, m[v], v)
 				}
@@ -593,7 +572,7 @@ func TestStreamNewUpdates(t *testing.T) {
 		NotificationHandler: func(n client.Notification) error {
 			switch u := n.(type) {
 			case client.Update:
-				v, want := u.Val.(string), "dev1/a/x"
+				v, want := strings.Join(u.Path, "/"), "dev1/a/x"
 				if v != want {
 					t.Fatalf("got update %q, want only %q", v, want)
 				}
@@ -661,11 +640,7 @@ func TestGNMIStreamNewUpdates(t *testing.T) {
 			}
 			switch r := resp.Response.(type) {
 			case *pb.SubscribeResponse_Update:
-				sv, err := value.ToScalar(r.Update.Update[0].Val)
-				if err != nil {
-					t.Errorf("typed value to scalar value conversion failed: %v", err)
-				}
-				v, want := sv.(string), "dev1/a/x"
+				v, want := strings.Join(path.ToStrings(r.Update.Update[0].Path, false), "/"), "a/x"
 				if v != want {
 					t.Fatalf("got update %q, want only %q", v, want)
 				}

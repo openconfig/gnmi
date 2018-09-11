@@ -24,8 +24,6 @@ import (
 	"context"
 )
 
-var testRoot = "."
-
 func TestErrorsRunCollector(t *testing.T) {
 	tests := []struct {
 		desc, config, cert, key string
@@ -87,15 +85,15 @@ func TestErrorsRunCollector(t *testing.T) {
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			if test.config != "" {
-				*configFile = filepath.Join(testRoot, "testdata", test.config)
+				*configFile = filepath.Join("testdata", test.config)
 				defer func() { *configFile = "" }()
 			}
 			if test.cert != "" {
-				*certFile = filepath.Join(testRoot, "testdata", test.cert)
+				*certFile = filepath.Join("testdata", test.cert)
 				defer func() { *certFile = "" }()
 			}
 			if test.key != "" {
-				*keyFile = filepath.Join(testRoot, "testdata", test.key)
+				*keyFile = filepath.Join("testdata", test.key)
 				defer func() { *keyFile = "" }()
 			}
 			ctx, cancel := context.WithTimeout(context.Background(), time.Second)

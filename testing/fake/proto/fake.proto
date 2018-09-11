@@ -13,8 +13,8 @@ service AgentManager {
   rpc Add(Config) returns (Config);
   // Remove removes an agent from the server.
   rpc Remove(Config) returns (Config);
-  // Get returns the current status of an agent on the server.
-  rpc Get(Config) returns (Config);
+  // Status returns the current status of an agent on the server.
+  rpc Status(Config) returns (Config);
 }
 
 enum State {
@@ -48,7 +48,7 @@ message Config {
   string target = 1;
   // Port for the agent to listen on. If 0 or unset the agent will pick a port
   // for this agent.
-  int64 port = 2;
+  int32 port = 2;
   // A global random seed used in generating subsequent values. Set to have
   // reproducible results.
   int64 seed = 6 [deprecated=true];

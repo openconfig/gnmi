@@ -28,10 +28,9 @@ import (
 	"sync"
 
 	log "github.com/golang/glog"
-	"golang.org/x/net/context"
-	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"github.com/openconfig/gnmi/unimplemented"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
@@ -41,6 +40,7 @@ import (
 // via Subscribe or Get will receive a stream of updates based on the requested
 // path and the provided initial configuration.
 type Agent struct {
+	unimplemented.Server
 	mu     sync.Mutex
 	s      *grpc.Server
 	lis    net.Listener
@@ -82,6 +82,7 @@ func NewFromServer(s *grpc.Server, config *fpb.Config) (*Agent, error) {
 	}
 	gnmipb.RegisterGNMIServer(a.s, a)
 	log.V(1).Infof("Created Agent: %s on %s", a.target, a.Address())
+	go a.Serve()
 	return a, nil
 }
 
@@ -114,7 +115,7 @@ func (a *Agent) Address() string {
 }
 
 // Port returns the port the agent is listening to.
-func (a *Agent) Port() int64 {
+func (a *Agent) Port() int32 {
 	return a.config.Port
 }
 
@@ -136,6 +137,7 @@ func (a *Agent) Close() {
 		return
 	}
 	a.s.Stop()
+	a.lis.Close()
 	a.s = nil
 	a.lis = nil
 }
@@ -167,24 +169,10 @@ func (a *Agent) Subscribe(stream gnmipb.GNMI_SubscribeServer) error {
 	a.cMu.Unlock()
 
 	err := c.Run(stream)
+
 	a.cMu.Lock()
 	delete(a.clients, c.String())
 	a.cMu.Unlock()
 
 	return err
-}
-
-// Get implements the gNMI Get RPC.
-func (a *Agent) Get(context.Context, *gnmipb.GetRequest) (*gnmipb.GetResponse, error) {
-	return nil, grpc.Errorf(codes.Unimplemented, "Get() is not implemented for gRPC/gNMI fakes")
-}
-
-// Set implements the gNMI Set RPC.
-func (a *Agent) Set(context.Context, *gnmipb.SetRequest) (*gnmipb.SetResponse, error) {
-	return nil, grpc.Errorf(codes.Unimplemented, "Set() is not implemented for gRPC/gNMI fakes")
-}
-
-// Capabilities implements the gNMI Capabilities RPC.
-func (a *Agent) Capabilities(context.Context, *gnmipb.CapabilityRequest) (*gnmipb.CapabilityResponse, error) {
-	return nil, grpc.Errorf(codes.Unimplemented, "Capabilities() is not implemented for gRPC/gNMI fakes")
 }

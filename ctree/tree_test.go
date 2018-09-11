@@ -251,12 +251,22 @@ func TestDelete(t *testing.T) {
 	}
 	for x, tt := range []expectedDelete{
 		{[]string{"x"}, map[string]bool{}},
+		// root delete with glob appended for a non-existing root
+		{[]string{"x", "*"}, map[string]bool{}},
 		{[]string{"d"}, map[string]bool{"d": true}},
 		{[]string{"a"}, map[string]bool{"a/d": true, "a/b/c": true}},
+		// root delete with a glob appended
+		{[]string{"a", "*"}, map[string]bool{"a/d": true, "a/b/c": true}},
 		{[]string{"b", "c", "d"}, map[string]bool{"b/c/d": true}},
+		// delete with glob in the middle of the path
+		{[]string{"b", "*", "d"}, map[string]bool{"b/a/d": true, "b/c/d": true}},
+		// delete with glob in the middle of the path for a non-existing path
+		{[]string{"b", "*", "x"}, map[string]bool{}},
 		{[]string{"b"}, map[string]bool{"b/a/d": true, "b/c/d": true}},
 		{[]string{"c", "d", "e"}, map[string]bool{"c/d/e/f/g/h/i": true}},
 		{[]string{}, map[string]bool{"a/d": true, "a/b/c": true, "b/a/d": true, "b/c/d": true, "c/d/e/f/g/h/i": true, "d": true}},
+		// just glob in the path to delete all the tree
+		{[]string{"*"}, map[string]bool{"a/d": true, "a/b/c": true, "b/a/d": true, "b/c/d": true, "c/d/e/f/g/h/i": true, "d": true}},
 	} {
 		// Rebuild tree for each query.
 		buildTree(tr)

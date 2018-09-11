@@ -32,6 +32,7 @@ import (
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/metadata"
 	"github.com/openconfig/gnmi/path"
+	"github.com/openconfig/gnmi/value"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -201,7 +202,7 @@ func (c *Cache) Remove(target string) {
 	// Notify clients that the target is removed.
 	switch Type {
 	case GnmiNoti:
-		c.client(ctree.DetachedLeaf(deleteNoti(target, []string{"*"})))
+		c.client(ctree.DetachedLeaf(deleteNoti(target, "", []string{"*"})))
 	case ClientLeaf:
 		c.client(ctree.DetachedLeaf(client.Delete{Path: []string{target}, TS: time.Now()}))
 	default:
@@ -279,7 +280,6 @@ func (c *Cache) Update(n client.Notification) error {
 	if target == nil {
 		return fmt.Errorf("target %q not found in cache", name)
 	}
-	target.meta.AddInt(metadata.UpdateCount, 1)
 	target.checkTimestamp(l.TS)
 	switch u := n.(type) {
 	case client.Update:
@@ -346,11 +346,11 @@ func (t *Target) GnmiUpdate(n *gpb.Notification) error {
 	for _, u := range updates {
 		noti := proto.Clone(n).(*gpb.Notification)
 		noti.Update = []*gpb.Update{u}
-		t.meta.AddInt(metadata.UpdateCount, 1)
 		nd, err := t.gnmiUpdate(noti)
 		if err != nil {
 			return err
 		}
+		t.meta.AddInt(metadata.UpdateCount, 1)
 		if nd != nil {
 			t.client(nd)
 		}
@@ -418,9 +418,13 @@ func (t *Target) update(u client.Update) (*ctree.Leaf, error) {
 		old := oldval.Value().(client.Update)
 		if !old.TS.Before(u.TS) {
 			// Update rejected. Timestamp <= previous recorded timestamp.
+			t.meta.AddInt(metadata.StaleCount, 1)
 			return nil, errors.New("update is stale")
 		}
 		oldval.Update(u)
+		if realData {
+			t.meta.AddInt(metadata.UpdateCount, 1)
+		}
 		return oldval, nil
 	}
 	// Add a new leaf.
@@ -428,6 +432,7 @@ func (t *Target) update(u client.Update) (*ctree.Leaf, error) {
 		return nil, err
 	}
 	if realData {
+		t.meta.AddInt(metadata.UpdateCount, 1)
 		t.meta.AddInt(metadata.LeafCount, 1)
 		t.meta.AddInt(metadata.AddCount, 1)
 	}
@@ -468,14 +473,23 @@ func (t *Target) gnmiUpdate(n *gpb.Notification) (*ctree.Leaf, error) {
 	}
 	// Update an existing leaf.
 	if oldval := t.t.GetLeaf(path); oldval != nil {
-		// Since we control what goes into the tree, oldval should always
-		// contain *gpb.Notification and there's no need to do a safe assertion.
-		old := oldval.Value().(*gpb.Notification)
+		// An update with corrupt data is possible to visit a node that does not
+		// contain *gpb.Notification. Thus, need type assertion here.
+		old, ok := oldval.Value().(*gpb.Notification)
+		if !ok {
+			return nil, fmt.Errorf("corrupt schema with collision for path %q, got %T", path, oldval.Value())
+		}
 		if !T(old.GetTimestamp()).Before(T(n.GetTimestamp())) {
 			// Update rejected. Timestamp <= previous recorded timestamp.
+			t.meta.AddInt(metadata.StaleCount, 1)
 			return nil, errors.New("update is stale")
 		}
 		oldval.Update(n)
+		// Simulate event-driven for all non-atomic updates.
+		if !n.Atomic && value.Equal(old.Update[0].Val, n.Update[0].Val) {
+			t.meta.AddInt(metadata.SuppressedCount, 1)
+			return nil, errors.New("suppressed duplicate value")
+		}
 		return oldval, nil
 	}
 	// Add a new leaf.
@@ -659,7 +673,7 @@ func (t *Target) Reset() {
 		case ClientLeaf:
 			t.client(ctree.DetachedLeaf(client.Delete{Path: []string{t.name, root}, TS: resetTime}))
 		case GnmiNoti:
-			t.client(ctree.DetachedLeaf(deleteNoti(t.name, []string{root})))
+			t.client(ctree.DetachedLeaf(deleteNoti(t.name, root, []string{"*"})))
 		default:
 			log.Errorf("cache type is invalid: %v", Type)
 		}
@@ -703,10 +717,15 @@ func IsTargetDelete(l *ctree.Leaf) bool {
 		return len(v.Path) == 1
 	case *gpb.Notification:
 		if len(v.Delete) == 1 {
+			var orig string
+			if v.Prefix != nil {
+				orig = v.Prefix.Origin
+			}
 			// Prefix path is indexed without target and origin
 			p := path.ToStrings(v.Prefix, false)
 			p = append(p, path.ToStrings(v.Delete[0], false)...)
-			return len(p) == 1 && p[0] == "*"
+			// When origin isn't set, intention must be to delete entire target.
+			return orig == "" && len(p) == 1 && p[0] == "*"
 		}
 	}
 	return false
@@ -722,14 +741,14 @@ func joinPrefixAndPath(pr, ph *gpb.Path) []string {
 	return p
 }
 
-func deleteNoti(t string, p []string) *gpb.Notification {
+func deleteNoti(t, o string, p []string) *gpb.Notification {
 	pe := make([]*gpb.PathElem, 0, len(p))
 	for _, e := range p {
 		pe = append(pe, &gpb.PathElem{Name: e})
 	}
 	return &gpb.Notification{
 		Timestamp: time.Now().UnixNano(),
-		Prefix:    &gpb.Path{Target: t},
+		Prefix:    &gpb.Path{Target: t, Origin: o},
 		Delete:    []*gpb.Path{&gpb.Path{Elem: pe}},
 	}
 }

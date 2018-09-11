@@ -17,4 +17,4 @@
 # listens on tcp/8888 which is forwarded to the host.
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-docker run -d -v $DIR/config:/config -p 8888:8888 gnmi_collector
+docker run -d -v $DIR/config:/config -p 8888:8888 openconfig/gnmi_collector

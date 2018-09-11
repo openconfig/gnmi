@@ -334,7 +334,10 @@ func (t *Tree) WalkSorted(f VisitFunc) {
 // if the current node is to be removed from the parent and a slice of subpaths
 // ([]string) for all leaves deleted thus far.
 func (t *Tree) internalDelete(subpath []string, condition func(interface{}) bool) (bool, [][]string) {
-	if len(subpath) == 0 {
+	if len(subpath) == 0 || subpath[0] == "*" {
+		if len(subpath) != 0 {
+			subpath = subpath[1:]
+		}
 		// The subpath is a full path to a leaf.
 		switch b := t.leafBranch.(type) {
 		case branch:

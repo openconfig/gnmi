@@ -40,6 +40,12 @@ const (
 	LeafCount = "targetLeaves"
 	// UpdateCount is the total number of leaf updates received.
 	UpdateCount = "targetLeavesUpdated"
+	// StaleCount is the total number of leaf updates that had timestamp older
+	// than that cached.
+	StaleCount = "targetLeavesStale"
+	// SuppressedCount is the total number of leaf updates that were suppressed
+	// because the update had the same value as already cached.
+	SuppressedCount = "targetLeavesSuppressed"
 	// LatencyAvg is the average latency between target timestamp and cache
 	// reception.
 	LatencyAvg = "latencyAvg"
@@ -70,6 +76,8 @@ var (
 		DelCount:        true,
 		LeafCount:       true,
 		UpdateCount:     true,
+		StaleCount:      true,
+		SuppressedCount: true,
 		LatencyAvg:      true,
 		LatencyMax:      true,
 		LatencyMin:      true,
