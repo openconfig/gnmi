@@ -71,7 +71,7 @@ func (x Encoding) String() string {
 	return proto.EnumName(Encoding_name, int32(x))
 }
 func (Encoding) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{0}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{0}
 }
 
 // SubscriptionMode is the mode of the subscription, specifying how the
@@ -100,7 +100,7 @@ func (x SubscriptionMode) String() string {
 	return proto.EnumName(SubscriptionMode_name, int32(x))
 }
 func (SubscriptionMode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{1}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{1}
 }
 
 // Mode of the subscription.
@@ -127,7 +127,7 @@ func (x SubscriptionList_Mode) String() string {
 	return proto.EnumName(SubscriptionList_Mode_name, int32(x))
 }
 func (SubscriptionList_Mode) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{12, 0}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{12, 0}
 }
 
 // The operation that was associated with the Path specified.
@@ -157,7 +157,7 @@ func (x UpdateResult_Operation) String() string {
 	return proto.EnumName(UpdateResult_Operation_name, int32(x))
 }
 func (UpdateResult_Operation) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{19, 0}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{19, 0}
 }
 
 // Type of elements within the data tree.
@@ -190,7 +190,7 @@ func (x GetRequest_DataType) String() string {
 	return proto.EnumName(GetRequest_DataType_name, int32(x))
 }
 func (GetRequest_DataType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{20, 0}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{20, 0}
 }
 
 // Notification is a re-usable message that is used to encode data from the
@@ -221,7 +221,7 @@ func (m *Notification) Reset()         { *m = Notification{} }
 func (m *Notification) String() string { return proto.CompactTextString(m) }
 func (*Notification) ProtoMessage()    {}
 func (*Notification) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{0}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{0}
 }
 func (m *Notification) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Notification.Unmarshal(m, b)
@@ -300,7 +300,7 @@ func (m *Update) Reset()         { *m = Update{} }
 func (m *Update) String() string { return proto.CompactTextString(m) }
 func (*Update) ProtoMessage()    {}
 func (*Update) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{1}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{1}
 }
 func (m *Update) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Update.Unmarshal(m, b)
@@ -382,7 +382,7 @@ func (m *TypedValue) Reset()         { *m = TypedValue{} }
 func (m *TypedValue) String() string { return proto.CompactTextString(m) }
 func (*TypedValue) ProtoMessage()    {}
 func (*TypedValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{2}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{2}
 }
 func (m *TypedValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_TypedValue.Unmarshal(m, b)
@@ -409,56 +409,80 @@ type isTypedValue_Value interface {
 type TypedValue_StringVal struct {
 	StringVal string `protobuf:"bytes,1,opt,name=string_val,json=stringVal,proto3,oneof"`
 }
+
 type TypedValue_IntVal struct {
 	IntVal int64 `protobuf:"varint,2,opt,name=int_val,json=intVal,proto3,oneof"`
 }
+
 type TypedValue_UintVal struct {
 	UintVal uint64 `protobuf:"varint,3,opt,name=uint_val,json=uintVal,proto3,oneof"`
 }
+
 type TypedValue_BoolVal struct {
 	BoolVal bool `protobuf:"varint,4,opt,name=bool_val,json=boolVal,proto3,oneof"`
 }
+
 type TypedValue_BytesVal struct {
 	BytesVal []byte `protobuf:"bytes,5,opt,name=bytes_val,json=bytesVal,proto3,oneof"`
 }
+
 type TypedValue_FloatVal struct {
 	FloatVal float32 `protobuf:"fixed32,6,opt,name=float_val,json=floatVal,proto3,oneof"`
 }
+
 type TypedValue_DecimalVal struct {
 	DecimalVal *Decimal64 `protobuf:"bytes,7,opt,name=decimal_val,json=decimalVal,proto3,oneof"`
 }
+
 type TypedValue_LeaflistVal struct {
 	LeaflistVal *ScalarArray `protobuf:"bytes,8,opt,name=leaflist_val,json=leaflistVal,proto3,oneof"`
 }
+
 type TypedValue_AnyVal struct {
 	AnyVal *any.Any `protobuf:"bytes,9,opt,name=any_val,json=anyVal,proto3,oneof"`
 }
+
 type TypedValue_JsonVal struct {
 	JsonVal []byte `protobuf:"bytes,10,opt,name=json_val,json=jsonVal,proto3,oneof"`
 }
+
 type TypedValue_JsonIetfVal struct {
 	JsonIetfVal []byte `protobuf:"bytes,11,opt,name=json_ietf_val,json=jsonIetfVal,proto3,oneof"`
 }
+
 type TypedValue_AsciiVal struct {
 	AsciiVal string `protobuf:"bytes,12,opt,name=ascii_val,json=asciiVal,proto3,oneof"`
 }
+
 type TypedValue_ProtoBytes struct {
 	ProtoBytes []byte `protobuf:"bytes,13,opt,name=proto_bytes,json=protoBytes,proto3,oneof"`
 }
 
-func (*TypedValue_StringVal) isTypedValue_Value()   {}
-func (*TypedValue_IntVal) isTypedValue_Value()      {}
-func (*TypedValue_UintVal) isTypedValue_Value()     {}
-func (*TypedValue_BoolVal) isTypedValue_Value()     {}
-func (*TypedValue_BytesVal) isTypedValue_Value()    {}
-func (*TypedValue_FloatVal) isTypedValue_Value()    {}
-func (*TypedValue_DecimalVal) isTypedValue_Value()  {}
+func (*TypedValue_StringVal) isTypedValue_Value() {}
+
+func (*TypedValue_IntVal) isTypedValue_Value() {}
+
+func (*TypedValue_UintVal) isTypedValue_Value() {}
+
+func (*TypedValue_BoolVal) isTypedValue_Value() {}
+
+func (*TypedValue_BytesVal) isTypedValue_Value() {}
+
+func (*TypedValue_FloatVal) isTypedValue_Value() {}
+
+func (*TypedValue_DecimalVal) isTypedValue_Value() {}
+
 func (*TypedValue_LeaflistVal) isTypedValue_Value() {}
-func (*TypedValue_AnyVal) isTypedValue_Value()      {}
-func (*TypedValue_JsonVal) isTypedValue_Value()     {}
+
+func (*TypedValue_AnyVal) isTypedValue_Value() {}
+
+func (*TypedValue_JsonVal) isTypedValue_Value() {}
+
 func (*TypedValue_JsonIetfVal) isTypedValue_Value() {}
-func (*TypedValue_AsciiVal) isTypedValue_Value()    {}
-func (*TypedValue_ProtoBytes) isTypedValue_Value()  {}
+
+func (*TypedValue_AsciiVal) isTypedValue_Value() {}
+
+func (*TypedValue_ProtoBytes) isTypedValue_Value() {}
 
 func (m *TypedValue) GetValue() isTypedValue_Value {
 	if m != nil {
@@ -821,7 +845,7 @@ func (m *Path) Reset()         { *m = Path{} }
 func (m *Path) String() string { return proto.CompactTextString(m) }
 func (*Path) ProtoMessage()    {}
 func (*Path) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{3}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{3}
 }
 func (m *Path) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Path.Unmarshal(m, b)
@@ -885,7 +909,7 @@ func (m *PathElem) Reset()         { *m = PathElem{} }
 func (m *PathElem) String() string { return proto.CompactTextString(m) }
 func (*PathElem) ProtoMessage()    {}
 func (*PathElem) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{4}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{4}
 }
 func (m *PathElem) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_PathElem.Unmarshal(m, b)
@@ -936,7 +960,7 @@ func (m *Value) Reset()         { *m = Value{} }
 func (m *Value) String() string { return proto.CompactTextString(m) }
 func (*Value) ProtoMessage()    {}
 func (*Value) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{5}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{5}
 }
 func (m *Value) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Value.Unmarshal(m, b)
@@ -989,7 +1013,7 @@ func (m *Error) Reset()         { *m = Error{} }
 func (m *Error) String() string { return proto.CompactTextString(m) }
 func (*Error) ProtoMessage()    {}
 func (*Error) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{6}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{6}
 }
 func (m *Error) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Error.Unmarshal(m, b)
@@ -1045,7 +1069,7 @@ func (m *Decimal64) Reset()         { *m = Decimal64{} }
 func (m *Decimal64) String() string { return proto.CompactTextString(m) }
 func (*Decimal64) ProtoMessage()    {}
 func (*Decimal64) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{7}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{7}
 }
 func (m *Decimal64) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Decimal64.Unmarshal(m, b)
@@ -1094,7 +1118,7 @@ func (m *ScalarArray) Reset()         { *m = ScalarArray{} }
 func (m *ScalarArray) String() string { return proto.CompactTextString(m) }
 func (*ScalarArray) ProtoMessage()    {}
 func (*ScalarArray) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{8}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{8}
 }
 func (m *ScalarArray) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ScalarArray.Unmarshal(m, b)
@@ -1145,7 +1169,7 @@ func (m *SubscribeRequest) Reset()         { *m = SubscribeRequest{} }
 func (m *SubscribeRequest) String() string { return proto.CompactTextString(m) }
 func (*SubscribeRequest) ProtoMessage()    {}
 func (*SubscribeRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{9}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{9}
 }
 func (m *SubscribeRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SubscribeRequest.Unmarshal(m, b)
@@ -1172,16 +1196,20 @@ type isSubscribeRequest_Request interface {
 type SubscribeRequest_Subscribe struct {
 	Subscribe *SubscriptionList `protobuf:"bytes,1,opt,name=subscribe,proto3,oneof"`
 }
+
 type SubscribeRequest_Poll struct {
 	Poll *Poll `protobuf:"bytes,3,opt,name=poll,proto3,oneof"`
 }
+
 type SubscribeRequest_Aliases struct {
 	Aliases *AliasList `protobuf:"bytes,4,opt,name=aliases,proto3,oneof"`
 }
 
 func (*SubscribeRequest_Subscribe) isSubscribeRequest_Request() {}
-func (*SubscribeRequest_Poll) isSubscribeRequest_Request()      {}
-func (*SubscribeRequest_Aliases) isSubscribeRequest_Request()   {}
+
+func (*SubscribeRequest_Poll) isSubscribeRequest_Request() {}
+
+func (*SubscribeRequest_Aliases) isSubscribeRequest_Request() {}
 
 func (m *SubscribeRequest) GetRequest() isSubscribeRequest_Request {
 	if m != nil {
@@ -1325,7 +1353,7 @@ func (m *Poll) Reset()         { *m = Poll{} }
 func (m *Poll) String() string { return proto.CompactTextString(m) }
 func (*Poll) ProtoMessage()    {}
 func (*Poll) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{10}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{10}
 }
 func (m *Poll) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Poll.Unmarshal(m, b)
@@ -1369,7 +1397,7 @@ func (m *SubscribeResponse) Reset()         { *m = SubscribeResponse{} }
 func (m *SubscribeResponse) String() string { return proto.CompactTextString(m) }
 func (*SubscribeResponse) ProtoMessage()    {}
 func (*SubscribeResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{11}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{11}
 }
 func (m *SubscribeResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SubscribeResponse.Unmarshal(m, b)
@@ -1396,16 +1424,20 @@ type isSubscribeResponse_Response interface {
 type SubscribeResponse_Update struct {
 	Update *Notification `protobuf:"bytes,1,opt,name=update,proto3,oneof"`
 }
+
 type SubscribeResponse_SyncResponse struct {
 	SyncResponse bool `protobuf:"varint,3,opt,name=sync_response,json=syncResponse,proto3,oneof"`
 }
+
 type SubscribeResponse_Error struct {
 	Error *Error `protobuf:"bytes,4,opt,name=error,proto3,oneof"`
 }
 
-func (*SubscribeResponse_Update) isSubscribeResponse_Response()       {}
+func (*SubscribeResponse_Update) isSubscribeResponse_Response() {}
+
 func (*SubscribeResponse_SyncResponse) isSubscribeResponse_Response() {}
-func (*SubscribeResponse_Error) isSubscribeResponse_Response()        {}
+
+func (*SubscribeResponse_Error) isSubscribeResponse_Response() {}
 
 func (m *SubscribeResponse) GetResponse() isSubscribeResponse_Response {
 	if m != nil {
@@ -1428,7 +1460,6 @@ func (m *SubscribeResponse) GetSyncResponse() bool {
 	return false
 }
 
-// Deprecated: Do not use.
 func (m *SubscribeResponse) GetError() *Error {
 	if x, ok := m.GetResponse().(*SubscribeResponse_Error); ok {
 		return x.Error
@@ -1571,7 +1602,7 @@ func (m *SubscriptionList) Reset()         { *m = SubscriptionList{} }
 func (m *SubscriptionList) String() string { return proto.CompactTextString(m) }
 func (*SubscriptionList) ProtoMessage()    {}
 func (*SubscriptionList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{12}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{12}
 }
 func (m *SubscriptionList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SubscriptionList.Unmarshal(m, b)
@@ -1679,7 +1710,7 @@ func (m *Subscription) Reset()         { *m = Subscription{} }
 func (m *Subscription) String() string { return proto.CompactTextString(m) }
 func (*Subscription) ProtoMessage()    {}
 func (*Subscription) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{13}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{13}
 }
 func (m *Subscription) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Subscription.Unmarshal(m, b)
@@ -1748,7 +1779,7 @@ func (m *QOSMarking) Reset()         { *m = QOSMarking{} }
 func (m *QOSMarking) String() string { return proto.CompactTextString(m) }
 func (*QOSMarking) ProtoMessage()    {}
 func (*QOSMarking) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{14}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{14}
 }
 func (m *QOSMarking) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_QOSMarking.Unmarshal(m, b)
@@ -1792,7 +1823,7 @@ func (m *Alias) Reset()         { *m = Alias{} }
 func (m *Alias) String() string { return proto.CompactTextString(m) }
 func (*Alias) ProtoMessage()    {}
 func (*Alias) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{15}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{15}
 }
 func (m *Alias) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Alias.Unmarshal(m, b)
@@ -1840,7 +1871,7 @@ func (m *AliasList) Reset()         { *m = AliasList{} }
 func (m *AliasList) String() string { return proto.CompactTextString(m) }
 func (*AliasList) ProtoMessage()    {}
 func (*AliasList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{16}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{16}
 }
 func (m *AliasList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_AliasList.Unmarshal(m, b)
@@ -1891,7 +1922,7 @@ func (m *SetRequest) Reset()         { *m = SetRequest{} }
 func (m *SetRequest) String() string { return proto.CompactTextString(m) }
 func (*SetRequest) ProtoMessage()    {}
 func (*SetRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{17}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{17}
 }
 func (m *SetRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SetRequest.Unmarshal(m, b)
@@ -1972,7 +2003,7 @@ func (m *SetResponse) Reset()         { *m = SetResponse{} }
 func (m *SetResponse) String() string { return proto.CompactTextString(m) }
 func (*SetResponse) ProtoMessage()    {}
 func (*SetResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{18}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{18}
 }
 func (m *SetResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_SetResponse.Unmarshal(m, b)
@@ -2049,7 +2080,7 @@ func (m *UpdateResult) Reset()         { *m = UpdateResult{} }
 func (m *UpdateResult) String() string { return proto.CompactTextString(m) }
 func (*UpdateResult) ProtoMessage()    {}
 func (*UpdateResult) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{19}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{19}
 }
 func (m *UpdateResult) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_UpdateResult.Unmarshal(m, b)
@@ -2123,7 +2154,7 @@ func (m *GetRequest) Reset()         { *m = GetRequest{} }
 func (m *GetRequest) String() string { return proto.CompactTextString(m) }
 func (*GetRequest) ProtoMessage()    {}
 func (*GetRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{20}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{20}
 }
 func (m *GetRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetRequest.Unmarshal(m, b)
@@ -2204,7 +2235,7 @@ func (m *GetResponse) Reset()         { *m = GetResponse{} }
 func (m *GetResponse) String() string { return proto.CompactTextString(m) }
 func (*GetResponse) ProtoMessage()    {}
 func (*GetResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{21}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{21}
 }
 func (m *GetResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_GetResponse.Unmarshal(m, b)
@@ -2262,7 +2293,7 @@ func (m *CapabilityRequest) Reset()         { *m = CapabilityRequest{} }
 func (m *CapabilityRequest) String() string { return proto.CompactTextString(m) }
 func (*CapabilityRequest) ProtoMessage()    {}
 func (*CapabilityRequest) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{22}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{22}
 }
 func (m *CapabilityRequest) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CapabilityRequest.Unmarshal(m, b)
@@ -2308,7 +2339,7 @@ func (m *CapabilityResponse) Reset()         { *m = CapabilityResponse{} }
 func (m *CapabilityResponse) String() string { return proto.CompactTextString(m) }
 func (*CapabilityResponse) ProtoMessage()    {}
 func (*CapabilityResponse) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{23}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{23}
 }
 func (m *CapabilityResponse) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_CapabilityResponse.Unmarshal(m, b)
@@ -2374,7 +2405,7 @@ func (m *ModelData) Reset()         { *m = ModelData{} }
 func (m *ModelData) String() string { return proto.CompactTextString(m) }
 func (*ModelData) ProtoMessage()    {}
 func (*ModelData) Descriptor() ([]byte, []int) {
-	return fileDescriptor_gnmi_74ac27ed00d6c042, []int{24}
+	return fileDescriptor_gnmi_f14ad093ed8108a5, []int{24}
 }
 func (m *ModelData) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_ModelData.Unmarshal(m, b)
@@ -2703,9 +2734,9 @@ var _GNMI_serviceDesc = grpc.ServiceDesc{
 	Metadata: "proto/gnmi/gnmi.proto",
 }
 
-func init() { proto.RegisterFile("proto/gnmi/gnmi.proto", fileDescriptor_gnmi_74ac27ed00d6c042) }
+func init() { proto.RegisterFile("proto/gnmi/gnmi.proto", fileDescriptor_gnmi_f14ad093ed8108a5) }
 
-var fileDescriptor_gnmi_74ac27ed00d6c042 = []byte{
+var fileDescriptor_gnmi_f14ad093ed8108a5 = []byte{
 	// 1952 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x9c, 0x57, 0x5f, 0x93, 0xe3, 0x46,
 	0x11, 0xb7, 0x2c, 0xf9, 0x8f, 0x5a, 0xde, 0x3d, 0xed, 0x24, 0x24, 0xce, 0xe6, 0x48, 0x7c, 0xaa,
