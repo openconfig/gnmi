@@ -23,6 +23,7 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
+	"context"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
@@ -54,12 +55,30 @@ var (
 	subscriptionLimitTest = func() {}
 )
 
+type aclStub struct{}
+
+func (a *aclStub) Check(interface{}) bool {
+	return true
+}
+
+// RPCACL is per RPC ACL interface
+type RPCACL interface {
+	Check(interface{}) bool
+}
+
+// ACL is server ACL interface
+type ACL interface {
+	NewRPCACL(context.Context) (RPCACL, error)
+	Check(string, string) bool
+}
+
 // Server is the implementation of the gNMI Subcribe API.
 type Server struct {
 	unimplemented.Server // Stub out all RPCs except Subscribe.
 
 	c *cache.Cache // The cache queries are performed against.
 	m *match.Match // Structure to match updates against active subscriptions.
+	a ACL          // server ACL.
 	// subscribeSlots is a channel of size SubscriptionLimit to restrict how many
 	// queries are in flight.
 	subscribeSlots chan struct{}
@@ -74,6 +93,11 @@ func NewServer(c *cache.Cache) (*Server, error) {
 		s.subscribeSlots = make(chan struct{}, SubscriptionLimit)
 	}
 	return s, nil
+}
+
+// SetACL sets server ACL. This method is called before server starts to run.
+func (s *Server) SetACL(a ACL) {
+	s.a = a
 }
 
 // Update passes a streaming update to registered clients.
@@ -120,8 +144,16 @@ func addSubscription(m *match.Match, s *pb.SubscriptionList, c *matchClient) (re
 // Subscribe is the entry point for the external RPC request of the same name
 // defined in gnmi.proto.
 func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
-	c := streamClient{stream: stream}
+	c := streamClient{stream: stream, acl: &aclStub{}}
 	var err error
+	if s.a != nil {
+		a, err := s.a.NewRPCACL(stream.Context())
+		if err != nil {
+			log.Errorf("NewRPCACL fails due to %v", err)
+			return status.Error(codes.Unauthenticated, "no authentication/authorization for requested operation")
+		}
+		c.acl = a
+	}
 	c.sr, err = stream.Recv()
 
 	switch {
@@ -150,6 +182,10 @@ func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
 	c.queue = coalesce.NewQueue()
 	defer c.queue.Close()
 
+	// reject single device subscription if not allowed by ACL
+	if c.target != "*" && !c.acl.Check(c.target) {
+		return status.Errorf(codes.PermissionDenied, "not authorized for target %q", c.target)
+	}
 	// This error channel is buffered to accept errors from all goroutines spawned
 	// for this RPC.  Only the first is ever read and returned causing the RPC to
 	// terminate.
@@ -168,7 +204,8 @@ func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
 		if c.sr.GetSubscribe().GetUpdatesOnly() {
 			c.queue.Insert(syncMarker{})
 		}
-		remove := addSubscription(s.m, c.sr.GetSubscribe(), &matchClient{q: c.queue})
+		remove := addSubscription(s.m, c.sr.GetSubscribe(),
+			&matchClient{acl: c.acl, q: c.queue})
 		defer remove()
 		if !c.sr.GetSubscribe().GetUpdatesOnly() {
 			go s.processSubscription(&c)
@@ -217,6 +254,7 @@ type syncMarker struct{}
 
 // cacheClient implements match.Client interface.
 type matchClient struct {
+	acl RPCACL
 	q   *coalesce.Queue
 	err error
 }
@@ -227,10 +265,13 @@ func (c matchClient) Update(n interface{}) {
 	if c.err != nil {
 		return
 	}
-	_, c.err = c.q.Insert(n)
+	if c.acl.Check(n) {
+		_, c.err = c.q.Insert(n)
+	}
 }
 
 type streamClient struct {
+	acl    RPCACL
 	target string
 	sr     *pb.SubscribeRequest
 	queue  *coalesce.Queue
@@ -277,7 +318,9 @@ func (s *Server) processSubscription(c *streamClient) {
 				if err != nil {
 					return
 				}
-				_, err = c.queue.Insert(l)
+				if c.acl.Check(l) {
+					_, err = c.queue.Insert(l)
+				}
 			})
 			if err != nil {
 				return
@@ -380,7 +423,7 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 // client.Notification or gnmi_proto.Notification
 //
 // This function modifies the message to set the duplicate count if it is
-// greater than 0. The funciton clones the gnmi notification if the duplicate count needs to be set.
+// greater than 0. The function clones the gnmi notification if the duplicate count needs to be set.
 // You have to be working on a cloned message if you need to modify the message in any way.
 func MakeSubscribeResponse(n interface{}, dup uint32) (*pb.SubscribeResponse, error) {
 	var notification *pb.Notification
