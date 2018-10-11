@@ -37,12 +37,12 @@ func TestValidate(t *testing.T) {
 			},
 			Target: map[string]*pb.Target{
 				"target1": &pb.Target{
-					Address: "192.168.0.10:10162",
-					Request: "interfaces",
+					Addresses: []string{"192.168.0.10:10162"},
+					Request:   "interfaces",
 				},
 				"target2": &pb.Target{
-					Address: "192.168.0.11:10162",
-					Request: "interfaces",
+					Addresses: []string{"192.168.0.11:10162"},
+					Request:   "interfaces",
 				},
 			},
 		},
@@ -67,12 +67,12 @@ func TestValidate(t *testing.T) {
 			},
 			Target: map[string]*pb.Target{
 				"": &pb.Target{
-					Address: "192.168.0.10:10162",
-					Request: "interfaces",
+					Addresses: []string{"192.168.0.10:10162"},
+					Request:   "interfaces",
 				},
 				"target2": &pb.Target{
-					Address: "192.168.0.11:10162",
-					Request: "interfaces",
+					Addresses: []string{"192.168.0.11:10162"},
+					Request:   "interfaces",
 				},
 			},
 		},
@@ -86,8 +86,8 @@ func TestValidate(t *testing.T) {
 			Target: map[string]*pb.Target{
 				"target1": nil,
 				"target2": &pb.Target{
-					Address: "192.168.0.11:10162",
-					Request: "interfaces",
+					Addresses: []string{"192.168.0.11:10162"},
+					Request:   "interfaces",
 				},
 			},
 		},
@@ -113,7 +113,7 @@ func TestValidate(t *testing.T) {
 			},
 			Target: map[string]*pb.Target{
 				"target1": &pb.Target{
-					Address: "192.168.0.10:10162",
+					Addresses: []string{"192.168.0.10:10162"},
 				},
 			},
 		},
@@ -126,8 +126,8 @@ func TestValidate(t *testing.T) {
 			},
 			Target: map[string]*pb.Target{
 				"target1": &pb.Target{
-					Address: "192.168.0.10:10162",
-					Request: "qos",
+					Addresses: []string{"192.168.0.10:10162"},
+					Request:   "qos",
 				},
 			},
 		},

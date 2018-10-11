@@ -183,7 +183,7 @@ func (c *collector) start(ctx context.Context) {
 				log.Errorf("NewQuery(%s): %v", qr.String(), err)
 				return
 			}
-			q.Addrs = []string{target.Address}
+			q.Addrs = target.Addresses
 
 			if target.Credentials != nil {
 				q.Credentials = &client.Credentials{

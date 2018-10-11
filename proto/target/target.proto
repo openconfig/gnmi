@@ -35,18 +35,29 @@ message Configuration {
   // is set in the prefix.target of a SubscriptionRequest message when connecting
   // to each respective target.
   map<string, Target> target = 2;
+  // Identifier for the caching collector.
+  string instance_id = 3;
+  // Revision for this Configuration. Systems that non-atomically write
+  // configuration should populate and require revision, leveraging canonical
+  // protobuf serialization of fields in order. Presence of this field makes no
+  // guarantee. Consumers should account for atomicity constraints of their
+  // environment and any custom encoding.
+  int64 revision = 536870911;
+
 }
 
 // Target is the information necessary to establish a single gNMI Subscribe RPC
 // to be collected and cached.
 message Target {
-  // An address and port or name that resolves to an address and port.
-  string address = 1;
+  // A list of address and port or name that resolves to an address and port.
+  repeated string addresses = 1;
   // Credentials to use in metadata for authorization of the RPC
   Credentials credentials = 2;
   // The request to be sent to the target. The string supplied is looked up in
   // the request map of the Configuration message.
   string request = 3;
+  // Additional target metadata.
+  map<string, string> meta = 4;
 }
 
 // Credentials contains the fields necessary for authentication of the client to
@@ -54,4 +65,6 @@ message Target {
 message Credentials {
   string username = 1;
   string password = 2;
+  // Password lookup ID.
+  string password_id = 3;
 }

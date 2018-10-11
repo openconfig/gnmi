@@ -34,7 +34,7 @@ func Validate(config *pb.Configuration) error {
 		if target == nil {
 			return fmt.Errorf("missing target configuration for %q", name)
 		}
-		if target.Address == "" {
+		if len(target.Addresses) == 0 {
 			return fmt.Errorf("target %q missing address", name)
 		}
 		if target.Request == "" {
