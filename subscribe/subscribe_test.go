@@ -1461,17 +1461,17 @@ func TestGNMIMultipleSubscriberCoalescion(t *testing.T) {
 }
 
 type Cnt struct {
-	rpcNew int
-	allow  int
-	deny   int
-	check  int
+	RPCNew int
+	Allow  int
+	Deny   int
+	Check  int
 }
 
 func (a *Cnt) Reset() {
-	a.rpcNew = 0
-	a.allow = 0
-	a.deny = 0
-	a.check = 0
+	a.RPCNew = 0
+	a.Allow = 0
+	a.Deny = 0
+	a.Check = 0
 }
 
 var aclCnt Cnt
@@ -1500,9 +1500,9 @@ func (r *fakeRPCACL) Check(n interface{}) bool {
 	}
 	allow := r.acl.Check(r.user, dev)
 	if allow {
-		aclCnt.allow++
+		aclCnt.Allow++
 	} else {
-		aclCnt.deny++
+		aclCnt.Deny++
 	}
 	return allow
 }
@@ -1527,12 +1527,12 @@ func (a *fakeACL) NewRPCACL(ctx context.Context) (RPCACL, error) {
 		return nil, errors.New("no user field in ctx")
 	}
 	r := &fakeRPCACL{user: u, acl: a}
-	aclCnt.rpcNew++
+	aclCnt.RPCNew++
 	return r, nil
 }
 
 func (a *fakeACL) Check(user string, dev string) bool {
-	aclCnt.check++
+	aclCnt.Check++
 	m := map[string]map[string]bool{
 		"dev-pii":    {"user1": true, "user2": false},
 		"dev-no-pii": {"user1": true, "user2": true},
@@ -1588,7 +1588,7 @@ func TestGNMIACL(t *testing.T) {
 		dev     string
 		mode    pb.SubscriptionList_Mode
 		wantErr string
-		wantCnt string
+		wantCnt *Cnt
 	}{
 		{
 			name:    "user1 once with pii allow",
@@ -1596,7 +1596,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_ONCE,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:3 deny:0 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
 		},
 		{
 			name:    "user2 once with pii deny",
@@ -1604,7 +1604,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_ONCE,
 			wantErr: "rpc error: code = PermissionDenied desc = not authorized for target \"dev-pii\"",
-			wantCnt: "{rpcNew:1 allow:0 deny:1 check:1}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 0, Deny: 1, Check: 1},
 		},
 		{
 			name:    "user1 once all devices with pii allow",
@@ -1612,7 +1612,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "*",
 			mode:    pb.SubscriptionList_ONCE,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:3 deny:0 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
 		},
 		{
 			name:    "user2 once all devices with pii deny",
@@ -1620,7 +1620,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "*",
 			mode:    pb.SubscriptionList_ONCE,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:1 deny:2 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 1, Deny: 2, Check: 3},
 		},
 		{
 			name:    "user1 poll with pii allow",
@@ -1628,7 +1628,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_POLL,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:3 deny:0 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
 		},
 		{
 			name:    "user2 poll with pii deny",
@@ -1636,7 +1636,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_POLL,
 			wantErr: "rpc error: code = PermissionDenied desc = not authorized for target \"dev-pii\"",
-			wantCnt: "{rpcNew:1 allow:0 deny:1 check:1}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 0, Deny: 1, Check: 1},
 		},
 		{
 			name:    "user1 poll all devices with pii allow",
@@ -1644,7 +1644,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "*",
 			mode:    pb.SubscriptionList_POLL,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:3 deny:0 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
 		},
 		{
 			name:    "user2 poll all devices with pii deny",
@@ -1652,7 +1652,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "*",
 			mode:    pb.SubscriptionList_POLL,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:1 deny:2 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 1, Deny: 2, Check: 3},
 		},
 		{
 			name:    "user1 stream with pii allow",
@@ -1660,7 +1660,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_STREAM,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:3 deny:0 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
 		},
 		{
 			name:    "user2 stream with pii deny",
@@ -1668,7 +1668,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_STREAM,
 			wantErr: "rpc error: code = PermissionDenied desc = not authorized for target \"dev-pii\"",
-			wantCnt: "{rpcNew:1 allow:0 deny:1 check:1}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 0, Deny: 1, Check: 1},
 		},
 		{
 			name:    "user1 stream all devices with pii allow",
@@ -1676,7 +1676,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "*",
 			mode:    pb.SubscriptionList_STREAM,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:3 deny:0 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
 		},
 		{
 			name:    "user2 stream all devices with pii deny",
@@ -1684,7 +1684,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "*",
 			mode:    pb.SubscriptionList_STREAM,
 			wantErr: "<nil>",
-			wantCnt: "{rpcNew:1 allow:1 deny:2 check:3}",
+			wantCnt: &Cnt{RPCNew: 1, Allow: 1, Deny: 2, Check: 3},
 		},
 	}
 
@@ -1732,9 +1732,8 @@ func TestGNMIACL(t *testing.T) {
 		case <-subSvr.rsp:
 		}
 
-		gotCnt := fmt.Sprintf("%+v", aclCnt)
-		if diff := cmp.Diff(gotCnt, test.wantCnt, cmpopts.EquateEmpty()); diff != "" {
-			t.Errorf("%v returned unexpected result:\n got %v\n want %v\n diff %v", test.name, gotCnt, test.wantCnt, diff)
+		if diff := cmp.Diff(&aclCnt, test.wantCnt, cmpopts.EquateEmpty()); diff != "" {
+			t.Errorf("%v returned unexpected result:\n got %v\n want %v\n diff %v", test.name, aclCnt, test.wantCnt, diff)
 		}
 	}
 }
