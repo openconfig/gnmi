@@ -22,6 +22,7 @@ import (
 	"context"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/status"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -32,20 +33,44 @@ type Server struct{}
 
 // Capabilities satisfies the gNMI service definition.
 func (*Server) Capabilities(context.Context, *pb.CapabilityRequest) (*pb.CapabilityResponse, error) {
-	return nil, grpc.Errorf(codes.Unimplemented, "Unimplemented")
+	return nil, status.Errorf(codes.Unimplemented, "Unimplemented")
 }
 
 // Get satisfies the gNMI service definition.
 func (*Server) Get(context.Context, *pb.GetRequest) (*pb.GetResponse, error) {
-	return nil, grpc.Errorf(codes.Unimplemented, "Unimplemented")
+	return nil, status.Errorf(codes.Unimplemented, "Unimplemented")
 }
 
 // Set satisfies the gNMI service definition.
 func (*Server) Set(context.Context, *pb.SetRequest) (*pb.SetResponse, error) {
-	return nil, grpc.Errorf(codes.Unimplemented, "Unimplemented")
+	return nil, status.Errorf(codes.Unimplemented, "Unimplemented")
 }
 
-// Subscribe satisfies the gNMI service defintion.
+// Subscribe satisfies the gNMI service definition.
 func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
-	return grpc.Errorf(codes.Unimplemented, "Unimplemented")
+	return status.Errorf(codes.Unimplemented, "Unimplemented")
+}
+
+// Client is a type that can be embedded anonymously in a gNMI client to stub
+// out all RPCs that are not implemented with a proper return code.
+type Client struct{}
+
+// Capabilities satisfies the gNMI client definition.
+func (*Client) Capabilities(ctx context.Context, in *pb.CapabilityRequest, opts ...grpc.CallOption) (*pb.CapabilityResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "Unimplemented")
+}
+
+// Get satisfies the gNMI client definition.
+func (*Client) Get(ctx context.Context, in *pb.GetRequest, opts ...grpc.CallOption) (*pb.GetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "Unimplemented")
+}
+
+// Set satisfies the gNMI client definition.
+func (*Client) Set(ctx context.Context, in *pb.SetRequest, opts ...grpc.CallOption) (*pb.SetResponse, error) {
+	return nil, status.Errorf(codes.Unimplemented, "Unimplemented")
+}
+
+// Subscribe satisfies the gNMI client definition.
+func (*Client) Subscribe(ctx context.Context, opts ...grpc.CallOption) (pb.GNMI_SubscribeClient, error) {
+	return nil, status.Errorf(codes.Unimplemented, "Unimplemented")
 }
