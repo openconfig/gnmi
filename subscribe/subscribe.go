@@ -57,13 +57,13 @@ var (
 
 type aclStub struct{}
 
-func (a *aclStub) Check(interface{}) bool {
+func (a *aclStub) Check(string) bool {
 	return true
 }
 
 // RPCACL is per RPC ACL interface
 type RPCACL interface {
-	Check(interface{}) bool
+	Check(string) bool
 }
 
 // ACL is server ACL interface
@@ -230,11 +230,22 @@ type resp struct {
 // the Subscription RPC output stream. Streaming queries send responses for the
 // initial walk of the results as well as streamed updates and use a queue to
 // ensure order.
-func (s *Server) sendSubscribeResponse(r *resp) error {
+func (s *Server) sendSubscribeResponse(r *resp, c *streamClient) error {
 	notification, err := MakeSubscribeResponse(r.n.Value(), r.dup)
 	if err != nil {
 		return status.Errorf(codes.Unknown, err.Error())
 	}
+
+	if pre := notification.GetUpdate().GetPrefix(); pre != nil {
+		if !c.acl.Check(pre.GetTarget()) {
+			// reaching here means notification is denied for sending.
+			// return with no error. function caller can continue for next one.
+			return nil
+		}
+	} else {
+		log.Errorf("got nil prefix in notification %p", notification)
+	}
+
 	// Start the timeout before attempting to send.
 	r.t.Reset(s.timeout)
 	// Clear the timeout upon sending.
@@ -265,9 +276,7 @@ func (c matchClient) Update(n interface{}) {
 	if c.err != nil {
 		return
 	}
-	if c.acl.Check(n) {
-		_, c.err = c.q.Insert(n)
-	}
+	_, c.err = c.q.Insert(n)
 }
 
 type streamClient struct {
@@ -283,6 +292,7 @@ type streamClient struct {
 // nodes into the coalesce queue followed by a subscriptionSync response.
 func (s *Server) processSubscription(c *streamClient) {
 	var err error
+	log.V(2).Infof("start processSubscription for %p", c)
 	// Close the cache client queue on error.
 	defer func() {
 		if err != nil {
@@ -290,6 +300,7 @@ func (s *Server) processSubscription(c *streamClient) {
 			c.queue.Close()
 			c.errC <- err
 		}
+		log.V(2).Infof("end processSubscription for %p", c)
 	}()
 	if s.subscribeSlots != nil {
 		select {
@@ -318,9 +329,7 @@ func (s *Server) processSubscription(c *streamClient) {
 				if err != nil {
 					return
 				}
-				if c.acl.Check(l) {
-					_, err = c.queue.Insert(l)
-				}
+				_, err = c.queue.Insert(l)
 			})
 			if err != nil {
 				return
@@ -401,12 +410,13 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 			c.errC <- status.Errorf(codes.Internal, "invalid cache node: %#v", item)
 			return
 		}
+
 		if err = s.sendSubscribeResponse(&resp{
 			stream: c.stream,
 			n:      n,
 			dup:    dup,
 			t:      t,
-		}); err != nil {
+		}, c); err != nil {
 			c.errC <- err
 			return
 		}

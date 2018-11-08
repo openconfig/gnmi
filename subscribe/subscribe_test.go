@@ -20,6 +20,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"strings"
 	"sync"
@@ -35,7 +36,6 @@ import (
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
 	gnmiclient "github.com/openconfig/gnmi/client/gnmi"
-	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
 	"github.com/openconfig/gnmi/value"
@@ -1460,54 +1460,20 @@ func TestGNMIMultipleSubscriberCoalescion(t *testing.T) {
 	}
 }
 
-type Cnt struct {
-	RPCNew int
-	Allow  int
-	Deny   int
-	Check  int
-}
-
-func (a *Cnt) Reset() {
-	a.RPCNew = 0
-	a.Allow = 0
-	a.Deny = 0
-	a.Check = 0
-}
-
-var aclCnt Cnt
-
 type fakeRPCACL struct {
 	user string
 	acl  ACL
 }
 
-func (r *fakeRPCACL) Check(n interface{}) bool {
-	var dev string
-	switch u := n.(type) {
-	case string:
-		dev = u
-	case *ctree.Leaf:
-		switch v := u.Value().(type) {
-		case *pb.Notification:
-			dev = v.GetPrefix().GetTarget()
-		case client.Update:
-			dev = v.Path[0]
-		default:
-			dev = "unknown"
-		}
-	default:
-		dev = "unknown"
-	}
-	allow := r.acl.Check(r.user, dev)
-	if allow {
-		aclCnt.Allow++
-	} else {
-		aclCnt.Deny++
-	}
-	return allow
+func (r *fakeRPCACL) Check(dev string) bool {
+	return r.acl.Check(r.user, dev)
 }
 
-type fakeACL struct{}
+type fakeACL struct {
+	allow int
+	deny  int
+	check int
+}
 type fakeNet struct{}
 
 func (n *fakeNet) Network() string {
@@ -1527,21 +1493,26 @@ func (a *fakeACL) NewRPCACL(ctx context.Context) (RPCACL, error) {
 		return nil, errors.New("no user field in ctx")
 	}
 	r := &fakeRPCACL{user: u, acl: a}
-	aclCnt.RPCNew++
 	return r, nil
 }
 
 func (a *fakeACL) Check(user string, dev string) bool {
-	aclCnt.Check++
+	a.check++
 	m := map[string]map[string]bool{
 		"dev-pii":    {"user1": true, "user2": false},
 		"dev-no-pii": {"user1": true, "user2": true},
 	}
 	if v, ok := m[dev]; ok {
 		if v2, ok := v[user]; ok {
+			if v2 {
+				a.allow++
+			} else {
+				a.deny++
+			}
 			return v2
 		}
 	}
+	a.deny++
 	return false
 }
 
@@ -1554,11 +1525,21 @@ type fakeSubServer struct {
 }
 
 func (s *fakeSubServer) Send(rsp *pb.SubscribeResponse) error {
+	select {
+	case <-s.ctx.Done():
+		return io.ErrClosedPipe
+	default:
+	}
 	s.rsp <- rsp
 	return nil
 }
 
 func (s *fakeSubServer) Recv() (*pb.SubscribeRequest, error) {
+	select {
+	case <-s.ctx.Done():
+		return <-s.req, io.EOF
+	default:
+	}
 	return <-s.req, nil
 }
 
@@ -1568,12 +1549,16 @@ func (s *fakeSubServer) Context() context.Context {
 
 func TestGNMIACL(t *testing.T) {
 	targets := []string{"dev-pii", "dev-no-pii"}
+	cache.Type = cache.GnmiNoti
+	defer func() {
+		cache.Type = cache.ClientLeaf
+	}()
 	c := cache.New(targets)
 	p, err := NewServer(c)
 	if err != nil {
 		t.Errorf("NewServer: %v", err)
+		return
 	}
-	p.SetACL(&fakeACL{})
 	paths := []client.Path{
 		{"dev-pii", "a", "b"},
 		{"dev-pii", "a", "c"},
@@ -1588,7 +1573,7 @@ func TestGNMIACL(t *testing.T) {
 		dev     string
 		mode    pb.SubscriptionList_Mode
 		wantErr string
-		wantCnt *Cnt
+		wantCnt *fakeACL
 	}{
 		{
 			name:    "user1 once with pii allow",
@@ -1596,7 +1581,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_ONCE,
 			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
+			wantCnt: &fakeACL{allow: 3, deny: 0, check: 3},
 		},
 		{
 			name:    "user2 once with pii deny",
@@ -1604,7 +1589,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_ONCE,
 			wantErr: "rpc error: code = PermissionDenied desc = not authorized for target \"dev-pii\"",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 0, Deny: 1, Check: 1},
+			wantCnt: &fakeACL{allow: 0, deny: 1, check: 1},
 		},
 		{
 			name:    "user1 once all devices with pii allow",
@@ -1612,7 +1597,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "*",
 			mode:    pb.SubscriptionList_ONCE,
 			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
+			wantCnt: &fakeACL{allow: 3, deny: 0, check: 3},
 		},
 		{
 			name:    "user2 once all devices with pii deny",
@@ -1620,15 +1605,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "*",
 			mode:    pb.SubscriptionList_ONCE,
 			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 1, Deny: 2, Check: 3},
-		},
-		{
-			name:    "user1 poll with pii allow",
-			user:    "user1",
-			dev:     "dev-pii",
-			mode:    pb.SubscriptionList_POLL,
-			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
+			wantCnt: &fakeACL{allow: 1, deny: 2, check: 3},
 		},
 		{
 			name:    "user2 poll with pii deny",
@@ -1636,31 +1613,7 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_POLL,
 			wantErr: "rpc error: code = PermissionDenied desc = not authorized for target \"dev-pii\"",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 0, Deny: 1, Check: 1},
-		},
-		{
-			name:    "user1 poll all devices with pii allow",
-			user:    "user1",
-			dev:     "*",
-			mode:    pb.SubscriptionList_POLL,
-			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
-		},
-		{
-			name:    "user2 poll all devices with pii deny",
-			user:    "user2",
-			dev:     "*",
-			mode:    pb.SubscriptionList_POLL,
-			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 1, Deny: 2, Check: 3},
-		},
-		{
-			name:    "user1 stream with pii allow",
-			user:    "user1",
-			dev:     "dev-pii",
-			mode:    pb.SubscriptionList_STREAM,
-			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
+			wantCnt: &fakeACL{allow: 0, deny: 1, check: 1},
 		},
 		{
 			name:    "user2 stream with pii deny",
@@ -1668,33 +1621,20 @@ func TestGNMIACL(t *testing.T) {
 			dev:     "dev-pii",
 			mode:    pb.SubscriptionList_STREAM,
 			wantErr: "rpc error: code = PermissionDenied desc = not authorized for target \"dev-pii\"",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 0, Deny: 1, Check: 1},
-		},
-		{
-			name:    "user1 stream all devices with pii allow",
-			user:    "user1",
-			dev:     "*",
-			mode:    pb.SubscriptionList_STREAM,
-			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 3, Deny: 0, Check: 3},
-		},
-		{
-			name:    "user2 stream all devices with pii deny",
-			user:    "user2",
-			dev:     "*",
-			mode:    pb.SubscriptionList_STREAM,
-			wantErr: "<nil>",
-			wantCnt: &Cnt{RPCNew: 1, Allow: 1, Deny: 2, Check: 3},
+			wantCnt: &fakeACL{allow: 0, deny: 1, check: 1},
 		},
 	}
 
 	for _, test := range tests {
-		aclCnt.Reset()
+		facl := &fakeACL{}
+		p.SetACL(facl)
+		var cancel context.CancelFunc
 		subSvr := &fakeSubServer{user: test.user,
 			req: make(chan *pb.SubscribeRequest, 2),
-			rsp: make(chan *pb.SubscribeResponse, 2)}
+			rsp: make(chan *pb.SubscribeResponse, len(paths)+1)}
 		ctx := peer.NewContext(context.Background(), &peer.Peer{Addr: &fakeNet{}})
 		subSvr.ctx = context.WithValue(ctx, uk, test.user)
+		subSvr.ctx, cancel = context.WithCancel(subSvr.ctx)
 		subSvr.req <- &pb.SubscribeRequest{
 			Request: &pb.SubscribeRequest_Subscribe{
 				Subscribe: &pb.SubscriptionList{
@@ -1729,11 +1669,12 @@ func TestGNMIACL(t *testing.T) {
 			if diff := cmp.Diff(got, test.wantErr, cmpopts.EquateEmpty()); diff != "" {
 				t.Errorf("%v returned unexpected result:\n got %v\n want %v\n diff %v", test.name, got, test.wantErr, diff)
 			}
-		case <-subSvr.rsp:
+		case <-time.After(5 * time.Second):
 		}
+		cancel()
 
-		if diff := cmp.Diff(&aclCnt, test.wantCnt, cmpopts.EquateEmpty()); diff != "" {
-			t.Errorf("%v returned unexpected result:\n got %v\n want %v\n diff %v", test.name, aclCnt, test.wantCnt, diff)
+		if diff := cmp.Diff(facl, test.wantCnt, cmpopts.EquateEmpty(), cmp.AllowUnexported(fakeACL{})); diff != "" {
+			t.Errorf("%v returned unexpected result:\n got %v\n want %v\n diff %v", test.name, facl, test.wantCnt, diff)
 		}
 	}
 }
