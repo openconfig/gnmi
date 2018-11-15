@@ -242,8 +242,6 @@ func (s *Server) sendSubscribeResponse(r *resp, c *streamClient) error {
 			// return with no error. function caller can continue for next one.
 			return nil
 		}
-	} else {
-		log.Errorf("got nil prefix in notification %p", notification)
 	}
 
 	// Start the timeout before attempting to send.
