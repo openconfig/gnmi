@@ -57,7 +57,7 @@ func TestClient(t *testing.T) {
 			TLS:     &tls.Config{InsecureSkipVerify: true},
 		},
 		updates: []*fpb.Value{{
-			Path:      []string{"dev", "a"},
+			Path:      []string{"a"},
 			Timestamp: &fpb.Timestamp{Timestamp: 100},
 			Repeat:    1,
 			Value:     &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}},
@@ -81,7 +81,7 @@ func TestClient(t *testing.T) {
 			TLS:     &tls.Config{InsecureSkipVerify: true},
 		},
 		updates: []*fpb.Value{{
-			Path:      []string{"dev", "a"},
+			Path:      []string{"a"},
 			Timestamp: &fpb.Timestamp{Timestamp: 100},
 			Repeat:    1,
 			Value:     &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}},
@@ -110,17 +110,17 @@ func TestClient(t *testing.T) {
 			TLS:     &tls.Config{InsecureSkipVerify: true},
 		},
 		updates: []*fpb.Value{{
-			Path:      []string{"dev", "a"},
+			Path:      []string{"a"},
 			Timestamp: &fpb.Timestamp{Timestamp: 100},
 			Repeat:    1,
 			Value:     &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}},
 		}, {
-			Path:      []string{"dev", "a", "b"},
+			Path:      []string{"a", "b"},
 			Timestamp: &fpb.Timestamp{Timestamp: 100},
 			Repeat:    1,
 			Value:     &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}},
 		}, {
-			Path:      []string{"dev", "a", "b"},
+			Path:      []string{"a", "b"},
 			Timestamp: &fpb.Timestamp{Timestamp: 200},
 			Repeat:    1,
 			Value:     &fpb.Value_Delete{Delete: &fpb.DeleteValue{}},
@@ -150,27 +150,27 @@ func TestClient(t *testing.T) {
 			Repeat:    1,
 			Value:     &fpb.Value_Sync{Sync: 1},
 		}, {
-			Path:      []string{"dev", "a"},
+			Path:      []string{"a"},
 			Timestamp: &fpb.Timestamp{Timestamp: 200},
 			Repeat:    1,
 			Value:     &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}},
 		}, {
-			Path:      []string{"dev", "a", "b"},
+			Path:      []string{"a", "b"},
 			Timestamp: &fpb.Timestamp{Timestamp: 200},
 			Repeat:    1,
 			Value:     &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}},
 		}, {
-			Path:      []string{"dev", "a", "c"},
+			Path:      []string{"a", "c"},
 			Timestamp: &fpb.Timestamp{Timestamp: 200},
 			Repeat:    1,
 			Value:     &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}},
 		}, {
-			Path:      []string{"dev", "a", "b"},
+			Path:      []string{"a", "b"},
 			Timestamp: &fpb.Timestamp{Timestamp: 300},
 			Repeat:    1,
 			Value:     &fpb.Value_Delete{Delete: &fpb.DeleteValue{}},
 		}, {
-			Path:      []string{"dev", "a", "c"},
+			Path:      []string{"a", "c"},
 			Timestamp: &fpb.Timestamp{Timestamp: 400},
 			Repeat:    1,
 			Value:     &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 50}},
@@ -267,7 +267,7 @@ func TestGNMIMessageUpdates(t *testing.T) {
 				Timestamp: 200,
 				Update: []*gpb.Update{
 					{
-						Path: &gpb.Path{Element: []string{"dev", "a"}},
+						Path: &gpb.Path{Element: []string{"a"}},
 						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}},
 					},
 				},
@@ -356,7 +356,7 @@ func TestGNMIWithSubscribeRequest(t *testing.T) {
 				Timestamp: 200,
 				Update: []*gpb.Update{
 					{
-						Path: &gpb.Path{Element: []string{"dev", "a"}},
+						Path: &gpb.Path{Element: []string{"a"}},
 						Val:  &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}},
 					},
 				},

@@ -203,6 +203,19 @@ func (c *Client) processQueue(stream gpb.GNMI_SubscribeServer) error {
 		case *gpb.SubscribeResponse:
 			resp = v
 		}
+		// If the subscription request specified a target explicitly...
+		if sp := c.subscribe.GetPrefix(); sp != nil {
+			if target := sp.Target; target != "" {
+				// and the message is an update...
+				if update := resp.GetUpdate(); update != nil {
+					// then set target in the prefix.
+					if update.Prefix == nil {
+						update.Prefix = &gpb.Path{}
+					}
+					update.Prefix.Target = target
+				}
+			}
+		}
 		log.V(1).Infof("Client %s sending:\n%v", c, resp)
 		err = stream.Send(resp)
 		if err != nil {
