@@ -117,6 +117,8 @@ func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 		i = ss
 	case *pb.TypedValue_BytesVal:
 		i = tv.GetBytesVal()
+	case *pb.TypedValue_JsonVal:
+		i = string(tv.GetJsonVal())
 	default:
 		return nil, fmt.Errorf("non-scalar type %+v", tv.Value)
 	}
