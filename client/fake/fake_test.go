@@ -17,11 +17,11 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"time"
 
-	"context"
 	"github.com/openconfig/gnmi/client"
 )
 

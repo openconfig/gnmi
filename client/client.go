@@ -44,13 +44,13 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
 	"sync"
 
 	log "github.com/golang/glog"
-	"context"
 )
 
 // Client defines a set of methods which every client must implement.

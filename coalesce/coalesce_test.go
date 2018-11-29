@@ -17,9 +17,8 @@ limitations under the License.
 package coalesce
 
 import (
-	"testing"
-
 	"context"
+	"testing"
 )
 
 func TestInsert(t *testing.T) {

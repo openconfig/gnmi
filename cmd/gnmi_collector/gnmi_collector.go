@@ -18,6 +18,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"flag"
@@ -28,7 +29,6 @@ import (
 
 	
 	log "github.com/golang/glog"
-	"context"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"

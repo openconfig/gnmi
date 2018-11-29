@@ -24,6 +24,7 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
@@ -39,7 +40,6 @@ import (
 	"flag"
 	
 	log "github.com/golang/glog"
-	"context"
 	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/ssh/terminal"
 	"github.com/openconfig/gnmi/cli"

@@ -22,6 +22,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"math"
@@ -29,7 +30,6 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"context"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"

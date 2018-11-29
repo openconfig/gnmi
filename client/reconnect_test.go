@@ -17,11 +17,11 @@ limitations under the License.
 package client_test
 
 import (
+	"context"
 	"errors"
 	"testing"
 	"time"
 
-	"context"
 	"github.com/openconfig/gnmi/client"
 	fclient "github.com/openconfig/gnmi/client/fake"
 )

@@ -17,11 +17,11 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"crypto/tls"
 	"testing"
 	"time"
 
-	"context"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/grpc"
 	"github.com/openconfig/ygot/ygot"

@@ -17,6 +17,7 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"sort"
@@ -24,7 +25,6 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"context"
 	"github.com/openconfig/gnmi/errlist"
 )
 

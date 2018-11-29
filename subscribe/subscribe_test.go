@@ -17,6 +17,7 @@ limitations under the License.
 package subscribe
 
 import (
+	"context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -27,7 +28,6 @@ import (
 	"testing"
 	"time"
 
-	"context"
 	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmpopts/cmpopts"

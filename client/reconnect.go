@@ -17,13 +17,13 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"fmt"
 	"math/rand"
 	"sync"
 	"time"
 
 	log "github.com/golang/glog"
-	"context"
 )
 
 var (

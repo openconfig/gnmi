@@ -21,10 +21,10 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"fmt"
 
 	log "github.com/golang/glog"
-	"context"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 )

@@ -21,10 +21,9 @@ limitations under the License.
 package coalesce
 
 import (
+	"context"
 	"errors"
 	"sync"
-
-	"context"
 )
 
 // Queue is a structure that implements in-order delivery of coalesced inputs.

@@ -17,10 +17,10 @@ limitations under the License.
 package client
 
 import (
+	"context"
 	"fmt"
 
 	log "github.com/golang/glog"
-	"context"
 	"github.com/openconfig/gnmi/ctree"
 )
 

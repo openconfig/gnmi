@@ -17,6 +17,7 @@ limitations under the License.
 package cli
 
 import (
+	"context"
 	"crypto/tls"
 	"regexp"
 	"sort"
@@ -24,7 +25,6 @@ import (
 	"testing"
 	"time"
 
-	"context"
 	"google.golang.org/grpc"
 	"github.com/openconfig/gnmi/client"
 	_ "github.com/openconfig/gnmi/client/gnmi"

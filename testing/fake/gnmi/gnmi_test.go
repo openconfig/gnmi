@@ -17,6 +17,7 @@ limitations under the License.
 package gnmi
 
 import (
+	"golang.org/x/net/context"
 	"crypto/tls"
 	"errors"
 	"fmt"
@@ -25,7 +26,6 @@ import (
 	"sync"
 	"testing"
 
-	"golang.org/x/net/context"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"

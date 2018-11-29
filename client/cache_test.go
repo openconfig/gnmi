@@ -17,13 +17,13 @@ limitations under the License.
 package client_test
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
 	"testing"
 	"time"
 
-	"context"
 	"github.com/openconfig/gnmi/client"
 	fake "github.com/openconfig/gnmi/client/fake"
 )

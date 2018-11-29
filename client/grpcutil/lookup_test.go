@@ -17,11 +17,11 @@ limitations under the License.
 package grpcutil
 
 import (
+	"golang.org/x/net/context"
 	"net"
 	"testing"
 
 	log "github.com/golang/glog"
-	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"github.com/openconfig/gnmi/unimplemented"

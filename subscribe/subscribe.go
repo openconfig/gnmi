@@ -18,12 +18,12 @@ limitations under the License.
 package subscribe
 
 import (
+	"context"
 	"errors"
 	"io"
 	"time"
 
 	log "github.com/golang/glog"
-	"context"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"

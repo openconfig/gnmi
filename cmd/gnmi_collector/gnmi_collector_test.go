@@ -17,11 +17,10 @@ limitations under the License.
 package main
 
 import (
+	"context"
 	"path/filepath"
 	"testing"
 	"time"
-
-	"context"
 )
 
 func TestErrorsRunCollector(t *testing.T) {

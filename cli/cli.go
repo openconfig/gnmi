@@ -19,12 +19,12 @@ package cli
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
 	"time"
 
-	"context"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/ctree"
