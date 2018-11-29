@@ -425,7 +425,6 @@ func TestNewAgent(t *testing.T) {
 				}
 				return
 			}
-			go a.Serve()
 			conn, err := grpc.Dial(a.Address(), grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{
 				InsecureSkipVerify: true,
 			})))

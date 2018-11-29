@@ -116,5 +116,5 @@ func main() {
 	}
 
 	log.Infof("Starting RPC server on address: %s", a.Address())
-	a.Serve() // blocks until close
+	select {} // block forever
 }

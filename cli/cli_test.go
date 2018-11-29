@@ -651,7 +651,6 @@ sync_response:true
 			if err != nil {
 				t.Fatal("failed to start test server")
 			}
-			go s.Serve()
 			defer s.Close()
 
 			tt.query.Addrs = []string{s.Address()}
@@ -838,7 +837,6 @@ sync_response:true
 			if err != nil {
 				t.Fatal("failed to start test server")
 			}
-			go s.Serve()
 			defer s.Close()
 
 			tt.query.Addrs = []string{s.Address()}

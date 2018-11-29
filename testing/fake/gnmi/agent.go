@@ -82,12 +82,12 @@ func NewFromServer(s *grpc.Server, config *fpb.Config) (*Agent, error) {
 	}
 	gnmipb.RegisterGNMIServer(a.s, a)
 	log.V(1).Infof("Created Agent: %s on %s", a.target, a.Address())
-	go a.Serve()
+	go a.serve()
 	return a, nil
 }
 
-// Serve will start the agent serving and block until closed.
-func (a *Agent) Serve() error {
+// serve will start the agent serving and block until closed.
+func (a *Agent) serve() error {
 	a.mu.Lock()
 	a.state = fpb.State_RUNNING
 	s := a.s
