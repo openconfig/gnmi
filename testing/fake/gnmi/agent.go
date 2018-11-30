@@ -114,11 +114,6 @@ func (a *Agent) Address() string {
 	return strings.Replace(addr, "[::]", "localhost", 1)
 }
 
-// Port returns the port the agent is listening to.
-func (a *Agent) Port() int32 {
-	return a.config.Port
-}
-
 // State returns the current state of the agent.
 func (a *Agent) State() fpb.State {
 	a.mu.Lock()
