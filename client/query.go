@@ -129,7 +129,8 @@ func (d Destination) Validate() error {
 type Query struct {
 	// Addrs is a slice of addresses by which a target may be reached. Most
 	// clients will only handle the first element.
-	Addrs []string
+	Addrs         []string
+	AddressChains [][]string
 	// Target is the target of the query.  Maybe empty if the query is performed
 	// against an end target vs. a collector.
 	Target string
