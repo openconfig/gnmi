@@ -318,11 +318,14 @@ func (s *Server) processSubscription(c *streamClient) {
 		}()
 	}
 	if !c.sr.GetSubscribe().GetUpdatesOnly() {
-		// remove the target name from the index string
-		prefix := path.ToStrings(c.sr.GetSubscribe().Prefix, true)[1:]
 		for _, subscription := range c.sr.GetSubscribe().Subscription {
-			path := append(prefix, path.ToStrings(subscription.Path, false)...)
-			s.c.Query(c.target, path, func(_ []string, l *ctree.Leaf, _ interface{}) {
+			var fullPath []string
+			fullPath, err = path.CompletePath(c.sr.GetSubscribe().GetPrefix(), subscription.GetPath())
+			if err != nil {
+				return
+			}
+			// Note that fullPath doesn't contain target name as the first element.
+			s.c.Query(c.target, fullPath, func(_ []string, l *ctree.Leaf, _ interface{}) {
 				// Stop processing query results on error.
 				if err != nil {
 					return

@@ -19,6 +19,7 @@ limitations under the License.
 package path
 
 import (
+	"errors"
 	"sort"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -81,4 +82,34 @@ func sortedVals(m map[string]string) []string {
 		vs = append(vs, m[k])
 	}
 	return vs
+}
+
+// CompletePath joins provided prefix and subscription paths. Also, verifies
+// whether origin is set properly according to:
+// https://github.com/openconfig/reference/blob/master/rpc/gnmi/mixed-schema.md
+// Note that this function doesn't add "openconfig" default origin if neither
+// prefix nor path specifies the origin. Also, target field isn't prepended in
+// the returned path.
+func CompletePath(prefix, path *gpb.Path) ([]string, error) {
+	oPre, oPath := prefix.GetOrigin(), path.GetOrigin()
+
+	var fullPrefix []string
+	indexedPrefix := ToStrings(prefix, false)
+	switch {
+	case oPre != "" && oPath != "":
+		return nil, errors.New("origin is set both in prefix and path")
+	case oPre != "":
+		fullPrefix = append(fullPrefix, oPre)
+		fullPrefix = append(fullPrefix, indexedPrefix...)
+	case oPath != "":
+		if len(indexedPrefix) > 0 {
+			return nil, errors.New("path elements in prefix are set even though origin is set in path")
+		}
+		fullPrefix = append(fullPrefix, oPath)
+	default:
+		// Neither prefix nor path specified an origin. Include the path elements in prefix.
+		fullPrefix = append(fullPrefix, indexedPrefix...)
+	}
+
+	return append(fullPrefix, ToStrings(path, false)...), nil
 }

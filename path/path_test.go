@@ -20,6 +20,7 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/openconfig/gnmi/errdiff"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -146,6 +147,53 @@ func TestToStrings(t *testing.T) {
 		r := ToStrings(tt.p, tt.wOd)
 		if !reflect.DeepEqual(r, tt.e) {
 			t.Errorf("ToStrings(%v) = got %v, want %v", tt.p, r, tt.e)
+		}
+	}
+}
+
+func TestCompletePath(t *testing.T) {
+	tests := []struct {
+		desc          string
+		inPrefix      *gpb.Path
+		inPath        *gpb.Path
+		wantSlice     []string
+		wantErrSubstr string
+	}{
+		{
+			desc:      "origin is just set in prefix",
+			inPrefix:  &gpb.Path{Target: "t", Origin: "o"},
+			wantSlice: []string{"o"},
+		},
+		{
+			desc:          "origin is set both in prefix and path",
+			inPrefix:      &gpb.Path{Target: "t", Origin: "o"},
+			inPath:        &gpb.Path{Origin: "o"},
+			wantErrSubstr: "origin is set both in prefix and path",
+		},
+		{
+			desc:          "origin is set in path, but prefix has path elements",
+			inPrefix:      &gpb.Path{Target: "t", Elem: []*gpb.PathElem{{Name: "e"}}},
+			inPath:        &gpb.Path{Origin: "o"},
+			wantErrSubstr: "path elements in prefix are set even though origin is set in path",
+		},
+		{
+			desc:      "origin is set in path properly",
+			inPrefix:  &gpb.Path{Target: "t"},
+			inPath:    &gpb.Path{Origin: "o", Elem: []*gpb.PathElem{{Name: "e"}}},
+			wantSlice: []string{"o", "e"},
+		},
+	}
+
+	for _, tt := range tests {
+		gotSlice, err := CompletePath(tt.inPrefix, tt.inPath)
+		if diff := errdiff.Substring(err, tt.wantErrSubstr); diff != "" {
+			t.Errorf("%s: %v", tt.desc, diff)
+		}
+		if err != nil {
+			continue
+		}
+		if !reflect.DeepEqual(tt.wantSlice, gotSlice) {
+			t.Errorf("%s: got %v, want %v", tt.desc, gotSlice, tt.wantSlice)
 		}
 	}
 }

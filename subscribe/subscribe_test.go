@@ -143,6 +143,123 @@ func TestOnce(t *testing.T) {
 	}
 }
 
+func TestOriginInSubscribeRequest(t *testing.T) {
+	cache.Type = cache.GnmiNoti
+	defer func() {
+		cache.Type = cache.ClientLeaf
+	}()
+	addr, cache, teardown, err := startServer(client.Path{"dev1"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	paths := []client.Path{
+		{"dev1", "a", "b", "c", "d"},
+		{"dev1", "a", "b", "d", "e"},
+		{"dev1", "a", "c", "d", "e"},
+	}
+	var timestamp time.Time
+	sendUpdates(t, cache, paths, &timestamp)
+
+	tests := []struct {
+		desc      string
+		inPrefix  *pb.Path
+		inPath    *pb.Path
+		wantCount int
+		wantErr   bool
+	}{
+		{
+			desc:      "no origin set",
+			inPrefix:  &pb.Path{Target: "dev1", Elem: []*pb.PathElem{{Name: "a"}}},
+			inPath:    &pb.Path{Elem: []*pb.PathElem{}},
+			wantCount: 3,
+		},
+		{
+			desc:      "origin set in prefix",
+			inPrefix:  &pb.Path{Target: "dev1", Origin: "a", Elem: []*pb.PathElem{{Name: "b"}}},
+			inPath:    &pb.Path{Elem: []*pb.PathElem{}},
+			wantCount: 2,
+		},
+		{
+			desc:     "origin set in path with path elements in prefix",
+			inPrefix: &pb.Path{Target: "dev1", Elem: []*pb.PathElem{{Name: "a"}}},
+			inPath:   &pb.Path{Origin: "b"},
+			wantErr:  true,
+		},
+		{
+			desc:      "origin set in path",
+			inPrefix:  &pb.Path{Target: "dev1"},
+			inPath:    &pb.Path{Origin: "a", Elem: []*pb.PathElem{{Name: "b"}}},
+			wantCount: 2,
+		},
+		{
+			desc:     "origin set in path and prefix",
+			inPrefix: &pb.Path{Target: "dev1", Origin: "a", Elem: []*pb.PathElem{{Name: "b"}}},
+			inPath:   &pb.Path{Origin: "c"},
+			wantErr:  true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(fmt.Sprintf("%s: prefix %v and path %v", tt.desc, tt.inPrefix, tt.inPath), func(t *testing.T) {
+			sync := 0
+			count := 0
+			q, err := client.NewQuery(&pb.SubscribeRequest{
+				Request: &pb.SubscribeRequest_Subscribe{
+					Subscribe: &pb.SubscriptionList{
+						Prefix:       tt.inPrefix,
+						Subscription: []*pb.Subscription{{Path: tt.inPath}},
+						Mode:         pb.SubscriptionList_ONCE,
+					},
+				},
+			})
+			if err != nil {
+				t.Fatalf("failed to initialize a client.Query: %v", err)
+			}
+			q.ProtoHandler = func(msg proto.Message) error {
+				resp, ok := msg.(*pb.SubscribeResponse)
+				if !ok {
+					return fmt.Errorf("failed to type assert message %#v", msg)
+				}
+				switch v := resp.Response.(type) {
+				case *pb.SubscribeResponse_Update:
+					count++
+				case *pb.SubscribeResponse_Error:
+					return fmt.Errorf("error in response: %s", v)
+				case *pb.SubscribeResponse_SyncResponse:
+					sync++
+				default:
+					return fmt.Errorf("unknown response %T: %s", v, v)
+				}
+
+				return nil
+			}
+			q.TLS = &tls.Config{InsecureSkipVerify: true}
+			q.Addrs = []string{addr}
+
+			c := client.BaseClient{}
+			err = c.Subscribe(context.Background(), q, gnmiclient.Type)
+			defer c.Close()
+			if tt.wantErr {
+				if err == nil {
+					t.Fatal("got nil, want err")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatalf("got %v, want no error", err)
+			}
+			if sync != 1 {
+				t.Errorf("got %d sync messages, want 1", sync)
+			}
+			if count != tt.wantCount {
+				t.Errorf("got %d updates, want %d", count, tt.wantCount)
+			}
+		})
+	}
+}
+
 func TestGNMIOnce(t *testing.T) {
 	cache.Type = cache.GnmiNoti
 	defer func() {
