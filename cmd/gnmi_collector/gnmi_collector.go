@@ -157,6 +157,14 @@ func (s *state) handleUpdate(msg proto.Message) error {
 	}
 	switch v := resp.Response.(type) {
 	case *gnmipb.SubscribeResponse_Update:
+		// Gracefully handle gNMI implementations that do not set Prefix.Target in their
+		// SubscribeResponse Updates.
+		if v.Update.GetPrefix() == nil {
+			v.Update.Prefix = &gnmipb.Path{}
+		}
+		if v.Update.Prefix.Target == "" {
+			v.Update.Prefix.Target = s.name
+		}
 		s.target.GnmiUpdate(v.Update)
 	case *gnmipb.SubscribeResponse_SyncResponse:
 		s.target.Sync()
