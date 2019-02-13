@@ -1,28 +1,26 @@
 # gNMI - gRPC Network Management Interface
-
-This repository contains reference Go implementations for gNMI.
+> Reference Go implementations for gNMI, a service defining an interface for a network management system to interact with a network element.  
 
 **Note:** This is not an official Google product.
 
 The implementations include:
 
-- client library implementation using `gnmi.proto`
+- Client library implementation using `gnmi.proto`
 - CLI for interacting with a gNMI service
-- Caching collector that connects to multiple gNMI targets and makes the data
-  available over a single gNMI Subscribe RPC to clients
+- Caching collector which connects to multiple gNMI targets and makes the data available over a single gNMI Subscribe RPC to clients
 
-## Installing
+## Client Library
+The main entry point for using the client libraries is in
+`github.com/openconfig/gnmi/client`.
 
-To install the CLI, run
+See [godoc pages](https://godoc.org/github.com/openconfig/gnmi/client) for
+documentation and usage examples.
 
-    go get -u github.com/openconfig/gnmi/cmd/gnmi_cli
-
-### CLI Usage
-
-The CLI provides reference gNMI functionality for verification against server implementations.
+## CLI
+The CLI provides reference gNMI functionality for verification against server implementations. For a complete list of arguments, run `gnmi_cli -h`.
 
 ```
-./gnmi_cli --help
+./gnmi_cli -h
 Usage of ./gnmi_cli:
   -a value
     	Short for address.
@@ -126,7 +124,15 @@ Usage of ./gnmi_cli:
     	When set, CLI will prompt for username/password to use when connecting to a target.
 ```
 
-There are several methods of authenticating, `-with_user_pass`, `-credentials_file`, and `-insecure_username`/`-insecure_password`.
+### Installation
+To install the CLI, run:
+
+```bash
+go get -u github.com/openconfig/gnmi/cmd/gnmi_cli
+```
+
+### Authentication
+There are several methods of authentication, each exclusive in their usage.
 * `-with_user_pass` will prompt the user at runtime for authentication credentials.
 * `-credentials_file` will expect a JSON file (e.g. `creds.json`) with the `Username` and `Password` fields.
 
@@ -139,6 +145,7 @@ There are several methods of authenticating, `-with_user_pass`, `-credentials_fi
 
 * `-insecure_username` and `-insecure_password` expect the associated arguments via the CLI. This is more insecure than other methods and is not generally recommended.
 
+### Proto Specification
 The gNMI CLI client can consume a textual proto format which is useful when testing.
 
 `interfaces.proto.txt`
@@ -162,14 +169,92 @@ The gNMI CLI client can consume a textual proto format which is useful when test
 >
 ```
 
-A simple example query tying together the above...
+### Examples
 
-`gnmi_cli -address 127.0.0.1:57400 -credentials_file creds.json -qt s -insecure -proto "$(cat interfaces.proto.txt)"`
+```bash
+gnmi_cli -address 127.0.0.1:57400 -insecure -credentials_file creds.json -qt s -proto "$(cat interfaces.proto.txt)"`
+```
 
-## Client libraries
+## Caching Collector
+The Caching Collector is a reference collector implementation which may connect to multiple gNMI targets and make the data available over a single gNMI Subscribe RPC to clients. For a complete list of arguments, run `gnmi_collector -h`.
 
-The main entry point for using the client libraries is in
-`github.com/openconfig/gnmi/client`.
+```
+./gnmi_collector -h
+Usage of ./gnmi_collector:
+  -alsologtostderr
+    	log to standard error as well as files
+  -cert_file string
+    	File path for TLS certificate.
+  -config_file string
+    	File path for collector configuration.
+  -dial_timeout duration
+    	Timeout for dialing a connection to a target. (default 1m0s)
+  -key_file string
+    	File path for TLS key.
+  -log_backtrace_at value
+    	when logging hits line file:N, emit a stack trace
+  -log_dir string
+    	If non-empty, write log files in this directory
+  -logtostderr
+    	log to standard error instead of files
+  -metadata_update_period duration
+    	Period for target metadata update. 0 disables updates.
+  -port int
+    	server port
+  -size_update_period duration
+    	Period for updating the target size in metadata. 0 disables updates.
+  -stderrthreshold value
+    	logs at or above this threshold go to stderr
+  -v value
+    	log level for V logs
+  -vmodule value
+    	comma-separated list of pattern=N settings for file-filtered logging
+```
 
-See [godoc pages](https://godoc.org/github.com/openconfig/gnmi/client) for
-documentation and usage examples.
+### Installation
+To install the Collector, run:
+
+```bash
+go get -u github.com/openconfig/gnmi/cmd/gnmi_collector
+```
+### Configuration
+Configuration is specified with a textual proto format.
+
+`example.cfg`
+```proto
+request: <
+  key: "interfaces"
+  value: <
+    subscribe: <
+      prefix: <
+        origin: "openconfig"
+      >
+      subscription: <
+        path: <
+          elem: <
+            name: "interfaces"
+          >
+        >
+      >
+    >
+  >
+>
+target: <
+  key: "target1"
+  value: <
+    address: "127.0.0.1:9998"
+    request: "interfaces"
+    credentials: <
+      username: "username"
+      password: "password"
+    >
+  >
+>
+```
+
+### Examples
+After starting a collector, you should be able to use other gNMI clients to retrieve information from the collector by connecting to the specified port.
+
+```bash
+gnmi_collector -config_file example.cfg -cert_file cert.pem -key_file key.pem -port 8888 -alsologtostderr
+```
