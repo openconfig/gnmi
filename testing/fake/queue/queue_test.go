@@ -355,6 +355,76 @@ func TestUpdateDoubleValue(t *testing.T) {
 	}
 }
 
+func TestUpdateBoolValue(t *testing.T) {
+	tests := []struct {
+		desc  string
+		value *fpb.Value
+		want  *fpb.Value
+		err   string
+	}{{
+		desc:  "Nil Value",
+		value: &fpb.Value{},
+		err:   "invalid BoolValue",
+	}, {
+		desc: "no options, random in list",
+		value: &fpb.Value{
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{Distribution: &fpb.BoolValue_List{
+				List: &fpb.BoolList{Random: true}}}}},
+		err: "missing options on BoolValue_List",
+	}, {
+		desc: "Four options, random in list, using global seed",
+		value: &fpb.Value{
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{Distribution: &fpb.BoolValue_List{
+				List: &fpb.BoolList{Options: []bool{true, true, false, false}, Random: true}}}}},
+		want: &fpb.Value{
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{
+				Value: false,
+				Distribution: &fpb.BoolValue_List{
+					List: &fpb.BoolList{
+						Options: []bool{true, true, false, false}, Random: true}}}}},
+	}, {
+		desc: "Four options, random in list, using local seed",
+		value: &fpb.Value{
+			Seed: 10,
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{Distribution: &fpb.BoolValue_List{
+				List: &fpb.BoolList{Random: true, Options: []bool{true, true, false, false}}}}}},
+		want: &fpb.Value{
+			Seed: 10,
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{
+				Value: false,
+				Distribution: &fpb.BoolValue_List{
+					List: &fpb.BoolList{Random: true, Options: []bool{true, true, false, false}}}}}},
+	}, {
+		desc: "Four options, non-random in list",
+		value: &fpb.Value{
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{Distribution: &fpb.BoolValue_List{
+				List: &fpb.BoolList{Random: false, Options: []bool{true, true, false, false}}}}}},
+		want: &fpb.Value{
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{
+				Value: true,
+				Distribution: &fpb.BoolValue_List{
+					List: &fpb.BoolList{Random: false, Options: []bool{true, false, false, true}}}}}},
+	}, {
+		desc: "constant",
+		value: &fpb.Value{
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{Value: true}}},
+		want: &fpb.Value{
+			Value: &fpb.Value_BoolValue{&fpb.BoolValue{Value: true}}},
+	}}
+	for _, tc := range tests {
+		t.Run(tc.desc, func(t *testing.T) {
+			v := newValue(tc.value, rand.New(rand.NewSource(seed)))
+			err := v.updateBoolValue()
+			if diff := errdiff.Substring(err, tc.err); diff != "" {
+				t.Errorf("newValue(%q).updateBoolValue() %v", tc.value, diff)
+			}
+			if diff := pretty.Compare(v.v, tc.want); err == nil && diff != "" {
+				t.Errorf("newValue(%q).updatedBoolValue() %v", tc.value, diff)
+			}
+		})
+	}
+}
+
 func TestUpdateStringValue(t *testing.T) {
 	tests := []struct {
 		desc  string
@@ -757,6 +827,10 @@ func TestValueOf(t *testing.T) {
 		desc: "Sync value",
 		in:   &fpb.Value{Value: &fpb.Value_Sync{uint64(1)}},
 		want: uint64(1),
+	}, {
+		desc: "Bool value",
+		in:   &fpb.Value{Value: &fpb.Value_BoolValue{&fpb.BoolValue{Value: true}}},
+		want: true,
 	}}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
@@ -992,6 +1066,10 @@ func TestTypedValueOf(t *testing.T) {
 		desc: "sync value",
 		in:   &fpb.Value{Value: &fpb.Value_Sync{uint64(1)}},
 		want: nil,
+	}, {
+		desc: "bool value",
+		in:   &fpb.Value{Value: &fpb.Value_BoolValue{&fpb.BoolValue{Value: true}}},
+		want: &gpb.TypedValue{Value: &gpb.TypedValue_BoolVal{true}},
 	}}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {

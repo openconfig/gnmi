@@ -116,6 +116,7 @@ message Value {
     StringValue string_value = 102;
     uint64 sync = 103;
     DeleteValue delete = 104;
+    BoolValue bool_value = 105;
   }
 }
 
@@ -215,6 +216,25 @@ message StringValue {
 message StringList {
   // The set of strings which can be used.
   repeated string options = 1;
+  // Set to true to randomize selection of value from options. If false, the
+  // values are cycled in order, starting at index 0.
+  bool random = 2;
+}
+
+message BoolValue {
+  // If distribution is BoolList, value is only used to hold the value as it
+  // mutates.
+  // If no distribution is set, value is used as it mutates, i.e. constant
+  // update.
+  bool value = 1;
+  oneof distribution {
+    BoolList list = 2;
+  }
+}
+
+message BoolList {
+  // The set of values which can be used.
+  repeated bool options = 1;
   // Set to true to randomize selection of value from options. If false, the
   // values are cycled in order, starting at index 0.
   bool random = 2;

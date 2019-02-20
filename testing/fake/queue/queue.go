@@ -308,6 +308,32 @@ func (v *value) updateStringValue() error {
 	return nil
 }
 
+func (v *value) updateBoolValue() error {
+	val := v.v.GetBoolValue()
+	if val == nil {
+		return fmt.Errorf("invalid BoolValue for %q", v.v)
+	}
+	var newval bool
+	switch val.Distribution.(type) {
+	case *fpb.BoolValue_List:
+		list := val.GetList()
+		options := list.Options
+		if len(options) == 0 {
+			return fmt.Errorf("missing options on BoolValue_List for %q", v.v)
+		}
+		if list.Random {
+			newval = options[v.r.Intn(len(options))]
+		} else {
+			newval = options[0]
+			list.Options = append(options[1:], options[0])
+		}
+	default:
+		newval = val.Value
+	}
+	val.Value = newval
+	return nil
+}
+
 func (v *value) nextValue() error {
 	if v.v.Repeat == 1 {
 		// This value has exhausted all of its updates, drop it.
@@ -329,6 +355,8 @@ func (v *value) nextValue() error {
 		return v.updateDoubleValue()
 	case *fpb.Value_StringValue:
 		return v.updateStringValue()
+	case *fpb.Value_BoolValue:
+		return v.updateBoolValue()
 	case *fpb.Value_Sync:
 		return nil
 	case *fpb.Value_Delete:
@@ -347,6 +375,8 @@ func ValueOf(v *fpb.Value) interface{} {
 		return val.DoubleValue.Value
 	case *fpb.Value_StringValue:
 		return val.StringValue.Value
+	case *fpb.Value_BoolValue:
+		return val.BoolValue.Value
 	case *fpb.Value_Sync:
 		return val.Sync
 	case *fpb.Value_Delete:
@@ -367,6 +397,8 @@ func TypedValueOf(v *fpb.Value) *gpb.TypedValue {
 		tv.Value = &gpb.TypedValue_FloatVal{float32(val.DoubleValue.Value)}
 	case *fpb.Value_StringValue:
 		tv.Value = &gpb.TypedValue_StringVal{val.StringValue.Value}
+	case *fpb.Value_BoolValue:
+		tv.Value = &gpb.TypedValue_BoolVal{val.BoolValue.Value}
 	default:
 		return nil
 	}
