@@ -5,7 +5,7 @@ import (
 	"context"
 )
 
-// Watcher watches a file at the given path for changes.
+// Watcher watches files at the given paths for changes.
 type Watcher interface {
 	// Read blocks and returns the next update for a file. An error is returned
 	// when the file cannot be read. Subsequent calls block until the underlying
@@ -15,7 +15,15 @@ type Watcher interface {
 	// If ctx is cancelled, Read returns an error.
 	Read(ctx context.Context) (Update, error)
 
-	// Close causes Watcher to stop watching a file and release its resources.
+	// Add causes Watcher to monitor an additional file. The format is
+	// filesystem-specific. If Close has been called, this has no effect.
+	Add(path string) error
+
+	// Remove causes Watcher to stop monitoring a file. The path must match one
+	// already monitored in the same format. The format is filesystem-specific.
+	Remove(path string) error
+
+	// Close causes Watcher to stop watching all files and release its resources.
 	Close()
 }
 
