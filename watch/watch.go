@@ -1,4 +1,5 @@
-// Package watch detects raw changes to files.
+// Package watch detects raw changes to files. The interpretation of a file is
+// filesystem-specific.
 package watch
 
 import (
@@ -15,11 +16,11 @@ type Watcher interface {
 	// If ctx is cancelled, Read returns an error.
 	Read(ctx context.Context) (Update, error)
 
-	// Add causes Watcher to monitor an additional file. The format is
+	// Add causes Watcher to monitor an additional path. The format is
 	// filesystem-specific. If Close has been called, this has no effect.
 	Add(path string) error
 
-	// Remove causes Watcher to stop monitoring a file. The path must match one
+	// Remove causes Watcher to stop monitoring a path. The path must match one
 	// already monitored in the same format. The format is filesystem-specific.
 	Remove(path string) error
 
@@ -28,7 +29,7 @@ type Watcher interface {
 }
 
 // Update represents contents for a file. Path can represent fan-out on
-// individual files when watching a directory path.
+// individual files when watching a path that contains multiple files.
 type Update struct {
 	Path     string
 	Contents []byte
