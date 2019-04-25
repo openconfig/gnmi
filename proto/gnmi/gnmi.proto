@@ -140,7 +140,7 @@ message Path {
                                                   // (Sec. 2.2.2.1)
 }
 
-// PathElem encodes an element of a gNMI path, along ith any attributes (keys)
+// PathElem encodes an element of a gNMI path, along with any attributes (keys)
 // that may be associated with it.
 // Reference: gNMI Specification Section 2.2.2.
 message PathElem {
