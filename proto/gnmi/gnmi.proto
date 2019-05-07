@@ -285,7 +285,7 @@ message Subscription {
   Path path = 1;                    // The data tree path.
   SubscriptionMode mode = 2;        // Subscription mode to be used.
   uint64 sample_interval = 3;       // ns between samples in SAMPLE mode.
-  // Indicates whether values that not changed should be sent in a SAMPLE
+  // Indicates whether values that have not changed should be sent in a SAMPLE
   // subscription.
   bool suppress_redundant = 4;
   // Specifies the maximum allowable silent period in nanoseconds when
