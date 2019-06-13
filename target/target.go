@@ -120,18 +120,17 @@ func (c *Config) handleDiffs(config *pb.Configuration) {
 	}
 
 	for k, t := range c.configuration.GetTarget() {
-		rc := requestChanged[t.GetRequest()]
-		r := config.GetRequest()[t.GetRequest()]
 		nt := newTargets[k]
 		switch {
 		case nt == nil:
 			if c.h.Delete != nil {
 				c.h.Delete(k)
 			}
-		case !rc && proto.Equal(t, nt):
+		case !requestChanged[t.GetRequest()] && proto.Equal(t, nt):
 			delete(newTargets, k)
 		default:
 			if c.h.Update != nil {
+				r := config.GetRequest()[nt.GetRequest()]
 				c.h.Update(Update{
 					Name:    k,
 					Request: r,

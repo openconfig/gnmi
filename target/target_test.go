@@ -28,22 +28,22 @@ import (
 )
 
 type record struct {
-	adds    []string
-	updates []string
+	adds    []Update
+	updates []Update
 	deletes []string
 }
 
-func (r *record) assertLast(t *testing.T, wantAdd, wantUpdate, wantDelete []string) {
-	sort.Strings(r.adds)
-	sort.Strings(r.updates)
+func (r *record) assertLast(t *testing.T, desc string, wantAdd, wantUpdate []Update, wantDelete []string) {
+	sort.Slice(r.adds, func(i int, j int) bool { return r.adds[i].Name < r.adds[j].Name })
+	sort.Slice(r.updates, func(i int, j int) bool { return r.updates[i].Name < r.updates[j].Name })
 	sort.Strings(r.deletes)
 	switch {
 	case !reflect.DeepEqual(r.adds, wantAdd):
-		t.Errorf("Mismatched adds: got %v, want %v", r.adds, wantAdd)
+		t.Errorf("%v: Mismatched adds: got %v, want %+v", desc, r.adds, wantAdd)
 	case !reflect.DeepEqual(r.updates, wantUpdate):
-		t.Errorf("Mismatched updates: got %v, want %v", r.updates, wantUpdate)
+		t.Errorf("%v: Mismatched updates: got %v, want %+v", desc, r.updates, wantUpdate)
 	case !reflect.DeepEqual(r.deletes, wantDelete):
-		t.Errorf("Mismatched deletes: got %v, want %v", r.deletes, wantDelete)
+		t.Errorf("%v: Mismatched deletes: got %v, want %v", desc, r.deletes, wantDelete)
 	}
 	r.adds = nil
 	r.updates = nil
@@ -195,15 +195,84 @@ func TestLoad(t *testing.T) {
 				Revision: 1,
 			},
 			wantUpdate: []string{"dev1", "dev2"},
+		}, {
+			desc: "modify subscription key",
+			initial: &pb.Configuration{
+				Request: map[string]*gpb.SubscribeRequest{
+					"sub1": &gpb.SubscribeRequest{
+						Request: &gpb.SubscribeRequest_Subscribe{
+							&gpb.SubscriptionList{
+								Subscription: []*gpb.Subscription{
+									{
+										Path: &gpb.Path{
+											Elem: []*gpb.PathElem{{Name: "path2"}},
+										},
+									},
+								},
+							},
+						},
+					},
+					"sub3": &gpb.SubscribeRequest{},
+				},
+				Target: map[string]*pb.Target{
+					"dev1": {
+						Request:   "sub1",
+						Addresses: []string{"11.111.111.11:11111"},
+					},
+					"dev2": {
+						Request:   "sub1",
+						Addresses: []string{"22.222.222.22:22222"},
+					},
+					"dev3": {
+						Request:   "sub3",
+						Addresses: []string{"33.333.333.33:33333"},
+					},
+				},
+				Revision: 0,
+			},
+			toLoad: &pb.Configuration{
+				Request: map[string]*gpb.SubscribeRequest{
+					"sub1": &gpb.SubscribeRequest{
+						Request: &gpb.SubscribeRequest_Subscribe{
+							&gpb.SubscriptionList{
+								Subscription: []*gpb.Subscription{
+									{
+										Path: &gpb.Path{
+											Elem: []*gpb.PathElem{{Name: "path2"}},
+										},
+									},
+								},
+							},
+						},
+					},
+					"sub3": &gpb.SubscribeRequest{},
+				},
+				Target: map[string]*pb.Target{
+					"dev1": {
+						Request:   "sub1",
+						Addresses: []string{"11.111.111.11:11111"},
+					},
+					"dev2": {
+						Request:   "sub3",
+						Addresses: []string{"22.222.222.22:22222"},
+					},
+					"dev3": {
+						Request:   "sub3",
+						Addresses: []string{"33.333.333.33:33333"},
+					},
+				},
+				Revision: 1,
+			},
+			wantUpdate: []string{"dev2"},
 		},
 	} {
 		r := &record{}
 		h := Handler{
 			Add: func(c Update) {
-				r.adds = append(r.adds, c.Name)
+				r.adds = append(r.adds, Update{c.Name, c.Request, c.Target})
 			},
 			Update: func(c Update) {
-				r.updates = append(r.updates, c.Name)
+				r.updates = append(r.updates, Update{c.Name, c.Request, c.Target})
 			},
 			Delete: func(s string) {
 				r.deletes = append(r.deletes, s)
@@ -217,7 +286,22 @@ func TestLoad(t *testing.T) {
 			if diff := cmp.Diff(tt.toLoad, c.Current(), cmp.Comparer(proto.Equal)); diff != "" {
 				t.Errorf("%v: wrong state: (-want +got)\n%s", tt.desc, diff)
 			}
-			r.assertLast(t, tt.wantAdd, tt.wantUpdate, tt.wantDelete)
+			updates := func(want []string, c *pb.Configuration) []Update {
+				if want == nil {
+					return nil
+				}
+				u := []Update{}
+				for _, n := range want {
+					ta := c.GetTarget()[n]
+					u = append(u, Update{
+						Name:    n,
+						Request: c.GetRequest()[ta.GetRequest()],
+						Target:  ta,
+					})
+				}
+				return u
+			}
+			r.assertLast(t, tt.desc, updates(tt.wantAdd, tt.toLoad), updates(tt.wantUpdate, tt.toLoad), tt.wantDelete)
 		case err == nil:
 			t.Errorf("%v: did not get expected error", tt.desc)
 		case !tt.err:
