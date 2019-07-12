@@ -401,7 +401,8 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 		// s.processSubscription will send a sync marker, handle it separately.
 		if _, ok := item.(syncMarker); ok {
 			if err = c.stream.Send(subscribeSync); err != nil {
-				break
+				c.errC <- err
+				return
 			}
 			continue
 		}
