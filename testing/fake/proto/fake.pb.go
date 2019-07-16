@@ -3,11 +3,13 @@
 
 package gnmi_fake
 
-import proto "github.com/golang/protobuf/proto"
-import fmt "fmt"
-import math "math"
-import any "github.com/golang/protobuf/ptypes/any"
-import gnmi "github.com/openconfig/gnmi/proto/gnmi"
+import (
+	fmt "fmt"
+	proto "github.com/golang/protobuf/proto"
+	any "github.com/golang/protobuf/ptypes/any"
+	gnmi "github.com/openconfig/gnmi/proto/gnmi"
+	math "math"
+)
 
 // Reference imports to suppress errors if they are not otherwise used.
 var _ = proto.Marshal
@@ -18,7 +20,7 @@ var _ = math.Inf
 // is compatible with the proto package it is being compiled against.
 // A compilation error at this line likely means your copy of the
 // proto package needs to be updated.
-const _ = proto.ProtoPackageIsVersion2 // please upgrade the proto package
+const _ = proto.ProtoPackageIsVersion3 // please upgrade the proto package
 
 type State int32
 
@@ -33,6 +35,7 @@ var State_name = map[int32]string{
 	1: "INIT",
 	2: "RUNNING",
 }
+
 var State_value = map[string]int32{
 	"STOPPED": 0,
 	"INIT":    1,
@@ -42,8 +45,9 @@ var State_value = map[string]int32{
 func (x State) String() string {
 	return proto.EnumName(State_name, int32(x))
 }
+
 func (State) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{0}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{0}
 }
 
 type Config_ClientType int32
@@ -61,6 +65,7 @@ var Config_ClientType_name = map[int32]string{
 	2: "GRPC_GNMI",
 	3: "GRPC_GNMI_PROD",
 }
+
 var Config_ClientType_value = map[string]int32{
 	"GRPC":           0,
 	"STUBBY":         1,
@@ -71,8 +76,9 @@ var Config_ClientType_value = map[string]int32{
 func (x Config_ClientType) String() string {
 	return proto.EnumName(Config_ClientType_name, int32(x))
 }
+
 func (Config_ClientType) EnumDescriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{2, 0}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{2, 0}
 }
 
 // Configuration is used to store all agent configuration for the fake agent
@@ -89,16 +95,17 @@ func (m *Configuration) Reset()         { *m = Configuration{} }
 func (m *Configuration) String() string { return proto.CompactTextString(m) }
 func (*Configuration) ProtoMessage()    {}
 func (*Configuration) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{0}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{0}
 }
+
 func (m *Configuration) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Configuration.Unmarshal(m, b)
 }
 func (m *Configuration) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Configuration.Marshal(b, m, deterministic)
 }
-func (dst *Configuration) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Configuration.Merge(dst, src)
+func (m *Configuration) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Configuration.Merge(m, src)
 }
 func (m *Configuration) XXX_Size() int {
 	return xxx_messageInfo_Configuration.Size(m)
@@ -128,16 +135,17 @@ func (m *Credentials) Reset()         { *m = Credentials{} }
 func (m *Credentials) String() string { return proto.CompactTextString(m) }
 func (*Credentials) ProtoMessage()    {}
 func (*Credentials) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{1}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{1}
 }
+
 func (m *Credentials) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Credentials.Unmarshal(m, b)
 }
 func (m *Credentials) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Credentials.Marshal(b, m, deterministic)
 }
-func (dst *Credentials) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Credentials.Merge(dst, src)
+func (m *Credentials) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Credentials.Merge(m, src)
 }
 func (m *Credentials) XXX_Size() int {
 	return xxx_messageInfo_Credentials.Size(m)
@@ -209,16 +217,17 @@ func (m *Config) Reset()         { *m = Config{} }
 func (m *Config) String() string { return proto.CompactTextString(m) }
 func (*Config) ProtoMessage()    {}
 func (*Config) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{2}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{2}
 }
+
 func (m *Config) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Config.Unmarshal(m, b)
 }
 func (m *Config) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Config.Marshal(b, m, deterministic)
 }
-func (dst *Config) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Config.Merge(dst, src)
+func (m *Config) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Config.Merge(m, src)
 }
 func (m *Config) XXX_Size() int {
 	return xxx_messageInfo_Config.Size(m)
@@ -351,97 +360,13 @@ func (m *Config) GetFixed() *FixedGenerator {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Config) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Config_OneofMarshaler, _Config_OneofUnmarshaler, _Config_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Config) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Config_Custom)(nil),
 		(*Config_Random)(nil),
 		(*Config_Fixed)(nil),
 	}
-}
-
-func _Config_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Config)
-	// generator
-	switch x := m.Generator.(type) {
-	case *Config_Custom:
-		b.EncodeVarint(100<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Custom); err != nil {
-			return err
-		}
-	case *Config_Random:
-		b.EncodeVarint(101<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Random); err != nil {
-			return err
-		}
-	case *Config_Fixed:
-		b.EncodeVarint(102<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Fixed); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Config.Generator has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Config_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Config)
-	switch tag {
-	case 100: // generator.custom
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(any.Any)
-		err := b.DecodeMessage(msg)
-		m.Generator = &Config_Custom{msg}
-		return true, err
-	case 101: // generator.random
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(RandomGenerator)
-		err := b.DecodeMessage(msg)
-		m.Generator = &Config_Random{msg}
-		return true, err
-	case 102: // generator.fixed
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(FixedGenerator)
-		err := b.DecodeMessage(msg)
-		m.Generator = &Config_Fixed{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Config_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Config)
-	// generator
-	switch x := m.Generator.(type) {
-	case *Config_Custom:
-		s := proto.Size(x.Custom)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Config_Random:
-		s := proto.Size(x.Random)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Config_Fixed:
-		s := proto.Size(x.Fixed)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type FixedGenerator struct {
@@ -455,16 +380,17 @@ func (m *FixedGenerator) Reset()         { *m = FixedGenerator{} }
 func (m *FixedGenerator) String() string { return proto.CompactTextString(m) }
 func (*FixedGenerator) ProtoMessage()    {}
 func (*FixedGenerator) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{3}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{3}
 }
+
 func (m *FixedGenerator) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_FixedGenerator.Unmarshal(m, b)
 }
 func (m *FixedGenerator) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_FixedGenerator.Marshal(b, m, deterministic)
 }
-func (dst *FixedGenerator) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_FixedGenerator.Merge(dst, src)
+func (m *FixedGenerator) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_FixedGenerator.Merge(m, src)
 }
 func (m *FixedGenerator) XXX_Size() int {
 	return xxx_messageInfo_FixedGenerator.Size(m)
@@ -494,16 +420,17 @@ func (m *RandomGenerator) Reset()         { *m = RandomGenerator{} }
 func (m *RandomGenerator) String() string { return proto.CompactTextString(m) }
 func (*RandomGenerator) ProtoMessage()    {}
 func (*RandomGenerator) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{4}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{4}
 }
+
 func (m *RandomGenerator) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_RandomGenerator.Unmarshal(m, b)
 }
 func (m *RandomGenerator) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_RandomGenerator.Marshal(b, m, deterministic)
 }
-func (dst *RandomGenerator) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_RandomGenerator.Merge(dst, src)
+func (m *RandomGenerator) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_RandomGenerator.Merge(m, src)
 }
 func (m *RandomGenerator) XXX_Size() int {
 	return xxx_messageInfo_RandomGenerator.Size(m)
@@ -539,16 +466,17 @@ func (m *DeleteValue) Reset()         { *m = DeleteValue{} }
 func (m *DeleteValue) String() string { return proto.CompactTextString(m) }
 func (*DeleteValue) ProtoMessage()    {}
 func (*DeleteValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{5}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{5}
 }
+
 func (m *DeleteValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DeleteValue.Unmarshal(m, b)
 }
 func (m *DeleteValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DeleteValue.Marshal(b, m, deterministic)
 }
-func (dst *DeleteValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DeleteValue.Merge(dst, src)
+func (m *DeleteValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DeleteValue.Merge(m, src)
 }
 func (m *DeleteValue) XXX_Size() int {
 	return xxx_messageInfo_DeleteValue.Size(m)
@@ -584,6 +512,7 @@ type Value struct {
 	//	*Value_StringValue
 	//	*Value_Sync
 	//	*Value_Delete
+	//	*Value_BoolValue
 	Value                isValue_Value `protobuf_oneof:"value"`
 	XXX_NoUnkeyedLiteral struct{}      `json:"-"`
 	XXX_unrecognized     []byte        `json:"-"`
@@ -594,16 +523,17 @@ func (m *Value) Reset()         { *m = Value{} }
 func (m *Value) String() string { return proto.CompactTextString(m) }
 func (*Value) ProtoMessage()    {}
 func (*Value) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{6}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{6}
 }
+
 func (m *Value) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Value.Unmarshal(m, b)
 }
 func (m *Value) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Value.Marshal(b, m, deterministic)
 }
-func (dst *Value) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Value.Merge(dst, src)
+func (m *Value) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Value.Merge(m, src)
 }
 func (m *Value) XXX_Size() int {
 	return xxx_messageInfo_Value.Size(m)
@@ -666,6 +596,10 @@ type Value_Delete struct {
 	Delete *DeleteValue `protobuf:"bytes,104,opt,name=delete,proto3,oneof"`
 }
 
+type Value_BoolValue struct {
+	BoolValue *BoolValue `protobuf:"bytes,105,opt,name=bool_value,json=boolValue,proto3,oneof"`
+}
+
 func (*Value_IntValue) isValue_Value() {}
 
 func (*Value_DoubleValue) isValue_Value() {}
@@ -675,6 +609,8 @@ func (*Value_StringValue) isValue_Value() {}
 func (*Value_Sync) isValue_Value() {}
 
 func (*Value_Delete) isValue_Value() {}
+
+func (*Value_BoolValue) isValue_Value() {}
 
 func (m *Value) GetValue() isValue_Value {
 	if m != nil {
@@ -718,130 +654,23 @@ func (m *Value) GetDelete() *DeleteValue {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*Value) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _Value_OneofMarshaler, _Value_OneofUnmarshaler, _Value_OneofSizer, []interface{}{
+func (m *Value) GetBoolValue() *BoolValue {
+	if x, ok := m.GetValue().(*Value_BoolValue); ok {
+		return x.BoolValue
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*Value) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*Value_IntValue)(nil),
 		(*Value_DoubleValue)(nil),
 		(*Value_StringValue)(nil),
 		(*Value_Sync)(nil),
 		(*Value_Delete)(nil),
+		(*Value_BoolValue)(nil),
 	}
-}
-
-func _Value_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*Value)
-	// value
-	switch x := m.Value.(type) {
-	case *Value_IntValue:
-		b.EncodeVarint(100<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.IntValue); err != nil {
-			return err
-		}
-	case *Value_DoubleValue:
-		b.EncodeVarint(101<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.DoubleValue); err != nil {
-			return err
-		}
-	case *Value_StringValue:
-		b.EncodeVarint(102<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.StringValue); err != nil {
-			return err
-		}
-	case *Value_Sync:
-		b.EncodeVarint(103<<3 | proto.WireVarint)
-		b.EncodeVarint(uint64(x.Sync))
-	case *Value_Delete:
-		b.EncodeVarint(104<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Delete); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("Value.Value has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _Value_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*Value)
-	switch tag {
-	case 100: // value.int_value
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(IntValue)
-		err := b.DecodeMessage(msg)
-		m.Value = &Value_IntValue{msg}
-		return true, err
-	case 101: // value.double_value
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(DoubleValue)
-		err := b.DecodeMessage(msg)
-		m.Value = &Value_DoubleValue{msg}
-		return true, err
-	case 102: // value.string_value
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(StringValue)
-		err := b.DecodeMessage(msg)
-		m.Value = &Value_StringValue{msg}
-		return true, err
-	case 103: // value.sync
-		if wire != proto.WireVarint {
-			return true, proto.ErrInternalBadWireType
-		}
-		x, err := b.DecodeVarint()
-		m.Value = &Value_Sync{x}
-		return true, err
-	case 104: // value.delete
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(DeleteValue)
-		err := b.DecodeMessage(msg)
-		m.Value = &Value_Delete{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _Value_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*Value)
-	// value
-	switch x := m.Value.(type) {
-	case *Value_IntValue:
-		s := proto.Size(x.IntValue)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Value_DoubleValue:
-		s := proto.Size(x.DoubleValue)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Value_StringValue:
-		s := proto.Size(x.StringValue)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *Value_Sync:
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(x.Sync))
-	case *Value_Delete:
-		s := proto.Size(x.Delete)
-		n += 2 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type Timestamp struct {
@@ -864,16 +693,17 @@ func (m *Timestamp) Reset()         { *m = Timestamp{} }
 func (m *Timestamp) String() string { return proto.CompactTextString(m) }
 func (*Timestamp) ProtoMessage()    {}
 func (*Timestamp) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{7}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{7}
 }
+
 func (m *Timestamp) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_Timestamp.Unmarshal(m, b)
 }
 func (m *Timestamp) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_Timestamp.Marshal(b, m, deterministic)
 }
-func (dst *Timestamp) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_Timestamp.Merge(dst, src)
+func (m *Timestamp) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_Timestamp.Merge(m, src)
 }
 func (m *Timestamp) XXX_Size() int {
 	return xxx_messageInfo_Timestamp.Size(m)
@@ -926,16 +756,17 @@ func (m *IntValue) Reset()         { *m = IntValue{} }
 func (m *IntValue) String() string { return proto.CompactTextString(m) }
 func (*IntValue) ProtoMessage()    {}
 func (*IntValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{8}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{8}
 }
+
 func (m *IntValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IntValue.Unmarshal(m, b)
 }
 func (m *IntValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IntValue.Marshal(b, m, deterministic)
 }
-func (dst *IntValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IntValue.Merge(dst, src)
+func (m *IntValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IntValue.Merge(m, src)
 }
 func (m *IntValue) XXX_Size() int {
 	return xxx_messageInfo_IntValue.Size(m)
@@ -990,78 +821,12 @@ func (m *IntValue) GetList() *IntList {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*IntValue) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _IntValue_OneofMarshaler, _IntValue_OneofUnmarshaler, _IntValue_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*IntValue) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*IntValue_Range)(nil),
 		(*IntValue_List)(nil),
 	}
-}
-
-func _IntValue_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*IntValue)
-	// distribution
-	switch x := m.Distribution.(type) {
-	case *IntValue_Range:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Range); err != nil {
-			return err
-		}
-	case *IntValue_List:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.List); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("IntValue.Distribution has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _IntValue_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*IntValue)
-	switch tag {
-	case 2: // distribution.range
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(IntRange)
-		err := b.DecodeMessage(msg)
-		m.Distribution = &IntValue_Range{msg}
-		return true, err
-	case 3: // distribution.list
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(IntList)
-		err := b.DecodeMessage(msg)
-		m.Distribution = &IntValue_List{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _IntValue_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*IntValue)
-	// distribution
-	switch x := m.Distribution.(type) {
-	case *IntValue_Range:
-		s := proto.Size(x.Range)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *IntValue_List:
-		s := proto.Size(x.List)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type IntRange struct {
@@ -1084,16 +849,17 @@ func (m *IntRange) Reset()         { *m = IntRange{} }
 func (m *IntRange) String() string { return proto.CompactTextString(m) }
 func (*IntRange) ProtoMessage()    {}
 func (*IntRange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{9}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{9}
 }
+
 func (m *IntRange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IntRange.Unmarshal(m, b)
 }
 func (m *IntRange) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IntRange.Marshal(b, m, deterministic)
 }
-func (dst *IntRange) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IntRange.Merge(dst, src)
+func (m *IntRange) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IntRange.Merge(m, src)
 }
 func (m *IntRange) XXX_Size() int {
 	return xxx_messageInfo_IntRange.Size(m)
@@ -1147,16 +913,17 @@ func (m *IntList) Reset()         { *m = IntList{} }
 func (m *IntList) String() string { return proto.CompactTextString(m) }
 func (*IntList) ProtoMessage()    {}
 func (*IntList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{10}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{10}
 }
+
 func (m *IntList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_IntList.Unmarshal(m, b)
 }
 func (m *IntList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_IntList.Marshal(b, m, deterministic)
 }
-func (dst *IntList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_IntList.Merge(dst, src)
+func (m *IntList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_IntList.Merge(m, src)
 }
 func (m *IntList) XXX_Size() int {
 	return xxx_messageInfo_IntList.Size(m)
@@ -1202,16 +969,17 @@ func (m *DoubleValue) Reset()         { *m = DoubleValue{} }
 func (m *DoubleValue) String() string { return proto.CompactTextString(m) }
 func (*DoubleValue) ProtoMessage()    {}
 func (*DoubleValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{11}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{11}
 }
+
 func (m *DoubleValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DoubleValue.Unmarshal(m, b)
 }
 func (m *DoubleValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DoubleValue.Marshal(b, m, deterministic)
 }
-func (dst *DoubleValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DoubleValue.Merge(dst, src)
+func (m *DoubleValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DoubleValue.Merge(m, src)
 }
 func (m *DoubleValue) XXX_Size() int {
 	return xxx_messageInfo_DoubleValue.Size(m)
@@ -1266,78 +1034,12 @@ func (m *DoubleValue) GetList() *DoubleList {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*DoubleValue) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _DoubleValue_OneofMarshaler, _DoubleValue_OneofUnmarshaler, _DoubleValue_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*DoubleValue) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*DoubleValue_Range)(nil),
 		(*DoubleValue_List)(nil),
 	}
-}
-
-func _DoubleValue_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*DoubleValue)
-	// distribution
-	switch x := m.Distribution.(type) {
-	case *DoubleValue_Range:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.Range); err != nil {
-			return err
-		}
-	case *DoubleValue_List:
-		b.EncodeVarint(3<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.List); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("DoubleValue.Distribution has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _DoubleValue_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*DoubleValue)
-	switch tag {
-	case 2: // distribution.range
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(DoubleRange)
-		err := b.DecodeMessage(msg)
-		m.Distribution = &DoubleValue_Range{msg}
-		return true, err
-	case 3: // distribution.list
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(DoubleList)
-		err := b.DecodeMessage(msg)
-		m.Distribution = &DoubleValue_List{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _DoubleValue_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*DoubleValue)
-	// distribution
-	switch x := m.Distribution.(type) {
-	case *DoubleValue_Range:
-		s := proto.Size(x.Range)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case *DoubleValue_List:
-		s := proto.Size(x.List)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type DoubleRange struct {
@@ -1359,16 +1061,17 @@ func (m *DoubleRange) Reset()         { *m = DoubleRange{} }
 func (m *DoubleRange) String() string { return proto.CompactTextString(m) }
 func (*DoubleRange) ProtoMessage()    {}
 func (*DoubleRange) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{12}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{12}
 }
+
 func (m *DoubleRange) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DoubleRange.Unmarshal(m, b)
 }
 func (m *DoubleRange) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DoubleRange.Marshal(b, m, deterministic)
 }
-func (dst *DoubleRange) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DoubleRange.Merge(dst, src)
+func (m *DoubleRange) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DoubleRange.Merge(m, src)
 }
 func (m *DoubleRange) XXX_Size() int {
 	return xxx_messageInfo_DoubleRange.Size(m)
@@ -1422,16 +1125,17 @@ func (m *DoubleList) Reset()         { *m = DoubleList{} }
 func (m *DoubleList) String() string { return proto.CompactTextString(m) }
 func (*DoubleList) ProtoMessage()    {}
 func (*DoubleList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{13}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{13}
 }
+
 func (m *DoubleList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_DoubleList.Unmarshal(m, b)
 }
 func (m *DoubleList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_DoubleList.Marshal(b, m, deterministic)
 }
-func (dst *DoubleList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_DoubleList.Merge(dst, src)
+func (m *DoubleList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_DoubleList.Merge(m, src)
 }
 func (m *DoubleList) XXX_Size() int {
 	return xxx_messageInfo_DoubleList.Size(m)
@@ -1474,16 +1178,17 @@ func (m *StringValue) Reset()         { *m = StringValue{} }
 func (m *StringValue) String() string { return proto.CompactTextString(m) }
 func (*StringValue) ProtoMessage()    {}
 func (*StringValue) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{14}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{14}
 }
+
 func (m *StringValue) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StringValue.Unmarshal(m, b)
 }
 func (m *StringValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_StringValue.Marshal(b, m, deterministic)
 }
-func (dst *StringValue) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StringValue.Merge(dst, src)
+func (m *StringValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StringValue.Merge(m, src)
 }
 func (m *StringValue) XXX_Size() int {
 	return xxx_messageInfo_StringValue.Size(m)
@@ -1525,59 +1230,11 @@ func (m *StringValue) GetList() *StringList {
 	return nil
 }
 
-// XXX_OneofFuncs is for the internal use of the proto package.
-func (*StringValue) XXX_OneofFuncs() (func(msg proto.Message, b *proto.Buffer) error, func(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error), func(msg proto.Message) (n int), []interface{}) {
-	return _StringValue_OneofMarshaler, _StringValue_OneofUnmarshaler, _StringValue_OneofSizer, []interface{}{
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*StringValue) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
 		(*StringValue_List)(nil),
 	}
-}
-
-func _StringValue_OneofMarshaler(msg proto.Message, b *proto.Buffer) error {
-	m := msg.(*StringValue)
-	// distribution
-	switch x := m.Distribution.(type) {
-	case *StringValue_List:
-		b.EncodeVarint(2<<3 | proto.WireBytes)
-		if err := b.EncodeMessage(x.List); err != nil {
-			return err
-		}
-	case nil:
-	default:
-		return fmt.Errorf("StringValue.Distribution has unexpected type %T", x)
-	}
-	return nil
-}
-
-func _StringValue_OneofUnmarshaler(msg proto.Message, tag, wire int, b *proto.Buffer) (bool, error) {
-	m := msg.(*StringValue)
-	switch tag {
-	case 2: // distribution.list
-		if wire != proto.WireBytes {
-			return true, proto.ErrInternalBadWireType
-		}
-		msg := new(StringList)
-		err := b.DecodeMessage(msg)
-		m.Distribution = &StringValue_List{msg}
-		return true, err
-	default:
-		return false, nil
-	}
-}
-
-func _StringValue_OneofSizer(msg proto.Message) (n int) {
-	m := msg.(*StringValue)
-	// distribution
-	switch x := m.Distribution.(type) {
-	case *StringValue_List:
-		s := proto.Size(x.List)
-		n += 1 // tag and wire
-		n += proto.SizeVarint(uint64(s))
-		n += s
-	case nil:
-	default:
-		panic(fmt.Sprintf("proto: unexpected type %T in oneof", x))
-	}
-	return n
 }
 
 type StringList struct {
@@ -1595,16 +1252,17 @@ func (m *StringList) Reset()         { *m = StringList{} }
 func (m *StringList) String() string { return proto.CompactTextString(m) }
 func (*StringList) ProtoMessage()    {}
 func (*StringList) Descriptor() ([]byte, []int) {
-	return fileDescriptor_fake_b07f63a62248d394, []int{15}
+	return fileDescriptor_0c8aeeab0e585ec7, []int{15}
 }
+
 func (m *StringList) XXX_Unmarshal(b []byte) error {
 	return xxx_messageInfo_StringList.Unmarshal(m, b)
 }
 func (m *StringList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
 	return xxx_messageInfo_StringList.Marshal(b, m, deterministic)
 }
-func (dst *StringList) XXX_Merge(src proto.Message) {
-	xxx_messageInfo_StringList.Merge(dst, src)
+func (m *StringList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_StringList.Merge(m, src)
 }
 func (m *StringList) XXX_Size() int {
 	return xxx_messageInfo_StringList.Size(m)
@@ -1629,7 +1287,136 @@ func (m *StringList) GetRandom() bool {
 	return false
 }
 
+type BoolValue struct {
+	// If distribution is BoolList, value is only used to hold the value as it
+	// mutates.
+	// If no distribution is set, value is used as it mutates, i.e. constant
+	// update.
+	Value bool `protobuf:"varint,1,opt,name=value,proto3" json:"value,omitempty"`
+	// Types that are valid to be assigned to Distribution:
+	//	*BoolValue_List
+	Distribution         isBoolValue_Distribution `protobuf_oneof:"distribution"`
+	XXX_NoUnkeyedLiteral struct{}                 `json:"-"`
+	XXX_unrecognized     []byte                   `json:"-"`
+	XXX_sizecache        int32                    `json:"-"`
+}
+
+func (m *BoolValue) Reset()         { *m = BoolValue{} }
+func (m *BoolValue) String() string { return proto.CompactTextString(m) }
+func (*BoolValue) ProtoMessage()    {}
+func (*BoolValue) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0c8aeeab0e585ec7, []int{16}
+}
+
+func (m *BoolValue) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BoolValue.Unmarshal(m, b)
+}
+func (m *BoolValue) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BoolValue.Marshal(b, m, deterministic)
+}
+func (m *BoolValue) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BoolValue.Merge(m, src)
+}
+func (m *BoolValue) XXX_Size() int {
+	return xxx_messageInfo_BoolValue.Size(m)
+}
+func (m *BoolValue) XXX_DiscardUnknown() {
+	xxx_messageInfo_BoolValue.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BoolValue proto.InternalMessageInfo
+
+func (m *BoolValue) GetValue() bool {
+	if m != nil {
+		return m.Value
+	}
+	return false
+}
+
+type isBoolValue_Distribution interface {
+	isBoolValue_Distribution()
+}
+
+type BoolValue_List struct {
+	List *BoolList `protobuf:"bytes,2,opt,name=list,proto3,oneof"`
+}
+
+func (*BoolValue_List) isBoolValue_Distribution() {}
+
+func (m *BoolValue) GetDistribution() isBoolValue_Distribution {
+	if m != nil {
+		return m.Distribution
+	}
+	return nil
+}
+
+func (m *BoolValue) GetList() *BoolList {
+	if x, ok := m.GetDistribution().(*BoolValue_List); ok {
+		return x.List
+	}
+	return nil
+}
+
+// XXX_OneofWrappers is for the internal use of the proto package.
+func (*BoolValue) XXX_OneofWrappers() []interface{} {
+	return []interface{}{
+		(*BoolValue_List)(nil),
+	}
+}
+
+type BoolList struct {
+	// The set of values which can be used.
+	Options []bool `protobuf:"varint,1,rep,packed,name=options,proto3" json:"options,omitempty"`
+	// Set to true to randomize selection of value from options. If false, the
+	// values are cycled in order, starting at index 0.
+	Random               bool     `protobuf:"varint,2,opt,name=random,proto3" json:"random,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *BoolList) Reset()         { *m = BoolList{} }
+func (m *BoolList) String() string { return proto.CompactTextString(m) }
+func (*BoolList) ProtoMessage()    {}
+func (*BoolList) Descriptor() ([]byte, []int) {
+	return fileDescriptor_0c8aeeab0e585ec7, []int{17}
+}
+
+func (m *BoolList) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_BoolList.Unmarshal(m, b)
+}
+func (m *BoolList) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_BoolList.Marshal(b, m, deterministic)
+}
+func (m *BoolList) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_BoolList.Merge(m, src)
+}
+func (m *BoolList) XXX_Size() int {
+	return xxx_messageInfo_BoolList.Size(m)
+}
+func (m *BoolList) XXX_DiscardUnknown() {
+	xxx_messageInfo_BoolList.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_BoolList proto.InternalMessageInfo
+
+func (m *BoolList) GetOptions() []bool {
+	if m != nil {
+		return m.Options
+	}
+	return nil
+}
+
+func (m *BoolList) GetRandom() bool {
+	if m != nil {
+		return m.Random
+	}
+	return false
+}
+
 func init() {
+	proto.RegisterEnum("gnmi.fake.State", State_name, State_value)
+	proto.RegisterEnum("gnmi.fake.Config_ClientType", Config_ClientType_name, Config_ClientType_value)
 	proto.RegisterType((*Configuration)(nil), "gnmi.fake.Configuration")
 	proto.RegisterType((*Credentials)(nil), "gnmi.fake.Credentials")
 	proto.RegisterType((*Config)(nil), "gnmi.fake.Config")
@@ -1646,79 +1433,82 @@ func init() {
 	proto.RegisterType((*DoubleList)(nil), "gnmi.fake.DoubleList")
 	proto.RegisterType((*StringValue)(nil), "gnmi.fake.StringValue")
 	proto.RegisterType((*StringList)(nil), "gnmi.fake.StringList")
-	proto.RegisterEnum("gnmi.fake.State", State_name, State_value)
-	proto.RegisterEnum("gnmi.fake.Config_ClientType", Config_ClientType_name, Config_ClientType_value)
+	proto.RegisterType((*BoolValue)(nil), "gnmi.fake.BoolValue")
+	proto.RegisterType((*BoolList)(nil), "gnmi.fake.BoolList")
 }
 
-func init() { proto.RegisterFile("testing/fake/proto/fake.proto", fileDescriptor_fake_b07f63a62248d394) }
+func init() { proto.RegisterFile("testing/fake/proto/fake.proto", fileDescriptor_0c8aeeab0e585ec7) }
 
-var fileDescriptor_fake_b07f63a62248d394 = []byte{
-	// 1060 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x56, 0x5b, 0x6f, 0xe3, 0x44,
-	0x14, 0xae, 0x73, 0xf7, 0x71, 0xb7, 0x84, 0xa1, 0x14, 0x6f, 0x59, 0x44, 0xf0, 0x53, 0xa0, 0xc8,
-	0x5d, 0x02, 0x48, 0x88, 0x15, 0x2b, 0x35, 0x6d, 0x69, 0x2b, 0xd1, 0x8b, 0x26, 0x5d, 0x24, 0x9e,
-	0xc2, 0xc4, 0x9e, 0xb8, 0x16, 0xf1, 0x38, 0xb2, 0xc7, 0x4b, 0x23, 0x7e, 0x00, 0xaf, 0xbc, 0xf3,
-	0xd3, 0xf8, 0x27, 0x3c, 0xa1, 0x39, 0x1e, 0xc7, 0x4e, 0xb2, 0x64, 0xf7, 0xed, 0x5c, 0xbe, 0x73,
-	0x99, 0x6f, 0xbe, 0x71, 0x02, 0x9f, 0x48, 0x9e, 0xca, 0x50, 0x04, 0xc7, 0x53, 0xf6, 0x1b, 0x3f,
-	0x9e, 0x27, 0xb1, 0x8c, 0xd1, 0x74, 0xd1, 0x24, 0x66, 0x20, 0xa2, 0xd0, 0x55, 0x81, 0xc3, 0xa7,
-	0x41, 0x1c, 0x07, 0x33, 0x8d, 0x99, 0x64, 0xd3, 0x63, 0x26, 0x16, 0x39, 0xea, 0xf0, 0x79, 0x10,
-	0xca, 0x87, 0x6c, 0xe2, 0x7a, 0x71, 0x74, 0x1c, 0xcf, 0xb9, 0xf0, 0x62, 0x31, 0x0d, 0x83, 0x63,
-	0x55, 0xab, 0x5b, 0xa2, 0x89, 0xbd, 0xd0, 0x77, 0xbe, 0x87, 0x27, 0xa7, 0x08, 0xca, 0x12, 0x26,
-	0xc3, 0x58, 0x90, 0xcf, 0xa1, 0x95, 0x57, 0xd9, 0x46, 0xaf, 0xde, 0xb7, 0x06, 0xef, 0xbb, 0xcb,
-	0xc9, 0x6e, 0x8e, 0xa4, 0x1a, 0xe0, 0x9c, 0x83, 0x75, 0x9a, 0x70, 0x9f, 0x0b, 0x19, 0xb2, 0x59,
-	0x4a, 0x0e, 0xa1, 0x93, 0xa5, 0x3c, 0x11, 0x2c, 0xe2, 0xb6, 0xd1, 0x33, 0xfa, 0x26, 0x5d, 0xfa,
-	0x2a, 0x37, 0x67, 0x69, 0xfa, 0x7b, 0x9c, 0xf8, 0x76, 0x2d, 0xcf, 0x15, 0xbe, 0xf3, 0x4f, 0x03,
-	0x5a, 0x79, 0x67, 0x72, 0x00, 0x2d, 0xc9, 0x92, 0x80, 0x4b, 0xdd, 0x40, 0x7b, 0x84, 0x40, 0x63,
-	0x1e, 0x27, 0x12, 0x4b, 0x9b, 0x14, 0x6d, 0x72, 0x00, 0x8d, 0x94, 0x73, 0xdf, 0x6e, 0xf5, 0x8c,
-	0x7e, 0x7d, 0x58, 0xb3, 0x0d, 0x8a, 0x3e, 0xf9, 0x12, 0x5a, 0xaf, 0xd9, 0x2c, 0xe3, 0xa9, 0x5d,
-	0xc7, 0x03, 0x74, 0x2b, 0x07, 0xf8, 0x59, 0x25, 0x10, 0xab, 0x31, 0xe4, 0x33, 0xd8, 0xf5, 0xc3,
-	0x94, 0x4d, 0x66, 0x7c, 0x9c, 0x2e, 0x84, 0x67, 0x37, 0x7a, 0x46, 0xbf, 0x43, 0x2d, 0x1d, 0x1b,
-	0x2d, 0x84, 0x47, 0x7e, 0x00, 0xcb, 0x9b, 0x85, 0x5c, 0xc8, 0xb1, 0x5c, 0xcc, 0xb9, 0xdd, 0xec,
-	0x19, 0xfd, 0xbd, 0xc1, 0xb3, 0x0d, 0x5a, 0xdc, 0x53, 0x04, 0xdd, 0x2f, 0xe6, 0x9c, 0x82, 0xb7,
-	0xb4, 0xc9, 0xa7, 0x50, 0x74, 0x1b, 0xf3, 0x78, 0x6a, 0xb7, 0x71, 0x00, 0xe8, 0xd0, 0x79, 0x3c,
-	0x25, 0xdf, 0x81, 0xe5, 0x95, 0x34, 0xda, 0x9d, 0x9e, 0xd1, 0xb7, 0x06, 0x07, 0xd5, 0xfe, 0x65,
-	0x96, 0x56, 0xa1, 0x8a, 0x16, 0x8f, 0x27, 0xd2, 0x36, 0x7b, 0x46, 0x7f, 0x97, 0xa2, 0xad, 0x0e,
-	0xc4, 0x05, 0x4e, 0xf3, 0xf9, 0x8c, 0x2d, 0x6c, 0xc8, 0x0f, 0x94, 0xc7, 0xce, 0x54, 0x88, 0xb8,
-	0xd0, 0xf2, 0xb2, 0x54, 0xc6, 0x91, 0xed, 0xe3, 0xac, 0x7d, 0x37, 0x57, 0x94, 0x5b, 0x28, 0xca,
-	0x3d, 0x11, 0x8b, 0xcb, 0x1d, 0xaa, 0x51, 0xe4, 0x1b, 0x68, 0x25, 0x4c, 0xf8, 0x71, 0x64, 0x73,
-	0xc4, 0x1f, 0x56, 0x76, 0xa3, 0x98, 0xb8, 0xe0, 0x82, 0x27, 0x4c, 0xc6, 0x89, 0xaa, 0xca, 0xb1,
-	0xe4, 0x2b, 0x68, 0x4e, 0xc3, 0x47, 0xee, 0xdb, 0x53, 0x2c, 0x7a, 0x5a, 0x29, 0xfa, 0x51, 0xc5,
-	0xab, 0x35, 0x39, 0xd2, 0x39, 0x07, 0x28, 0x49, 0x24, 0x1d, 0x68, 0x5c, 0xd0, 0xbb, 0xd3, 0xee,
-	0x0e, 0x01, 0x68, 0x8d, 0xee, 0x5f, 0x0d, 0x87, 0xbf, 0x74, 0x0d, 0xf2, 0x04, 0x4c, 0x15, 0x1d,
-	0x5f, 0xdc, 0x5c, 0x5f, 0x75, 0x6b, 0x84, 0xc0, 0xde, 0xd2, 0x1d, 0xdf, 0xd1, 0xdb, 0xb3, 0x6e,
-	0x7d, 0x68, 0x81, 0x19, 0x14, 0xcd, 0x9d, 0x0b, 0xd8, 0x5b, 0x1d, 0x47, 0xbe, 0x05, 0x33, 0xe1,
-	0xe9, 0x3c, 0x16, 0x29, 0x4f, 0xb5, 0xc8, 0x3f, 0xca, 0x97, 0x1b, 0x65, 0x93, 0xd4, 0x4b, 0xc2,
-	0x09, 0xa7, 0x3a, 0x4f, 0x4b, 0xa4, 0x73, 0x0b, 0xef, 0xad, 0x1d, 0x56, 0xf1, 0x8f, 0x12, 0x54,
-	0x62, 0xad, 0x6b, 0xf9, 0xf5, 0x97, 0xf2, 0xab, 0xbd, 0x59, 0x7e, 0x85, 0xf4, 0x9c, 0x27, 0x60,
-	0x9d, 0xf1, 0x19, 0x97, 0x1c, 0xc3, 0xce, 0xbf, 0x35, 0x68, 0xa2, 0x85, 0x6a, 0x67, 0xf2, 0x01,
-	0x77, 0x33, 0x29, 0xda, 0x64, 0x00, 0xa6, 0x0c, 0x23, 0x9e, 0x4a, 0x16, 0xcd, 0xf1, 0x19, 0xe0,
-	0xb5, 0x2d, 0x3b, 0xdf, 0x17, 0x39, 0x5a, 0xc2, 0xd4, 0x6b, 0x4a, 0xf8, 0x9c, 0x33, 0x89, 0x6f,
-	0xa4, 0x49, 0xb5, 0xb7, 0x5c, 0xbb, 0x5d, 0x59, 0x7b, 0x00, 0x66, 0x28, 0xe4, 0x18, 0x57, 0xd3,
-	0xb2, 0xf8, 0xa0, 0xd2, 0xff, 0x4a, 0x48, 0xdc, 0xed, 0x72, 0x87, 0x76, 0x42, 0x6d, 0x93, 0x17,
-	0xb0, 0xeb, 0xc7, 0x99, 0x92, 0x5a, 0x5e, 0xc6, 0x37, 0x94, 0x7b, 0x86, 0xe9, 0xa2, 0xd2, 0xf2,
-	0x4b, 0x57, 0x15, 0xa7, 0x32, 0x09, 0x45, 0xa0, 0x8b, 0xa7, 0x1b, 0xc5, 0x23, 0x4c, 0x2f, 0x8b,
-	0xd3, 0xd2, 0x25, 0xfb, 0xd0, 0xc0, 0xd7, 0x1a, 0xf4, 0x8c, 0x7e, 0xe3, 0x72, 0x87, 0xa2, 0x47,
-	0x9e, 0x43, 0xcb, 0x47, 0x42, 0xed, 0x87, 0xcd, 0x4d, 0x4a, 0xa6, 0x95, 0x46, 0x73, 0xdc, 0xb0,
-	0x0d, 0x4d, 0x9c, 0xee, 0x78, 0x60, 0x2e, 0x29, 0x24, 0xcf, 0xaa, 0x5c, 0xe7, 0x77, 0x5b, 0x61,
-	0xf5, 0x63, 0x30, 0x7d, 0x3e, 0x93, 0x6c, 0x1c, 0x85, 0x02, 0x6f, 0xa2, 0x4e, 0x3b, 0x18, 0xb8,
-	0x0e, 0x45, 0x25, 0xc9, 0x1e, 0xed, 0x7a, 0x35, 0xc9, 0x1e, 0x9d, 0x3f, 0x0d, 0xe8, 0x14, 0x44,
-	0x92, 0x7d, 0x3d, 0x5a, 0x0f, 0xc8, 0x1d, 0x72, 0x04, 0xcd, 0x84, 0x89, 0x80, 0xeb, 0x2b, 0x5e,
-	0xbb, 0x02, 0xaa, 0x52, 0xea, 0xb9, 0x20, 0x86, 0xf4, 0xa1, 0x31, 0x0b, 0x53, 0x89, 0x73, 0xac,
-	0x01, 0x59, 0xc5, 0xfe, 0x14, 0xa6, 0x52, 0x31, 0xa3, 0x10, 0xc3, 0x3d, 0xfc, 0xca, 0xc9, 0x24,
-	0x9c, 0x64, 0xea, 0x23, 0xef, 0x3c, 0xe2, 0x22, 0xd8, 0x8e, 0xd8, 0xd0, 0x8e, 0x42, 0x11, 0x46,
-	0x59, 0xa4, 0x57, 0x29, 0x5c, 0xcc, 0xb0, 0x47, 0xcc, 0xd4, 0x74, 0x26, 0x77, 0x57, 0x39, 0xa8,
-	0x6f, 0xe3, 0xa0, 0xb1, 0xc6, 0xc1, 0x0b, 0x68, 0xeb, 0xe5, 0x54, 0xfb, 0x78, 0xae, 0xd6, 0xc9,
-	0x5f, 0x61, 0x9d, 0x16, 0x2e, 0x0a, 0x37, 0xff, 0xe0, 0xd4, 0xf0, 0xeb, 0xa5, 0x3d, 0xe7, 0x2f,
-	0x03, 0xac, 0x8a, 0xa4, 0x56, 0x39, 0x34, 0x0a, 0x0e, 0xdd, 0x55, 0x0e, 0x37, 0xf5, 0xb8, 0x46,
-	0xe3, 0xd1, 0x0a, 0x8d, 0x1f, 0x6e, 0xc0, 0xb7, 0x32, 0xf9, 0x47, 0xb1, 0xd1, 0x1b, 0xc9, 0x34,
-	0xfe, 0x97, 0x4c, 0x63, 0x0b, 0x99, 0xc6, 0x36, 0x32, 0x8d, 0x0a, 0x99, 0x2f, 0x01, 0xca, 0x15,
-	0xd7, 0xf9, 0x34, 0xde, 0xce, 0xe7, 0xaf, 0x60, 0x8d, 0x56, 0x5e, 0x55, 0x85, 0x4e, 0xb3, 0x94,
-	0x64, 0x4e, 0x4f, 0x6d, 0x83, 0x9e, 0xbc, 0x76, 0x2b, 0x3d, 0x2f, 0x01, 0x4a, 0xd4, 0xfa, 0x86,
-	0xe6, 0x5b, 0x37, 0xfc, 0xe2, 0x08, 0x9a, 0x23, 0xc9, 0x24, 0x27, 0x16, 0xb4, 0x47, 0xf7, 0xb7,
-	0x77, 0x77, 0xe7, 0x67, 0xdd, 0x1d, 0xf5, 0xcb, 0x70, 0x75, 0x73, 0x75, 0xdf, 0x35, 0x54, 0x98,
-	0xbe, 0xba, 0xb9, 0xb9, 0xba, 0xb9, 0xe8, 0xd6, 0x06, 0x7f, 0x1b, 0xb0, 0x7b, 0x12, 0x70, 0x21,
-	0xaf, 0x99, 0x60, 0x01, 0x4f, 0xc8, 0x11, 0xd4, 0x4f, 0x7c, 0x9f, 0x6c, 0xfe, 0x85, 0x39, 0xdc,
-	0x0c, 0xa9, 0x5f, 0x45, 0xca, 0xa3, 0xf8, 0x35, 0x7f, 0x77, 0xbc, 0x5a, 0x2d, 0x4b, 0xdf, 0x0d,
-	0x3f, 0x69, 0xe1, 0xaf, 0xeb, 0xd7, 0xff, 0x05, 0x00, 0x00, 0xff, 0xff, 0xf7, 0x5a, 0xbc, 0x0c,
-	0xe9, 0x09, 0x00, 0x00,
+var fileDescriptor_0c8aeeab0e585ec7 = []byte{
+	// 1114 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0x8c, 0x56, 0xdf, 0x6e, 0xe3, 0xc4,
+	0x17, 0xae, 0xf3, 0xdf, 0xc7, 0x6d, 0x7f, 0xf9, 0xcd, 0x96, 0xe2, 0x2d, 0x8b, 0x08, 0xbe, 0xca,
+	0x52, 0x94, 0x2e, 0x81, 0x95, 0x10, 0x0b, 0x2b, 0x35, 0x6d, 0x69, 0x2b, 0xd1, 0x3f, 0x9a, 0x74,
+	0x91, 0x90, 0x90, 0xc2, 0x24, 0x9e, 0xb8, 0x16, 0xf1, 0x4c, 0x64, 0x4f, 0x96, 0x46, 0x3c, 0x00,
+	0xb7, 0xdc, 0xf3, 0x14, 0x3c, 0x0f, 0x2f, 0x83, 0xe6, 0x78, 0x1c, 0x3b, 0xc9, 0x92, 0xee, 0xdd,
+	0x9c, 0x73, 0xbe, 0x73, 0xe6, 0x9b, 0x6f, 0xbe, 0x89, 0x03, 0x1f, 0x2b, 0x9e, 0xa8, 0x50, 0x04,
+	0x47, 0x63, 0xf6, 0x2b, 0x3f, 0x9a, 0xc6, 0x52, 0x49, 0x5c, 0x76, 0x70, 0x49, 0xec, 0x40, 0x44,
+	0x61, 0x47, 0x27, 0x0e, 0x9e, 0x06, 0x52, 0x06, 0x13, 0x83, 0x19, 0xce, 0xc6, 0x47, 0x4c, 0xcc,
+	0x53, 0xd4, 0xc1, 0x8b, 0x20, 0x54, 0xf7, 0xb3, 0x61, 0x67, 0x24, 0xa3, 0x23, 0x39, 0xe5, 0x62,
+	0x24, 0xc5, 0x38, 0x0c, 0x8e, 0x74, 0xaf, 0x19, 0x89, 0x4b, 0x9c, 0x85, 0xb1, 0xf7, 0x0d, 0xec,
+	0x9c, 0x20, 0x68, 0x16, 0x33, 0x15, 0x4a, 0x41, 0x9e, 0x43, 0x2d, 0xed, 0x72, 0xad, 0x56, 0xb9,
+	0xed, 0x74, 0xff, 0xdf, 0x59, 0xec, 0xdc, 0x49, 0x91, 0xd4, 0x00, 0xbc, 0x33, 0x70, 0x4e, 0x62,
+	0xee, 0x73, 0xa1, 0x42, 0x36, 0x49, 0xc8, 0x01, 0x34, 0x66, 0x09, 0x8f, 0x05, 0x8b, 0xb8, 0x6b,
+	0xb5, 0xac, 0xb6, 0x4d, 0x17, 0xb1, 0xae, 0x4d, 0x59, 0x92, 0xfc, 0x26, 0x63, 0xdf, 0x2d, 0xa5,
+	0xb5, 0x2c, 0xf6, 0xfe, 0xa9, 0x40, 0x2d, 0x9d, 0x4c, 0xf6, 0xa1, 0xa6, 0x58, 0x1c, 0x70, 0x65,
+	0x06, 0x98, 0x88, 0x10, 0xa8, 0x4c, 0x65, 0xac, 0xb0, 0xb5, 0x4a, 0x71, 0x4d, 0xf6, 0xa1, 0x92,
+	0x70, 0xee, 0xbb, 0xb5, 0x96, 0xd5, 0x2e, 0xf7, 0x4a, 0xae, 0x45, 0x31, 0x26, 0x9f, 0x43, 0xed,
+	0x2d, 0x9b, 0xcc, 0x78, 0xe2, 0x96, 0xf1, 0x00, 0xcd, 0xc2, 0x01, 0x7e, 0xd4, 0x05, 0xc4, 0x1a,
+	0x0c, 0xf9, 0x14, 0xb6, 0xfd, 0x30, 0x61, 0xc3, 0x09, 0x1f, 0x24, 0x73, 0x31, 0x72, 0x2b, 0x2d,
+	0xab, 0xdd, 0xa0, 0x8e, 0xc9, 0xf5, 0xe7, 0x62, 0x44, 0xbe, 0x03, 0x67, 0x34, 0x09, 0xb9, 0x50,
+	0x03, 0x35, 0x9f, 0x72, 0xb7, 0xda, 0xb2, 0xda, 0xbb, 0xdd, 0x67, 0x6b, 0xb2, 0x74, 0x4e, 0x10,
+	0x74, 0x37, 0x9f, 0x72, 0x0a, 0xa3, 0xc5, 0x9a, 0x7c, 0x02, 0xd9, 0xb4, 0x01, 0x97, 0x63, 0xb7,
+	0x8e, 0x1b, 0x80, 0x49, 0x9d, 0xc9, 0x31, 0xf9, 0x1a, 0x9c, 0x51, 0x2e, 0xa3, 0xdb, 0x68, 0x59,
+	0x6d, 0xa7, 0xbb, 0x5f, 0x9c, 0x9f, 0x57, 0x69, 0x11, 0xaa, 0x65, 0x19, 0xf1, 0x58, 0xb9, 0x76,
+	0xcb, 0x6a, 0x6f, 0x53, 0x5c, 0xeb, 0x03, 0x71, 0x81, 0xbb, 0xf9, 0x7c, 0xc2, 0xe6, 0x2e, 0xa4,
+	0x07, 0x4a, 0x73, 0xa7, 0x3a, 0x45, 0x3a, 0x50, 0x1b, 0xcd, 0x12, 0x25, 0x23, 0xd7, 0xc7, 0xbd,
+	0xf6, 0x3a, 0xa9, 0xa3, 0x3a, 0x99, 0xa3, 0x3a, 0xc7, 0x62, 0x7e, 0xb1, 0x45, 0x0d, 0x8a, 0x7c,
+	0x05, 0xb5, 0x98, 0x09, 0x5f, 0x46, 0x2e, 0x47, 0xfc, 0x41, 0x81, 0x1b, 0xc5, 0xc2, 0x39, 0x17,
+	0x3c, 0x66, 0x4a, 0xc6, 0xba, 0x2b, 0xc5, 0x92, 0x2f, 0xa0, 0x3a, 0x0e, 0x1f, 0xb8, 0xef, 0x8e,
+	0xb1, 0xe9, 0x69, 0xa1, 0xe9, 0x7b, 0x9d, 0x2f, 0xf6, 0xa4, 0x48, 0xef, 0x0c, 0x20, 0x17, 0x91,
+	0x34, 0xa0, 0x72, 0x4e, 0x6f, 0x4f, 0x9a, 0x5b, 0x04, 0xa0, 0xd6, 0xbf, 0x7b, 0xd3, 0xeb, 0xfd,
+	0xd4, 0xb4, 0xc8, 0x0e, 0xd8, 0x3a, 0x3b, 0x38, 0xbf, 0xbe, 0xba, 0x6c, 0x96, 0x08, 0x81, 0xdd,
+	0x45, 0x38, 0xb8, 0xa5, 0x37, 0xa7, 0xcd, 0x72, 0xcf, 0x01, 0x3b, 0xc8, 0x86, 0x7b, 0xe7, 0xb0,
+	0xbb, 0xbc, 0x1d, 0x79, 0x09, 0x76, 0xcc, 0x93, 0xa9, 0x14, 0x09, 0x4f, 0x8c, 0xc9, 0x3f, 0x4c,
+	0xc9, 0xf5, 0x67, 0xc3, 0x64, 0x14, 0x87, 0x43, 0x4e, 0x4d, 0x9d, 0xe6, 0x48, 0xef, 0x06, 0xfe,
+	0xb7, 0x72, 0x58, 0xad, 0x3f, 0x5a, 0x50, 0x9b, 0xb5, 0x6c, 0xec, 0xd7, 0x5e, 0xd8, 0xaf, 0xf4,
+	0x6e, 0xfb, 0x65, 0xd6, 0xf3, 0x76, 0xc0, 0x39, 0xe5, 0x13, 0xae, 0x38, 0xa6, 0xbd, 0xbf, 0xcb,
+	0x50, 0xc5, 0x15, 0xba, 0x9d, 0xa9, 0x7b, 0xe4, 0x66, 0x53, 0x5c, 0x93, 0x2e, 0xd8, 0x2a, 0x8c,
+	0x78, 0xa2, 0x58, 0x34, 0xc5, 0x67, 0x80, 0xd7, 0xb6, 0x98, 0x7c, 0x97, 0xd5, 0x68, 0x0e, 0xd3,
+	0xaf, 0x29, 0xe6, 0x53, 0xce, 0x14, 0xbe, 0x91, 0x2a, 0x35, 0xd1, 0x82, 0x76, 0xbd, 0x40, 0xbb,
+	0x0b, 0x76, 0x28, 0xd4, 0x00, 0xa9, 0x19, 0x5b, 0x3c, 0x29, 0xcc, 0xbf, 0x14, 0x0a, 0xb9, 0x5d,
+	0x6c, 0xd1, 0x46, 0x68, 0xd6, 0xe4, 0x15, 0x6c, 0xfb, 0x72, 0xa6, 0xad, 0x96, 0xb6, 0xf1, 0x35,
+	0xe7, 0x9e, 0x62, 0x39, 0xeb, 0x74, 0xfc, 0x3c, 0xd4, 0xcd, 0x89, 0x8a, 0x43, 0x11, 0x98, 0xe6,
+	0xf1, 0x5a, 0x73, 0x1f, 0xcb, 0x8b, 0xe6, 0x24, 0x0f, 0xc9, 0x1e, 0x54, 0xf0, 0xb5, 0x06, 0x2d,
+	0xab, 0x5d, 0xb9, 0xd8, 0xa2, 0x18, 0x91, 0x17, 0x50, 0xf3, 0x51, 0x50, 0xf7, 0x7e, 0x9d, 0x49,
+	0xae, 0xb4, 0xf6, 0x68, 0x8a, 0x23, 0x2f, 0x01, 0x86, 0x52, 0x4e, 0x0c, 0x85, 0x70, 0x4d, 0xd6,
+	0x9e, 0x94, 0x93, 0xac, 0xc7, 0x1e, 0x66, 0x41, 0xaf, 0x0e, 0x55, 0xec, 0xf0, 0x46, 0x60, 0x2f,
+	0x94, 0x27, 0xcf, 0x8a, 0x57, 0x94, 0x5a, 0xa2, 0x70, 0x19, 0x1f, 0x81, 0xed, 0xf3, 0x89, 0x62,
+	0x83, 0x28, 0x14, 0x78, 0x81, 0x65, 0xda, 0xc0, 0xc4, 0x55, 0x28, 0x0a, 0x45, 0xf6, 0xe0, 0x96,
+	0x8b, 0x45, 0xf6, 0xe0, 0xfd, 0x61, 0x41, 0x23, 0xd3, 0x9f, 0xec, 0x99, 0xad, 0xcd, 0x06, 0x69,
+	0x40, 0x0e, 0xa1, 0x1a, 0x33, 0x11, 0x70, 0xe3, 0x8c, 0x95, 0x9b, 0xa3, 0xba, 0xa4, 0x5f, 0x19,
+	0x62, 0x48, 0x1b, 0x2a, 0x93, 0x30, 0x51, 0xb8, 0x8f, 0xd3, 0x25, 0xcb, 0xd8, 0x1f, 0xc2, 0x44,
+	0x69, 0x41, 0x35, 0xa2, 0xb7, 0x8b, 0x3f, 0x8e, 0x2a, 0x0e, 0x87, 0x33, 0xfd, 0x6d, 0xf0, 0x1e,
+	0x90, 0x08, 0x8e, 0x23, 0x2e, 0xd4, 0xa3, 0x50, 0x84, 0xd1, 0x2c, 0x32, 0x54, 0xb2, 0x10, 0x2b,
+	0xec, 0x01, 0x2b, 0x25, 0x53, 0x49, 0xc3, 0x65, 0x0d, 0xca, 0x9b, 0x34, 0xa8, 0xac, 0x68, 0xf0,
+	0x0a, 0xea, 0x86, 0x9c, 0x1e, 0x2f, 0xa7, 0x9a, 0x4e, 0xfa, 0x78, 0xcb, 0x34, 0x0b, 0xd1, 0xef,
+	0xe9, 0xef, 0x54, 0x09, 0x7f, 0xf4, 0x4c, 0xe4, 0xfd, 0x69, 0x81, 0x53, 0x70, 0xe2, 0xb2, 0x86,
+	0x56, 0xa6, 0x61, 0x67, 0x59, 0xc3, 0x75, 0x1b, 0xaf, 0xc8, 0x78, 0xb8, 0x24, 0xe3, 0x07, 0x6b,
+	0xf0, 0x8d, 0x4a, 0xfe, 0x9e, 0x31, 0x7a, 0xa7, 0x98, 0xd6, 0x7f, 0x8a, 0x69, 0x6d, 0x10, 0xd3,
+	0xda, 0x24, 0xa6, 0x55, 0x10, 0xf3, 0x35, 0x40, 0x4e, 0x71, 0x55, 0x4f, 0xeb, 0x71, 0x3d, 0x7f,
+	0x01, 0xa7, 0xbf, 0xf4, 0x18, 0x0b, 0x72, 0xda, 0xb9, 0x25, 0x53, 0x79, 0x4a, 0x6b, 0xf2, 0xa4,
+	0xbd, 0x1b, 0xe5, 0x79, 0x0d, 0x90, 0xa3, 0x56, 0x19, 0xda, 0x8f, 0x33, 0xfc, 0x19, 0xec, 0xc5,
+	0xd3, 0x5d, 0xe6, 0xd7, 0xc8, 0xf8, 0x3d, 0x5f, 0xe2, 0xf7, 0x64, 0xe5, 0xd1, 0x6f, 0x64, 0xf7,
+	0x2d, 0x34, 0x32, 0xcc, 0x2a, 0xb7, 0xc6, 0xa3, 0xdc, 0x3e, 0x3b, 0x84, 0x6a, 0x5f, 0x31, 0xc5,
+	0x89, 0x03, 0xf5, 0xfe, 0xdd, 0xcd, 0xed, 0xed, 0xd9, 0x69, 0x73, 0x4b, 0x7f, 0xec, 0x2e, 0xaf,
+	0x2f, 0xef, 0x9a, 0x96, 0x4e, 0xd3, 0x37, 0xd7, 0xd7, 0x97, 0xd7, 0xe7, 0xcd, 0x52, 0xf7, 0x2f,
+	0x0b, 0xb6, 0x8f, 0x03, 0x2e, 0xd4, 0x15, 0x13, 0x2c, 0xe0, 0x31, 0x39, 0x84, 0xf2, 0xb1, 0xef,
+	0x93, 0xf5, 0x7f, 0x65, 0x07, 0xeb, 0x29, 0xfd, 0xa1, 0xa7, 0x3c, 0x92, 0x6f, 0xf9, 0xfb, 0xe3,
+	0x35, 0xb5, 0x59, 0xf2, 0x7e, 0xf8, 0x61, 0x0d, 0xff, 0x30, 0x7c, 0xf9, 0x6f, 0x00, 0x00, 0x00,
+	0xff, 0xff, 0xaf, 0x6d, 0xfc, 0x30, 0xbc, 0x0a, 0x00, 0x00,
 }
