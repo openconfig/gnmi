@@ -30,6 +30,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/ctree"
+	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/metadata"
 	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/value"
@@ -343,12 +344,14 @@ func (t *Target) GnmiUpdate(n *gpb.Notification) error {
 		n.Update = updates
 		n.Delete = deletes
 	}()
+	errs := &errlist.List{}
 	for _, u := range updates {
 		noti := proto.Clone(n).(*gpb.Notification)
 		noti.Update = []*gpb.Update{u}
 		nd, err := t.gnmiUpdate(noti)
 		if err != nil {
-			return err
+			errs.Add(err)
+			continue
 		}
 		t.meta.AddInt(metadata.UpdateCount, 1)
 		if nd != nil {
@@ -365,7 +368,7 @@ func (t *Target) GnmiUpdate(n *gpb.Notification) error {
 		}
 	}
 
-	return nil
+	return errs.Err()
 }
 
 func (t *Target) checkTimestamp(ts time.Time) {

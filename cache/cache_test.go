@@ -433,14 +433,14 @@ func TestMetadataStale(t *testing.T) {
 func TestGNMIUpdateIntermediateUpdate(t *testing.T) {
 	c := New([]string{"dev1"})
 	// Initialize a cache tree for next GnmiUpdate test.
-	n := gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "a", "b", "c"}, 0, "", true)
+	n := gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "a", "b", "c"}, 0, "", false)
 	if err := c.GnmiUpdate(n); err != nil {
 		t.Fatalf("GnmiUpdate(%+v): got %v, want nil error", n, err)
 	}
 	// This is a negative test case for invalid path in an update.
 	// For a cache tree initialized above with path "a"/"b"/"c", "a" is a non-leaf node.
 	// Because non-leaf node "a" does not contain notification, error should be returned in following update.
-	n = gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "a"}, 0, "", true)
+	n = gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "a"}, 0, "", false)
 	err := c.GnmiUpdate(n)
 	if diff := errdiff.Substring(err, "corrupt schema with collision"); diff != "" {
 		t.Errorf("GnmiUpdate(%+v): %v", n, diff)
@@ -451,7 +451,7 @@ func TestMetadataSuppressed(t *testing.T) {
 	c := New([]string{"dev1"})
 	// Unique values not suppressed.
 	for i := 0; i < 10; i++ {
-		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), strconv.Itoa(i), true))
+		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), strconv.Itoa(i), false))
 		c.GetTarget("dev1").updateMeta(nil)
 		path := metadata.Path(metadata.SuppressedCount)
 		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
@@ -471,7 +471,7 @@ func TestMetadataSuppressed(t *testing.T) {
 	c.Reset("dev1")
 	// Duplicate values suppressed.
 	for i := 0; i < 10; i++ {
-		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), "same value", true))
+		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), "same value", false))
 		c.GetTarget("dev1").updateMeta(nil)
 		path := metadata.Path(metadata.SuppressedCount)
 		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
@@ -709,26 +709,39 @@ func TestIsDeleteTarget(t *testing.T) {
 	}
 }
 
-func gnmiNotification(dev string, prefix []string, path []string, ts int64, val string, upd bool) *gpb.Notification {
-	if upd {
-		return &gpb.Notification{
-			Prefix:    &gpb.Path{Element: prefix, Target: dev},
-			Timestamp: ts,
-			Update: []*gpb.Update{
-				&gpb.Update{
-					Path: &gpb.Path{
-						Element: path,
-					},
-					Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{val}},
-				},
-			},
-		}
-	}
-	return &gpb.Notification{
+func gnmiNotification(dev string, prefix []string, path []string, ts int64, val string, delete bool) *gpb.Notification {
+	return notificationBundle(dev, prefix, ts, []update{
+		{
+			delete: delete,
+			path:   path,
+			val:    val,
+		}})
+}
+
+type update struct {
+	delete bool
+	path   []string
+	val    string
+}
+
+func notificationBundle(dev string, prefix []string, ts int64, updates []update) *gpb.Notification {
+	n := &gpb.Notification{
 		Prefix:    &gpb.Path{Element: prefix, Target: dev},
 		Timestamp: ts,
-		Delete:    []*gpb.Path{&gpb.Path{Element: path}},
 	}
+	for _, u := range updates {
+		if u.delete {
+			n.Delete = append(n.Delete, &gpb.Path{Element: u.path})
+		} else {
+			n.Update = append(n.Update, &gpb.Update{
+				Path: &gpb.Path{
+					Element: u.path,
+				},
+				Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{u.val}},
+			})
+		}
+	}
+	return n
 }
 
 func TestGNMIQuery(t *testing.T) {
@@ -742,18 +755,18 @@ func TestGNMIQuery(t *testing.T) {
 		v string
 	}{
 		// This update is inserted here, but deleted below.
-		{gnmiNotification("dev1", []string{}, []string{"a", "e"}, 0, "value1", true), true, ""},
+		{gnmiNotification("dev1", []string{}, []string{"a", "e"}, 0, "value1", false), true, ""},
 		// This update is ovewritten below.
-		{gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", true), true, "value3"},
+		{gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", false), true, "value3"},
 		// This update is inserted and not modified.
-		{gnmiNotification("dev1", []string{}, []string{"a", "c"}, 0, "value4", true), true, "value4"},
+		{gnmiNotification("dev1", []string{}, []string{"a", "c"}, 0, "value4", false), true, "value4"},
 		// This update overwrites a previous above.
-		{gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "value3", true), true, "value3"},
+		{gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "value3", false), true, "value3"},
 		// These two targets don't exist in the cache and the updates are rejected.
-		{gnmiNotification("dev2", []string{}, []string{"a", "b"}, 0, "value1", true), false, ""},
-		{gnmiNotification("dev3", []string{}, []string{"a", "b"}, 0, "value2", true), false, ""},
+		{gnmiNotification("dev2", []string{}, []string{"a", "b"}, 0, "value1", false), false, ""},
+		{gnmiNotification("dev3", []string{}, []string{"a", "b"}, 0, "value2", false), false, ""},
 		// This is a delete that removes the first update, above.
-		{gnmiNotification("dev1", []string{}, []string{"a", "e"}, 1, "", false), true, ""},
+		{gnmiNotification("dev1", []string{}, []string{"a", "e"}, 1, "", true), true, ""},
 	}
 	// Add updates to cache.
 	for _, tt := range updates {
@@ -793,9 +806,9 @@ func TestGNMIQueryAll(t *testing.T) {
 	defer func() { Type = ClientLeaf }()
 	c := New([]string{"dev1", "dev2", "dev3"})
 	updates := map[string]*gpb.Notification{
-		"value1": gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", true),
-		"value2": gnmiNotification("dev2", []string{}, []string{"a", "c"}, 0, "value2", true),
-		"value3": gnmiNotification("dev3", []string{}, []string{"a", "d"}, 0, "value3", true),
+		"value1": gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", false),
+		"value2": gnmiNotification("dev2", []string{}, []string{"a", "c"}, 0, "value2", false),
+		"value3": gnmiNotification("dev3", []string{}, []string{"a", "d"}, 0, "value3", false),
 	}
 	// Add updates to cache.
 	for _, u := range updates {
@@ -873,7 +886,7 @@ func TestGNMIUpdateMeta(t *testing.T) {
 
 	var lastSize, lastCount, lastAdds, lastUpds int64
 	for i := 0; i < 10; i++ {
-		c.GnmiUpdate(gnmiNotification("dev1", []string{}, []string{"a", fmt.Sprint(i)}, int64(i), "b", true))
+		c.GnmiUpdate(gnmiNotification("dev1", []string{}, []string{"a", fmt.Sprint(i)}, int64(i), "b", false))
 
 		c.GetTarget("dev1").updateSize(nil)
 		c.GetTarget("dev1").updateMeta(nil)
@@ -1100,38 +1113,38 @@ func TestGNMIClient(t *testing.T) {
 		{
 			desc: "add new nodes",
 			updates: []*gpb.Notification{
-				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "value1", true),
-				gnmiNotification("dev1", []string{}, []string{"a", "c"}, 2, "value2", true),
-				gnmiNotification("dev1", []string{}, []string{"a", "d"}, 3, "value3", true),
+				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "value1", false),
+				gnmiNotification("dev1", []string{}, []string{"a", "c"}, 2, "value2", false),
+				gnmiNotification("dev1", []string{}, []string{"a", "d"}, 3, "value3", false),
 			},
 			want: []interface{}{
-				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "value1", true),
-				gnmiNotification("dev1", []string{}, []string{"a", "c"}, 2, "value2", true),
-				gnmiNotification("dev1", []string{}, []string{"a", "d"}, 3, "value3", true),
+				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "value1", false),
+				gnmiNotification("dev1", []string{}, []string{"a", "c"}, 2, "value2", false),
+				gnmiNotification("dev1", []string{}, []string{"a", "d"}, 3, "value3", false),
 			},
 		},
 		{
 			desc: "update nodes",
 			updates: []*gpb.Notification{
-				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", true),
-				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "value1", true),
-				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 2, "value11", true),
+				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", false),
+				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "value1", false),
+				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 2, "value11", false),
 			},
 			want: []interface{}{
-				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 2, "value11", true),
+				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 2, "value11", false),
 			},
 		},
 		{
 			desc: "delete nodes",
 			updates: []*gpb.Notification{
-				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "", false),
-				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 3, "", false),
-				gnmiNotification("dev1", []string{}, []string{"a"}, 4, "", false),
+				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 1, "", true),
+				gnmiNotification("dev1", []string{}, []string{"a", "b"}, 3, "", true),
+				gnmiNotification("dev1", []string{}, []string{"a"}, 4, "", true),
 			},
 			want: []interface{}{
-				gnmiNotification("dev1", nil, []string{"a", "b"}, 3, "", false),
-				gnmiNotification("dev1", nil, []string{"a", "c"}, 4, "", false),
-				gnmiNotification("dev1", nil, []string{"a", "d"}, 4, "", false),
+				gnmiNotification("dev1", nil, []string{"a", "b"}, 3, "", true),
+				gnmiNotification("dev1", nil, []string{"a", "c"}, 4, "", true),
+				gnmiNotification("dev1", nil, []string{"a", "d"}, 4, "", true),
 			},
 		},
 	}
@@ -1170,10 +1183,10 @@ func TestGNMIReset(t *testing.T) {
 	targets := []string{"dev1", "dev2", "dev3"}
 	c := New(targets)
 	updates := map[string]*gpb.Notification{
-		"value1":  gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", true),
-		"value2":  gnmiNotification("dev2", []string{}, []string{"a", "c"}, 0, "value2", true),
-		"value3":  gnmiNotification("dev3", []string{}, []string{"a", "d"}, 0, "value3", true),
-		"invalid": gnmiNotification("", []string{}, []string{}, 0, "", true), // Should have no effect on test.
+		"value1":  gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", false),
+		"value2":  gnmiNotification("dev2", []string{}, []string{"a", "c"}, 0, "value2", false),
+		"value3":  gnmiNotification("dev3", []string{}, []string{"a", "d"}, 0, "value3", false),
+		"invalid": gnmiNotification("", []string{}, []string{}, 0, "", false), // Should have no effect on test.
 	}
 	// Add updates to cache.
 	for _, u := range updates {
@@ -1244,5 +1257,259 @@ func TestGNMISyncConnectUpdates(t *testing.T) {
 			}
 			got = nil
 		})
+	}
+}
+
+func TestGNMIUpdate(t *testing.T) {
+	type state struct {
+		deleted   bool
+		path      []string
+		timestamp int
+		val       string
+	}
+
+	dev := "dev1"
+	prefix := []string{"prefix1"}
+	path1 := []string{"path1"}
+	path2 := []string{"path2"}
+	path3 := []string{"path3"}
+	tests := []struct {
+		desc           string
+		initial        *gpb.Notification
+		notification   *gpb.Notification
+		want           []state
+		wantUpdates    int
+		wantSuppressed int
+		wantStale      int
+		wantErr        bool
+	}{
+		{
+			desc: "duplicate update",
+			initial: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, 1, []update{
+				{
+					path: path1,
+					val:  "11",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			want: []state{
+				{
+					path:      path1,
+					val:       "11",
+					timestamp: 1,
+				}, {
+					path:      path2,
+					val:       "2",
+					timestamp: 1,
+				},
+			},
+			wantUpdates:    1,
+			wantSuppressed: 1,
+			wantErr:        true,
+		}, {
+			desc: "no duplicates",
+			initial: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, 1, []update{
+				{
+					path: path1,
+					val:  "11",
+				}, {
+					path: path2,
+					val:  "22",
+				},
+			}),
+			want: []state{
+				{
+					path:      path1,
+					val:       "11",
+					timestamp: 1,
+				}, {
+					path:      path2,
+					val:       "22",
+					timestamp: 1,
+				},
+			},
+			wantUpdates: 2,
+		}, {
+			desc: "duplicate update with deletes",
+			initial: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				}, {
+					path: path3,
+					val:  "3",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, 1, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path:   path2,
+					delete: true,
+				}, {
+					path:   path3,
+					delete: true,
+				},
+			}),
+			want: []state{
+				{
+					path:      path1,
+					val:       "1",
+					timestamp: 1,
+				}, {
+					path:    path2,
+					deleted: true,
+				}, {
+					path:    path3,
+					deleted: true,
+				},
+			},
+			wantUpdates:    2,
+			wantSuppressed: 1,
+			wantErr:        true,
+		}, {
+			desc: "stale updates - same timestamp",
+			initial: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "22",
+				},
+			}),
+			want: []state{
+				{
+					path:      path1,
+					val:       "1",
+					timestamp: 0,
+				}, {
+					path:      path2,
+					val:       "2",
+					timestamp: 0,
+				},
+			},
+			wantStale: 2,
+			wantErr:   true,
+		}, {
+			desc: "stale updates - later timestamp",
+			initial: notificationBundle(dev, prefix, 1, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "22",
+				},
+			}),
+			want: []state{
+				{
+					path:      path1,
+					val:       "1",
+					timestamp: 1,
+				}, {
+					path:      path2,
+					val:       "2",
+					timestamp: 1,
+				},
+			},
+			wantStale: 2,
+			wantErr:   true,
+		},
+	}
+
+	suppressedPath := metadata.Path(metadata.SuppressedCount)
+	updatePath := metadata.Path(metadata.UpdateCount)
+	stalePath := metadata.Path(metadata.StaleCount)
+
+	for _, tt := range tests {
+		c := New([]string{dev})
+		if err := c.GnmiUpdate(tt.initial); err != nil {
+			t.Fatalf("%v: Could not initialize cache: %v ", tt.desc, err)
+		}
+		c.GetTarget(dev).meta.Clear()
+
+		err := c.GnmiUpdate(tt.notification)
+		c.UpdateMetadata()
+
+		if err != nil && !tt.wantErr {
+			t.Errorf("%v: GnmiUpdate(%v) = %v, want no error", tt.desc, tt.notification, err)
+			continue
+		}
+		if err == nil && tt.wantErr {
+			t.Errorf("%v: GnmiUpdate(%v) = nil, want error", tt.desc, tt.notification)
+			continue
+		}
+
+		checkMeta := func(desc string, path []string, want int) {
+			c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+				got := v.(client.Update).Val.(int64)
+				if got != int64(want) {
+					t.Errorf("%v: got %v = %d, want %d", desc, path, got, want)
+				}
+			})
+		}
+
+		checkState := func(desc string, states []state) {
+			for _, s := range states {
+				c.Query(dev, s.path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+					if s.deleted {
+						t.Errorf("%v: Query(%p): got %v, want none", desc, s.path, v)
+					} else {
+						want := gnmiNotification(dev, prefix, s.path, int64(s.timestamp), s.val, false)
+						if got, ok := v.(*gpb.Notification); !ok || !proto.Equal(got, want) {
+							t.Errorf("%v: got:\n%s want\n%s", desc, proto.MarshalTextString(got), proto.MarshalTextString(want))
+						}
+					}
+				})
+			}
+		}
+
+		checkState(tt.desc, tt.want)
+		checkMeta(tt.desc, suppressedPath, tt.wantSuppressed)
+		checkMeta(tt.desc, updatePath, tt.wantUpdates)
+		checkMeta(tt.desc, stalePath, tt.wantStale)
 	}
 }
