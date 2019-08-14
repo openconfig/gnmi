@@ -36,6 +36,7 @@ import (
 	"sync"
 	"time"
 	"unicode/utf8"
+	"encoding/json"
 
 	"flag"
 	
@@ -71,6 +72,9 @@ var (
 	setFlag          = flag.Bool("set", false, `When set, CLI will perform a Set request. Usage: gnmi_cli -set -proto <gnmi.SetRequest> -address <address> [other flags ...]`)
 
 	withUserPass = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
+	insecureUsername = flag.String("insecure_username", "", "Username passed via argument.")
+	insecurePassword = flag.String("insecure_password", "", "Password passed via argument for Username.")
+	credentialsFile = flag.String("credentials_file", "", `File of format { "Username": "demo", "Password": "demo" }`)
 
 	// Certificate files.
 	caCert     = flag.String("ca_crt", "", "CA certificate file. Used to verify server TLS certificate.")
@@ -133,8 +137,33 @@ func main() {
 		log.Exit("--address must be set")
 	}
 	if *withUserPass {
+		if *insecureUsername != "" || *insecurePassword != "" {
+			log.Exit("Do not pass --insecure_username or --insecure_password if prompting --with_user_pass")
+		} else if *credentialsFile != "" {
+			log.Exit("Do not pass --credentials_file file if prompting --with_user_pass")
+		}
 		var err error
 		q.Credentials, err = readCredentials()
+		if err != nil {
+			log.Exit(err)
+		}
+	} else if *insecureUsername != "" || *insecurePassword != "" {
+		if *credentialsFile != "" {
+			log.Exit("Do not pass --credentials_file with --insecure_username or --insecure_password")
+		}
+		if *insecureUsername == "" {
+			log.Exit("Must supply --insecure_username with --insecure_password")
+		}
+		if *insecurePassword == "" {
+			log.Exit("Must supply --insecure_password with --insecure_username")
+		}
+		q.Credentials = &client.Credentials{
+			Username: *insecureUsername,
+			Password: *insecurePassword,
+		}
+	} else if *credentialsFile != "" {
+		var err error
+		q.Credentials, err = readCredentialsFile(*credentialsFile)
 		if err != nil {
 			log.Exit(err)
 		}
@@ -305,6 +334,21 @@ func readCredentials() (*client.Credentials, error) {
 	c.Password = string(pass)
 
 	return c, nil
+}
+
+func readCredentialsFile(filename string) (*client.Credentials, error) {
+	creds := &client.Credentials{}
+
+	credFile, err := ioutil.ReadFile(filename)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(credFile, &creds)
+	if err != nil {
+		return nil, err
+	}
+
+	return creds, nil
 }
 
 func parseQuery(query, delim string) ([]string, error) {
