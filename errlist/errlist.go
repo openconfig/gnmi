@@ -104,11 +104,10 @@ func (e *List) Add(errs ...error) bool {
 		if err != nil {
 			if el, ok := err.(Errors); ok {
 				errs := el.Errors()
-				if len(errs) == 0 {
-					continue
+				if len(errs) > 0 {
+					e.errors = append(e.errors, errs...)
+					added = true
 				}
-				e.errors = append(e.errors, errs...)
-				added = true
 				continue
 			}
 			if rv := reflect.ValueOf(err); rv.Type().AssignableTo(etype) {
@@ -128,17 +127,6 @@ func (e *List) Add(errs ...error) bool {
 		}
 	}
 	return added
-}
-
-// Reset resets the error list in e to nil.
-func (e *List) Reset() {
-	e.errors = nil
-}
-
-// Append implements the deprecated usage of the previous errlist package.
-// Use Add instead.
-func (e *List) Append(err error) {
-	e.Add(err)
 }
 
 // Err returns e as an error of type Error if e has errors, or nil.
@@ -162,10 +150,7 @@ func (e Error) Error() string {
 	return strings.Join(msgs, sep)
 }
 
-// Errors returns the list of errors in e, or nil if e has no errors.
+// Errors returns the list of errors in e.
 func (e Error) Errors() []error {
-	if len(e.errors) > 0 {
-		return e.errors
-	}
-	return nil
+	return e.errors
 }
