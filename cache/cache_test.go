@@ -1155,7 +1155,7 @@ func TestGNMIClient(t *testing.T) {
 				c.GnmiUpdate(u)
 			}
 			sortGot()
-			if diff := cmp.Diff(tt.want, got); diff != "" {
+			if diff := cmp.Diff(tt.want, got, cmp.Comparer(proto.Equal)); diff != "" {
 				t.Errorf("sent updates: %v\ndiff in received updates:\n%s", tt.updates, diff)
 			}
 		})
