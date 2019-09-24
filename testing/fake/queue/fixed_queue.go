@@ -31,6 +31,7 @@ type FixedQueue struct {
 	resp       []*gpb.SubscribeResponse
 	delay      time.Duration
 	checkDelay bool
+	lastTS     int64
 }
 
 // NewFixed creates a new FixedQueue with resp list of updates enqueued for
@@ -67,11 +68,15 @@ func (q *FixedQueue) Next() (interface{}, error) {
 	if len(q.resp) > 0 && q.checkDelay {
 		var nOk bool
 		n, nOk = resp.Response.(*gpb.SubscribeResponse_Update)
+		if nOk && n.Update.Timestamp > q.lastTS {
+			q.lastTS = n.Update.Timestamp
+		}
+
 		next, nextOk := q.resp[0].Response.(*gpb.SubscribeResponse_Update)
-		if !nOk || !nextOk {
+		if !nextOk {
 			q.delay = 0
 		} else {
-			q.delay = time.Duration(next.Update.Timestamp-n.Update.Timestamp) * time.Nanosecond
+			q.delay = time.Duration(next.Update.Timestamp-q.lastTS) * time.Nanosecond
 			if q.delay < 0 {
 				q.delay = 0
 			}
