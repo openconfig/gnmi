@@ -68,9 +68,6 @@ package errdiff
 import (
 	"fmt"
 	"strings"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc"
 )
 
 // Text returns a message describing the difference between the
@@ -84,10 +81,10 @@ func Text(got error, want string) string {
 		return fmt.Sprintf("got err=%v, want err=nil", got)
 	}
 	if got == nil {
-		return fmt.Sprintf("got err=nil, want err with exact text %v", want)
+		return fmt.Sprintf("got err=nil, want err with exact text %q", want)
 	}
 	if got.Error() != want {
-		return fmt.Sprintf("got err=%v, want err with exact text %v", got, want)
+		return fmt.Sprintf("got err=%v, want err with exact text %q", got, want)
 	}
 	return ""
 }
@@ -103,29 +100,10 @@ func Substring(got error, want string) string {
 		return fmt.Sprintf("got err=%v, want err=nil", got)
 	}
 	if got == nil {
-		return fmt.Sprintf("got err=nil, want err containing %v", want)
+		return fmt.Sprintf("got err=nil, want err containing %q", want)
 	}
 	if !strings.Contains(got.Error(), want) {
-		return fmt.Sprintf("got err=%v, want err containing %v", got, want)
-	}
-	return ""
-}
-
-// Code returns a message describing the difference between the error's
-// code and the desired codes. want=codes.OK indicates that no error is
-// expected.
-func Code(got error, want codes.Code) string {
-	if want == codes.OK {
-		if got == nil {
-			return ""
-		}
-		return fmt.Sprintf("got err=%v, want OK", got)
-	}
-	if got == nil {
-		return fmt.Sprintf("got err=nil, want code %v", want)
-	}
-	if grpc.Code(got) != want {
-		return fmt.Sprintf("got err=%v, want code %v", got, want)
+		return fmt.Sprintf("got err=%v, want err containing %q", got, want)
 	}
 	return ""
 }
@@ -151,18 +129,12 @@ func Check(got error, want interface{}) string {
 			return fmt.Sprintf("got err=%v, want err=nil", got)
 		}
 		return ""
-	case codes.Code:
-		return Code(got, w)
 	case string:
 		return Substring(got, w)
 	case error:
 		switch {
-		case got == nil && w == nil:
-			return ""
-		case got == nil && w != nil:
+		case got == nil:
 			return fmt.Sprintf("got err=nil, want err=%v", w)
-		case w == nil:
-			return fmt.Sprintf("got err=%v, want err=nil", got)
 		case got.Error() == w.Error():
 			return ""
 		default:
