@@ -190,6 +190,8 @@ func (c *Cache) Add(target string) *Target {
 // Reset clears the cache for a target once a connection is resumed after
 // having been lost.
 func (c *Cache) Reset(target string) {
+	defer c.mu.RUnlock()
+	c.mu.RLock()
 	if t := c.GetTarget(target); t != nil {
 		t.Reset()
 	}
