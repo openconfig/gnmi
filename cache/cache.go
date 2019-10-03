@@ -245,25 +245,6 @@ func (t *Target) Connect() {
 	}
 }
 
-// Disconnect creates internal gnmi.Notifications for metadata/sync and
-// metadata/connected paths to set their states to false for the specified target.
-func (c *Cache) Disconnect(name string) {
-	if target := c.GetTarget(name); target != nil {
-		target.Disconnect()
-	}
-}
-
-// Disconnect creates internal gnmi.Notifications for metadata/sync and
-// metadata/connected paths to set their states to false for the specified target.
-func (t *Target) Disconnect() {
-	if err := t.GnmiUpdate(metaNotiBool(t.name, metadata.Sync, false)); err != nil {
-		log.Errorf("target %q got error during meta sync update, %v", t.name, err)
-	}
-	if err := t.GnmiUpdate(metaNotiBool(t.name, metadata.Connected, false)); err != nil {
-		log.Errorf("target %q got error during meta connected update, %v", t.name, err)
-	}
-}
-
 // Update sends a client.Notification into the cache.
 func (c *Cache) Update(n client.Notification) error {
 	var l client.Leaf

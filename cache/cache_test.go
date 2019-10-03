@@ -1239,7 +1239,6 @@ func TestGNMISyncConnectUpdates(t *testing.T) {
 	}{
 		{metadata: metadata.Sync, helper: c.Sync, want: []*gpb.Notification{metaNotiBool("dev1", metadata.Sync, true)}},
 		{metadata: metadata.Connected, helper: c.Connect, want: []*gpb.Notification{metaNotiBool("dev1", metadata.Connected, true)}},
-		{metadata: "disconnect", helper: c.Disconnect, want: []*gpb.Notification{metaNotiBool("dev1", metadata.Sync, false), metaNotiBool("dev1", metadata.Connected, false)}},
 	}
 
 	for _, tt := range tests {
