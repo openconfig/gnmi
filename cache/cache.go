@@ -192,7 +192,7 @@ func (c *Cache) Add(target string) *Target {
 func (c *Cache) Reset(target string) {
 	defer c.mu.RUnlock()
 	c.mu.RLock()
-	if t := c.GetTarget(target); t != nil {
+	if t := c.targets[target]; t != nil {
 		t.Reset()
 	}
 }
