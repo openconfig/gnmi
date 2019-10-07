@@ -120,7 +120,7 @@ func sendQueryAndDisplay(ctx context.Context, query client.Query, cfg *Config) e
 		return displayProtoResults(ctx, query, cfg, func(r proto.Message) []byte {
 			// r.String() will add extra whitespace at the end for some reason.
 			// Trim it down.
-			return bytes.TrimSpace([]byte(r.String()))
+			return bytes.TrimSpace([]byte(proto.CompactTextString(r)))
 		})
 	}
 	switch query.Type {
