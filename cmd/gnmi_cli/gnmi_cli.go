@@ -38,14 +38,14 @@ import (
 	"unicode/utf8"
 
 	"flag"
-	
+
 	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
-	"golang.org/x/crypto/ssh/terminal"
 	"github.com/openconfig/gnmi/cli"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/flags"
 	gclient "github.com/openconfig/gnmi/client/gnmi"
+	"golang.org/x/crypto/ssh/terminal"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -64,7 +64,9 @@ var (
 	queryType   = flag.String("query_type", client.Once.String(), "Type of result, one of: (o, once, p, polling, s, streaming).")
 	queryAddr   = flags.NewStringList(&q.Addrs, nil)
 
-	reqProto = flag.String("proto", "", "Text proto for gNMI request.")
+	reqProto     = flag.String("proto", "", "Text proto for gNMI request.")
+	encodingType = flag.String("encodingType", "JSON", "Request Encoding Type")
+	tlsDisabled  = flag.Bool("tlsDisabled", false, "When set, the TLS will be disabled for gRPC connection")
 
 	capabilitiesFlag = flag.Bool("capabilities", false, `When set, CLI will perform a Capabilities request. Usage: gnmi_cli -capabilities [-proto <gnmi.CapabilityRequest>] -address <address> [other flags ...]`)
 	getFlag          = flag.Bool("get", false, `When set, CLI will perform a Get request. Usage: gnmi_cli -get -proto <gnmi.GetRequest> -address <address> [other flags ...]`)
@@ -115,6 +117,8 @@ func init() {
 	flag.BoolVar(&cfg.DisplaySize, "ds", cfg.DisplaySize, "Short for display_size.")
 	flag.BoolVar(&cfg.Latency, "l", cfg.Latency, "Short for latency.")
 	flag.StringVar(reqProto, "p", *reqProto, "Short for request proto.")
+	flag.StringVar(encodingType, "en", *encodingType, "Short for encoding type")
+	flag.BoolVar(tlsDisabled, "tls", *tlsDisabled, "Short for disabling tls")
 }
 
 func main() {
@@ -186,13 +190,29 @@ func executeCapabilities(ctx context.Context) error {
 	if err := proto.UnmarshalText(*reqProto, r); err != nil {
 		return fmt.Errorf("unable to parse gnmi.CapabilityRequest from %q : %v", *reqProto, err)
 	}
-	c, err := gclient.New(ctx, client.Destination{
-		Addrs:       q.Addrs,
-		Target:      q.Target,
-		Timeout:     q.Timeout,
-		Credentials: q.Credentials,
-		TLS:         q.TLS,
-	})
+
+	var c client.Impl
+	var err error
+	if *tlsDisabled {
+		c, err = gclient.New(ctx, client.Destination{
+			Addrs:       q.Addrs,
+			Target:      q.Target,
+			Timeout:     q.Timeout,
+			Credentials: q.Credentials,
+			TLS:         nil,
+		})
+
+	} else {
+
+		c, err = gclient.New(ctx, client.Destination{
+			Addrs:       q.Addrs,
+			Target:      q.Target,
+			Timeout:     q.Timeout,
+			Credentials: q.Credentials,
+			TLS:         q.TLS,
+		})
+	}
+
 	if err != nil {
 		return fmt.Errorf("could not create a gNMI client: %v", err)
 	}
@@ -212,13 +232,36 @@ func executeGet(ctx context.Context) error {
 	if err := proto.UnmarshalText(*reqProto, r); err != nil {
 		return fmt.Errorf("unable to parse gnmi.GetRequest from %q : %v", *reqProto, err)
 	}
-	c, err := gclient.New(ctx, client.Destination{
-		Addrs:       q.Addrs,
-		Target:      q.Target,
-		Timeout:     q.Timeout,
-		Credentials: q.Credentials,
-		TLS:         q.TLS,
-	})
+
+	if strings.Compare(*encodingType, "JSON") == 0 {
+		r.Encoding = gpb.Encoding_JSON
+
+		// For the stratum
+	} else if strings.Compare(*encodingType, "PROTO") == 0 {
+		r.Encoding = gpb.Encoding_PROTO
+	}
+
+	var c client.Impl
+	var err error
+	if *tlsDisabled {
+		c, err = gclient.New(ctx, client.Destination{
+			Addrs:       q.Addrs,
+			Target:      q.Target,
+			Timeout:     q.Timeout,
+			Credentials: q.Credentials,
+			TLS:         nil,
+		})
+
+	} else {
+		c, err = gclient.New(ctx, client.Destination{
+			Addrs:       q.Addrs,
+			Target:      q.Target,
+			Timeout:     q.Timeout,
+			Credentials: q.Credentials,
+			TLS:         q.TLS,
+		})
+	}
+
 	if err != nil {
 		return fmt.Errorf("could not create a gNMI client: %v", err)
 	}
@@ -238,13 +281,28 @@ func executeSet(ctx context.Context) error {
 	if err := proto.UnmarshalText(*reqProto, r); err != nil {
 		return fmt.Errorf("unable to parse gnmi.SetRequest from %q : %v", *reqProto, err)
 	}
-	c, err := gclient.New(ctx, client.Destination{
-		Addrs:       q.Addrs,
-		Target:      q.Target,
-		Timeout:     q.Timeout,
-		Credentials: q.Credentials,
-		TLS:         q.TLS,
-	})
+
+	var c client.Impl
+	var err error
+	if *tlsDisabled {
+		c, err = gclient.New(ctx, client.Destination{
+			Addrs:       q.Addrs,
+			Target:      q.Target,
+			Timeout:     q.Timeout,
+			Credentials: q.Credentials,
+			TLS:         nil,
+		})
+
+	} else {
+		c, err = gclient.New(ctx, client.Destination{
+			Addrs:       q.Addrs,
+			Target:      q.Target,
+			Timeout:     q.Timeout,
+			Credentials: q.Credentials,
+			TLS:         q.TLS,
+		})
+	}
+
 	if err != nil {
 		return fmt.Errorf("could not create a gNMI client: %v", err)
 	}
@@ -267,7 +325,11 @@ func executeSubscribe(ctx context.Context) error {
 		tq.Addrs = q.Addrs
 		tq.Credentials = q.Credentials
 		tq.Timeout = q.Timeout
-		tq.TLS = q.TLS
+		if *tlsDisabled {
+			tq.TLS = nil
+		} else {
+			tq.TLS = q.TLS
+		}
 		return cli.QueryDisplay(ctx, tq, &cfg)
 	}
 
