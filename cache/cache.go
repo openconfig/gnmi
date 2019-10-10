@@ -308,7 +308,16 @@ func (t *Target) GnmiUpdate(n *gpb.Notification) error {
 	t.checkTimestamp(T(n.GetTimestamp()))
 	// Store atomic notifications as a single leaf in the tree.
 	if n.Atomic {
-		t.meta.AddInt(metadata.UpdateCount, int64(len(n.GetUpdate())))
+		if len(n.GetDelete()) > 0 {
+			return errors.New("atomic deletes unsupported")
+		}
+		l := len(n.GetUpdate())
+		if l == 0 {
+			// This could be considered an error, but is silently allowed
+			// in the non-Atomic case, so treat equally.
+			return nil
+		}
+		t.meta.AddInt(metadata.UpdateCount, int64(l))
 		nd, err := t.gnmiUpdate(n)
 		if err != nil {
 			return err

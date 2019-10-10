@@ -837,45 +837,92 @@ func TestGNMIAtomic(t *testing.T) {
 	Type = GnmiNoti
 	defer func() { Type = ClientLeaf }()
 	c := New([]string{"dev1"})
-	n := &gpb.Notification{
-		Atomic:    true,
-		Timestamp: time.Now().UnixNano(),
-		Prefix: &gpb.Path{
-			Target: "dev1",
-			Origin: "openconfig",
-			Elem:   []*gpb.PathElem{{Name: "a"}, {Name: "b", Key: map[string]string{"key": "value"}}},
-		},
-		Update: []*gpb.Update{
-			{Path: &gpb.Path{Elem: []*gpb.PathElem{{Name: "x"}}}, Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{"x val"}}},
-			{Path: &gpb.Path{Elem: []*gpb.PathElem{{Name: "y"}}}, Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{"y val"}}},
-			{Path: &gpb.Path{Elem: []*gpb.PathElem{{Name: "z"}}}, Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{"z val"}}},
-		},
-	}
-	c.GnmiUpdate(n)
-	tests := []struct {
-		path   []string
+	type query struct {
+		path []string
 		expect bool
-	}{
-		// Query paths that return the atomic update.
-		{path: []string{"*"}, expect: true},
-		{path: []string{"openconfig"}, expect: true},
-		{path: []string{"openconfig", "a"}, expect: true},
-		{path: []string{"openconfig", "a", "b"}, expect: true},
-		{path: []string{"openconfig", "a", "b", "value"}, expect: true},
-		// Query paths that do not.
-		{path: []string{"foo"}},
-		{path: []string{"openconfig", "a", "b", "value", "x"}},
 	}
+	tests := []struct{
+		desc string
+		noti *gpb.Notification
+		wantErr bool
+		queries []query
+	}{
+		{
+			desc: "normal atomic update",
+			noti: &gpb.Notification{
+				Atomic:    true,
+				Timestamp: time.Now().UnixNano(),
+				Prefix: &gpb.Path{
+					Target: "dev1",
+					Origin: "openconfig",
+					Elem:   []*gpb.PathElem{{Name: "a"}, {Name: "b", Key: map[string]string{"key": "value"}}},
+				},
+				Update: []*gpb.Update{
+					{Path: &gpb.Path{Elem: []*gpb.PathElem{{Name: "x"}}}, Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{"x val"}}},
+					{Path: &gpb.Path{Elem: []*gpb.PathElem{{Name: "y"}}}, Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{"y val"}}},
+					{Path: &gpb.Path{Elem: []*gpb.PathElem{{Name: "z"}}}, Val: &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{"z val"}}},
+				},
+			},
+			queries: []query{
+				// Query paths that return the atomic update.
+				{path: []string{"*"}, expect: true},
+				{path: []string{"openconfig"}, expect: true},
+				{path: []string{"openconfig", "a"}, expect: true},
+				{path: []string{"openconfig", "a", "b"}, expect: true},
+				{path: []string{"openconfig", "a", "b", "value"}, expect: true},
+				// Query paths that do not.
+				{path: []string{"foo"}},
+				{path: []string{"openconfig", "a", "b", "value", "x"}},
+			},
+		}, {
+			desc: "empty atomic update",
+			noti: &gpb.Notification{
+				Atomic: true,
+				Timestamp: time.Now().UnixNano(),
+				Prefix: &gpb.Path{
+					Target: "dev1",
+					Origin: "openconfig",
+					Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b", Key: map[string]string{"key": "value"}}},
+				},
+			},
+		}, {
+			desc: "atomic delete error",
+			noti: &gpb.Notification{
+				Atomic:    true,
+				Timestamp: time.Now().UnixNano(),
+				Prefix: &gpb.Path{
+					Target: "dev1",
+					Origin: "openconfig",
+					Elem:   []*gpb.PathElem{{Name: "a"}, {Name: "b", Key: map[string]string{"key": "value"}}},
+				},
+				Delete: []*gpb.Path{
+					{Elem: []*gpb.PathElem{{Name: "x"}}},
+					{Elem: []*gpb.PathElem{{Name: "y"}}},
+					{Elem: []*gpb.PathElem{{Name: "z"}}},
+				},
+			},
+			wantErr: true,
+		},
+	}
+
 	for _, tt := range tests {
-		c.Query("dev1", tt.path, func(_ []string, _ *ctree.Leaf, val interface{}) {
-			if !tt.expect {
-				t.Errorf("Query(%p): got notification %v, want none", tt.path, val)
-			} else {
-				if v, ok := val.(*gpb.Notification); !ok || !cmp.Equal(v, n) {
-					t.Errorf("got:\n%s want\n%s", proto.MarshalTextString(v), proto.MarshalTextString(n))
+		err := c.GnmiUpdate(tt.noti)
+		if err != nil && !tt.wantErr {
+			t.Errorf("%v: unexpected error: %v", tt.desc, err)
+		} else if err == nil && tt.wantErr {
+			t.Errorf("%v: expected err, got nil", tt.desc)
+		}
+		for _, q := range tt.queries {
+			c.Query("dev1", q.path, func(_ []string, _ *ctree.Leaf, val interface{}) {
+				if !q.expect {
+					t.Errorf("Query(%p): got notification %v, want none", q.path, val)
+				} else {
+					if v, ok := val.(*gpb.Notification); !ok || !cmp.Equal(v, tt.noti) {
+						t.Errorf("got:\n%s want\n%s", proto.MarshalTextString(v), proto.MarshalTextString(tt.noti))
+					}
 				}
-			}
-		})
+			})
+		}
 	}
 }
 
