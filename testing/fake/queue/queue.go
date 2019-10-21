@@ -31,7 +31,7 @@ import (
 )
 
 // Queue is a generic interface for getting the next element from either a
-// FixedQeueue or UpdateQueue.
+// FixedQueue or UpdateQueue.
 type Queue interface {
 	Next() (interface{}, error)
 }
