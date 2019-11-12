@@ -36,6 +36,7 @@ import (
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
 	gnmiclient "github.com/openconfig/gnmi/client/gnmi"
+	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
 	"github.com/openconfig/gnmi/value"
@@ -1793,5 +1794,81 @@ func TestGNMIACL(t *testing.T) {
 		if diff := cmp.Diff(facl, test.wantCnt, cmpopts.EquateEmpty(), cmp.AllowUnexported(fakeACL{})); diff != "" {
 			t.Errorf("%v returned unexpected result:\n got %v\n want %v\n diff %v", test.name, facl, test.wantCnt, diff)
 		}
+	}
+}
+
+func TestIsTargetDelete(t *testing.T) {
+	testCases := []struct {
+		name string
+		noti interface{}
+		want bool
+	}{
+		{
+			name: "Update",
+			noti: client.Update{Path: client.Path{"a"}},
+			want: false,
+		},
+		{
+			name: "Leaf delete",
+			noti: client.Delete{Path: client.Path{"a", "b"}},
+			want: false,
+		},
+		{
+			name: "Target delete",
+			noti: client.Delete{Path: client.Path{"target"}},
+			want: true,
+		},
+		{
+			name: "GNMI Update",
+			noti: &pb.Notification{
+				Prefix: &pb.Path{Target: "d", Origin: "o"},
+				Update: []*pb.Update{
+					{
+						Path: &pb.Path{
+							Elem: []*pb.PathElem{{Name: "p"}},
+						},
+					},
+				},
+			},
+			want: false,
+		},
+		{
+			name: "GNMI Leaf Delete",
+			noti: &pb.Notification{
+				Prefix: &pb.Path{Target: "d", Origin: "o"},
+				Delete: []*pb.Path{{
+					Elem: []*pb.PathElem{{Name: "p"}},
+				}},
+			},
+			want: false,
+		},
+		{
+			name: "GNMI Root Delete",
+			noti: &pb.Notification{
+				Prefix: &pb.Path{Target: "d", Origin: "o"},
+				Delete: []*pb.Path{{
+					Elem: []*pb.PathElem{{Name: "*"}},
+				}},
+			},
+			want: false,
+		},
+		{
+			name: "GNMI Target Delete",
+			noti: &pb.Notification{
+				Prefix: &pb.Path{Target: "d"},
+				Delete: []*pb.Path{{
+					Elem: []*pb.PathElem{{Name: "*"}},
+				}},
+			},
+			want: true,
+		},
+	}
+	for _, tc := range testCases {
+		t.Run(tc.name, func(t *testing.T) {
+			l := ctree.DetachedLeaf(tc.noti)
+			if got := isTargetDelete(l); got != tc.want {
+				t.Errorf("got %t, want %t", got, tc.want)
+			}
+		})
 	}
 }

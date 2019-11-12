@@ -633,82 +633,6 @@ func BenchmarkParallelUpdateQuery(b *testing.B) {
 	wg.Wait()
 }
 
-func TestIsDeleteTarget(t *testing.T) {
-	testCases := []struct {
-		name string
-		noti interface{}
-		want bool
-	}{
-		{
-			name: "Update",
-			noti: client.Update{Path: client.Path{"a"}},
-			want: false,
-		},
-		{
-			name: "Leaf delete",
-			noti: client.Delete{Path: client.Path{"a", "b"}},
-			want: false,
-		},
-		{
-			name: "Target delete",
-			noti: client.Delete{Path: client.Path{"target"}},
-			want: true,
-		},
-		{
-			name: "GNMI Update",
-			noti: &gpb.Notification{
-				Prefix: &gpb.Path{Target: "d", Origin: "o"},
-				Update: []*gpb.Update{
-					{
-						Path: &gpb.Path{
-							Elem: []*gpb.PathElem{{Name: "p"}},
-						},
-					},
-				},
-			},
-			want: false,
-		},
-		{
-			name: "GNMI Leaf Delete",
-			noti: &gpb.Notification{
-				Prefix: &gpb.Path{Target: "d", Origin: "o"},
-				Delete: []*gpb.Path{{
-					Elem: []*gpb.PathElem{{Name: "p"}},
-				}},
-			},
-			want: false,
-		},
-		{
-			name: "GNMI Root Delete",
-			noti: &gpb.Notification{
-				Prefix: &gpb.Path{Target: "d", Origin: "o"},
-				Delete: []*gpb.Path{{
-					Elem: []*gpb.PathElem{{Name: "*"}},
-				}},
-			},
-			want: false,
-		},
-		{
-			name: "GNMI Target Delete",
-			noti: &gpb.Notification{
-				Prefix: &gpb.Path{Target: "d"},
-				Delete: []*gpb.Path{{
-					Elem: []*gpb.PathElem{{Name: "*"}},
-				}},
-			},
-			want: true,
-		},
-	}
-	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
-			l := ctree.DetachedLeaf(tc.noti)
-			if got := IsTargetDelete(l); got != tc.want {
-				t.Errorf("got %t, want %t", got, tc.want)
-			}
-		})
-	}
-}
-
 func gnmiNotification(dev string, prefix []string, path []string, ts int64, val string, delete bool) *gpb.Notification {
 	return notificationBundle(dev, prefix, ts, []update{
 		{
@@ -838,12 +762,12 @@ func TestGNMIAtomic(t *testing.T) {
 	defer func() { Type = ClientLeaf }()
 	c := New([]string{"dev1"})
 	type query struct {
-		path []string
+		path   []string
 		expect bool
 	}
-	tests := []struct{
-		desc string
-		noti *gpb.Notification
+	tests := []struct {
+		desc    string
+		noti    *gpb.Notification
 		wantErr bool
 		queries []query
 	}{
@@ -877,12 +801,12 @@ func TestGNMIAtomic(t *testing.T) {
 		}, {
 			desc: "empty atomic update",
 			noti: &gpb.Notification{
-				Atomic: true,
+				Atomic:    true,
 				Timestamp: time.Now().UnixNano(),
 				Prefix: &gpb.Path{
 					Target: "dev1",
 					Origin: "openconfig",
-					Elem: []*gpb.PathElem{{Name: "a"}, {Name: "b", Key: map[string]string{"key": "value"}}},
+					Elem:   []*gpb.PathElem{{Name: "a"}, {Name: "b", Key: map[string]string{"key": "value"}}},
 				},
 			},
 		}, {

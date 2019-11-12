@@ -423,7 +423,7 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 			return
 		}
 		// If the only target being subscribed was deleted, stop streaming.
-		if cache.IsTargetDelete(n) && c.target != "*" {
+		if isTargetDelete(n) && c.target != "*" {
 			log.Infof("Target %q was deleted. Closing stream.", c.target)
 			c.errC <- nil
 			return
@@ -480,4 +480,24 @@ func MakeSubscribeResponse(n interface{}, dup uint32) (*pb.SubscribeResponse, er
 	}
 
 	return response, nil
+}
+
+func isTargetDelete(l *ctree.Leaf) bool {
+	switch v := l.Value().(type) {
+	case client.Delete:
+		return len(v.Path) == 1
+	case *pb.Notification:
+		if len(v.Delete) == 1 {
+			var orig string
+			if v.Prefix != nil {
+				orig = v.Prefix.Origin
+			}
+			// Prefix path is indexed without target and origin
+			p := path.ToStrings(v.Prefix, false)
+			p = append(p, path.ToStrings(v.Delete[0], false)...)
+			// When origin isn't set, intention must be to delete entire target.
+			return orig == "" && len(p) == 1 && p[0] == "*"
+		}
+	}
+	return false
 }

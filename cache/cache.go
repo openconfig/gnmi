@@ -704,28 +704,6 @@ func (l *latency) updateReset(m *metadata.Metadata) {
 	l.max = 0
 }
 
-// IsTargetDelete is a convenience function that identifies a leaf as
-// containing a delete notification for an entire target.
-func IsTargetDelete(l *ctree.Leaf) bool {
-	switch v := l.Value().(type) {
-	case client.Delete:
-		return len(v.Path) == 1
-	case *gpb.Notification:
-		if len(v.Delete) == 1 {
-			var orig string
-			if v.Prefix != nil {
-				orig = v.Prefix.Origin
-			}
-			// Prefix path is indexed without target and origin
-			p := path.ToStrings(v.Prefix, false)
-			p = append(p, path.ToStrings(v.Delete[0], false)...)
-			// When origin isn't set, intention must be to delete entire target.
-			return orig == "" && len(p) == 1 && p[0] == "*"
-		}
-	}
-	return false
-}
-
 func joinPrefixAndPath(pr, ph *gpb.Path) []string {
 	// <target> and <origin> are only valid as prefix gnmi.Path
 	// https://github.com/openconfig/reference/blob/master/rpc/gnmi-specification.md#222-paths
