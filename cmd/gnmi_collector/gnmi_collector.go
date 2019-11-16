@@ -98,7 +98,6 @@ func runCollector(ctx context.Context) error {
 	}
 
 	// Initialize cache.
-	cache.Type = cache.GnmiNoti
 	c.cache = cache.New(nil)
 
 	// Start functions to periodically update metadata stored in the cache for each target.

@@ -145,10 +145,6 @@ func TestOnce(t *testing.T) {
 }
 
 func TestOriginInSubscribeRequest(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	addr, cache, teardown, err := startServer(client.Path{"dev1"})
 	if err != nil {
 		t.Fatal(err)
@@ -262,10 +258,6 @@ func TestOriginInSubscribeRequest(t *testing.T) {
 }
 
 func TestGNMIOnce(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	addr, cache, teardown, err := startServer(client.Path{"dev1"})
 	if err != nil {
 		t.Fatal(err)
@@ -352,35 +344,25 @@ func TestGNMIOnce(t *testing.T) {
 // timestamp and value for each.
 func sendUpdates(t *testing.T, c *cache.Cache, paths []client.Path, timestamp *time.Time) {
 	t.Helper()
-	switch cache.Type {
-	case cache.ClientLeaf:
-		for _, path := range paths {
-			*timestamp = timestamp.Add(time.Nanosecond)
-			if err := c.Update(client.Update{Path: path, Val: timestamp.UnixNano(), TS: *timestamp}); err != nil {
-				t.Errorf("streamUpdate: %v", err)
-			}
+	for _, path := range paths {
+		*timestamp = timestamp.Add(time.Nanosecond)
+		sv, err := value.FromScalar(timestamp.UnixNano())
+		if err != nil {
+			t.Errorf("Scalar value err %v", err)
+			continue
 		}
-	case cache.GnmiNoti:
-		for _, path := range paths {
-			*timestamp = timestamp.Add(time.Nanosecond)
-			sv, err := value.FromScalar(timestamp.UnixNano())
-			if err != nil {
-				t.Errorf("Scalar value err %v", err)
-				continue
-			}
-			noti := &pb.Notification{
-				Prefix:    &pb.Path{Target: path[0]},
-				Timestamp: timestamp.UnixNano(),
-				Update: []*pb.Update{
-					{
-						Path: &pb.Path{Element: path[1:]},
-						Val:  sv,
-					},
+		noti := &pb.Notification{
+			Prefix:    &pb.Path{Target: path[0]},
+			Timestamp: timestamp.UnixNano(),
+			Update: []*pb.Update{
+				{
+					Path: &pb.Path{Element: path[1:]},
+					Val:  sv,
 				},
-			}
-			if err := c.GnmiUpdate(noti); err != nil {
-				t.Errorf("streamUpdate: %v", err)
-			}
+			},
+		}
+		if err := c.GnmiUpdate(noti); err != nil {
+			t.Errorf("streamUpdate: %v", err)
 		}
 	}
 }
@@ -450,10 +432,6 @@ func TestPoll(t *testing.T) {
 }
 
 func TestGNMIPoll(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
@@ -591,10 +569,6 @@ func TestStream(t *testing.T) {
 }
 
 func TestGNMIStream(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
@@ -726,10 +700,6 @@ func TestStreamNewUpdates(t *testing.T) {
 }
 
 func TestGNMIStreamNewUpdates(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
@@ -838,10 +808,6 @@ func TestUpdatesOnly(t *testing.T) {
 }
 
 func TestGNMIUpdatesOnly(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
@@ -966,10 +932,6 @@ func TestSubscribeUnresponsiveClient(t *testing.T) {
 // If a client doesn't read any of the responses, it should not affect other
 // clients querying the same target.
 func TestGNMISubscribeUnresponsiveClient(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	addr, cache, teardown, err := startServer([]string{"dev1"})
 	if err != nil {
 		t.Fatal(err)
@@ -1075,7 +1037,7 @@ func TestDeletedTargetMessage(t *testing.T) {
 				// Want to see a target delete message.  No need to call c.Close()
 				// because the server should close the connection if the target is
 				// removed.
-				if len(v.Path) == 1 && v.Path[0] == "dev1" {
+				if len(v.Path) == 2 && v.Path[0] == "dev1" && v.Path[1] == "*" {
 					deleted = true
 				}
 			case client.Connected:
@@ -1095,10 +1057,6 @@ func TestDeletedTargetMessage(t *testing.T) {
 }
 
 func TestGNMIDeletedTargetMessage(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	addr, ch, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
@@ -1212,10 +1170,6 @@ func TestCoalescedDupCount(t *testing.T) {
 }
 
 func TestGNMICoalescedDupCount(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	// Inject a simulated flow control to block sends and induce coalescing.
 	flowControlTest = func() { time.Sleep(100 * time.Microsecond) }
 	addr, cache, teardown, err := startServer([]string{"dev1"})
@@ -1320,10 +1274,6 @@ func TestSubscribeTimeout(t *testing.T) {
 }
 
 func TestGNMISubscribeTimeout(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	// Set a low timeout that is below the induced flowControl delay.
 	Timeout = 100 * time.Millisecond
 	// Cause query to hang indefinitely to induce timeout.
@@ -1436,10 +1386,6 @@ remainingQueries:
 }
 
 func TestGNMISubscriptionLimit(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	totalQueries := 20
 	SubscriptionLimit = 7
 	causeLimit := make(chan struct{})
@@ -1515,10 +1461,6 @@ remainingQueries:
 }
 
 func TestGNMIMultipleSubscriberCoalescion(t *testing.T) {
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	// Inject a simulated flow control to block sends and induce coalescing.
 	flowControlTest = func() { time.Sleep(time.Second) }
 	addr, cache, teardown, err := startServer([]string{"dev1"})
@@ -1667,10 +1609,6 @@ func (s *fakeSubServer) Context() context.Context {
 
 func TestGNMIACL(t *testing.T) {
 	targets := []string{"dev-pii", "dev-no-pii"}
-	cache.Type = cache.GnmiNoti
-	defer func() {
-		cache.Type = cache.ClientLeaf
-	}()
 	c := cache.New(targets)
 	p, err := NewServer(c)
 	if err != nil {
@@ -1803,21 +1741,6 @@ func TestIsTargetDelete(t *testing.T) {
 		noti interface{}
 		want bool
 	}{
-		{
-			name: "Update",
-			noti: client.Update{Path: client.Path{"a"}},
-			want: false,
-		},
-		{
-			name: "Leaf delete",
-			noti: client.Delete{Path: client.Path{"a", "b"}},
-			want: false,
-		},
-		{
-			name: "Target delete",
-			noti: client.Delete{Path: client.Path{"target"}},
-			want: true,
-		},
 		{
 			name: "GNMI Update",
 			noti: &pb.Notification{
