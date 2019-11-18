@@ -59,7 +59,7 @@ func (a *aclStub) Check(string) bool {
 	return true
 }
 
-// RPCACL is per RPC ACL interface
+// RPCACL is the per RPC ACL interface
 type RPCACL interface {
 	Check(string) bool
 }
