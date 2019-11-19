@@ -24,7 +24,6 @@ import (
 	"time"
 
 	"google.golang.org/grpc"
-	"github.com/openconfig/gnmi/unimplemented"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -33,7 +32,7 @@ func newDevice(t *testing.T) (string, func()) {
 	t.Helper()
 
 	srv := grpc.NewServer()
-	s := &unimplemented.Server{}
+	s := &pb.UnimplementedGNMIServer{}
 	pb.RegisterGNMIServer(srv, s)
 	lis, err := net.Listen("tcp", "localhost:0")
 	if err != nil {

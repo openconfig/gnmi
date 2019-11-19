@@ -24,7 +24,6 @@ import (
 	log "github.com/golang/glog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"github.com/openconfig/gnmi/unimplemented"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -37,7 +36,7 @@ func TestLookup(t *testing.T) {
 	srv := grpc.NewServer()
 	defer srv.Stop()
 
-	gpb.RegisterGNMIServer(srv, &unimplemented.Server{})
+	gpb.RegisterGNMIServer(srv, &gpb.UnimplementedGNMIServer{})
 	reflection.Register(srv)
 
 	go srv.Serve(l)

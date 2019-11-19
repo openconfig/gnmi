@@ -30,7 +30,6 @@ import (
 	log "github.com/golang/glog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"github.com/openconfig/gnmi/unimplemented"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
@@ -40,7 +39,7 @@ import (
 // via Subscribe or Get will receive a stream of updates based on the requested
 // path and the provided initial configuration.
 type Agent struct {
-	unimplemented.Server
+	gnmipb.UnimplementedGNMIServer
 	mu     sync.Mutex
 	s      *grpc.Server
 	lis    net.Listener

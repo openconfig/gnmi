@@ -33,7 +33,6 @@ import (
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/match"
 	"github.com/openconfig/gnmi/path"
-	"github.com/openconfig/gnmi/unimplemented"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -72,7 +71,7 @@ type ACL interface {
 
 // Server is the implementation of the gNMI Subcribe API.
 type Server struct {
-	unimplemented.Server // Stub out all RPCs except Subscribe.
+	pb.UnimplementedGNMIServer // Stub out all RPCs except Subscribe.
 
 	c *cache.Cache // The cache queries are performed against.
 	m *match.Match // Structure to match updates against active subscriptions.
