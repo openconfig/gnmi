@@ -552,7 +552,7 @@ func TestGNMIAtomic(t *testing.T) {
 				if !q.expect {
 					t.Errorf("Query(%p): got notification %v, want none", q.path, val)
 				} else {
-					if v, ok := val.(*pb.Notification); !ok || !cmp.Equal(v, tt.noti) {
+					if v, ok := val.(*pb.Notification); !ok || !proto.Equal(v, tt.noti) {
 						t.Errorf("got:\n%s want\n%s", proto.MarshalTextString(v), proto.MarshalTextString(tt.noti))
 					}
 				}
@@ -845,7 +845,7 @@ func TestGNMIClient(t *testing.T) {
 		gotVal := got[0].(*pb.Notification)
 		// Clear timestamp before comparison.
 		gotVal.Timestamp = 0
-		if diff := cmp.Diff(want, gotVal); diff != "" {
+		if diff := cmp.Diff(want, gotVal, cmp.Comparer(proto.Equal)); diff != "" {
 			t.Errorf("diff in received update:\n%s", diff)
 		}
 	})
@@ -920,7 +920,7 @@ func TestGNMISyncConnectUpdates(t *testing.T) {
 			for i := 0; i < len(tt.want); i++ {
 				got[i].(*pb.Notification).Timestamp = 0
 				tt.want[i].Timestamp = 0
-				if diff := cmp.Diff(tt.want[i], got[i]); diff != "" {
+				if diff := cmp.Diff(tt.want[i], got[i], cmp.Comparer(proto.Equal)); diff != "" {
 					t.Errorf("diff in received update:\n%s", diff)
 				}
 			}

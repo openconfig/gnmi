@@ -18,11 +18,11 @@ package queue
 
 import (
 	"math/rand"
-	"reflect"
 	"testing"
 	"time"
 
-	"github.com/kylelemons/godebug/pretty"
+	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -74,7 +74,7 @@ func TestUpdateTimestamp(t *testing.T) {
 			if diff := errdiff.Substring(err, tc.err); diff != "" {
 				t.Errorf("newValue(%q).updateTimestamp() %v", tc.in, diff)
 			}
-			if diff := pretty.Compare(v.v.GetTimestamp(), tc.want); err == nil && diff != "" {
+			if diff := cmp.Diff(v.v.GetTimestamp(), tc.want, cmp.Comparer(proto.Equal)); err == nil && diff != "" {
 				t.Errorf("newValue(%q).updateTimestamp() %v", tc.in, diff)
 			}
 		})
@@ -211,7 +211,7 @@ func TestUpdateIntValue(t *testing.T) {
 			if diff := errdiff.Substring(err, tc.err); diff != "" {
 				t.Errorf("newValue(%q).updateIntValue() %v", tc.value, diff)
 			}
-			if diff := pretty.Compare(v.v, tc.want); err == nil && diff != "" {
+			if diff := cmp.Diff(v.v, tc.want, cmp.Comparer(proto.Equal)); err == nil && diff != "" {
 				t.Errorf("newValue(%q).updatedIntValue() %v", tc.value, diff)
 			}
 		})
@@ -348,7 +348,7 @@ func TestUpdateDoubleValue(t *testing.T) {
 			if err != nil {
 				return
 			}
-			if diff := pretty.Compare(v.v, tc.want); diff != "" {
+			if diff := cmp.Diff(v.v, tc.want, cmp.Comparer(proto.Equal)); diff != "" {
 				t.Errorf("newValue(%q).updatedDoubleValue() %v", tc.value, diff)
 			}
 		})
@@ -418,7 +418,7 @@ func TestUpdateBoolValue(t *testing.T) {
 			if diff := errdiff.Substring(err, tc.err); diff != "" {
 				t.Errorf("newValue(%q).updateBoolValue() %v", tc.value, diff)
 			}
-			if diff := pretty.Compare(v.v, tc.want); err == nil && diff != "" {
+			if diff := cmp.Diff(v.v, tc.want, cmp.Comparer(proto.Equal)); err == nil && diff != "" {
 				t.Errorf("newValue(%q).updatedBoolValue() %v", tc.value, diff)
 			}
 		})
@@ -488,7 +488,7 @@ func TestUpdateStringValue(t *testing.T) {
 			if diff := errdiff.Substring(err, tc.err); diff != "" {
 				t.Errorf("newValue(%q).updateStringValue() %v", tc.value, diff)
 			}
-			if diff := pretty.Compare(v.v, tc.want); err == nil && diff != "" {
+			if diff := cmp.Diff(v.v, tc.want, cmp.Comparer(proto.Equal)); err == nil && diff != "" {
 				t.Errorf("newValue(%q).updatedStringValue() %v", tc.value, diff)
 			}
 		})
@@ -605,7 +605,7 @@ func TestNextValue(t *testing.T) {
 			if diff := errdiff.Substring(err, tc.err); diff != "" {
 				t.Errorf("newValue(%q).nextValue() %v", tc.in, diff)
 			}
-			if diff := pretty.Compare(v.v, tc.want); err == nil && diff != "" {
+			if diff := cmp.Diff(v.v, tc.want, cmp.Comparer(proto.Equal)); err == nil && diff != "" {
 				t.Errorf("value of newValue(%q).nextValue() %v", tc.in, diff)
 			}
 		})
@@ -834,7 +834,7 @@ func TestValueOf(t *testing.T) {
 	}}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
-			if got, want := ValueOf(tc.in), tc.want; !reflect.DeepEqual(got, want) {
+			if got, want := ValueOf(tc.in), tc.want; !cmp.Equal(got, want, cmp.Comparer(proto.Equal)) {
 				t.Errorf("ValueOf(%q) failed: got %q, want %q", tc.in, got, want)
 			}
 		})
@@ -1073,7 +1073,7 @@ func TestTypedValueOf(t *testing.T) {
 	}}
 	for _, tc := range tests {
 		t.Run(tc.desc, func(t *testing.T) {
-			if got, want := TypedValueOf(tc.in), tc.want; !reflect.DeepEqual(got, want) {
+			if got, want := TypedValueOf(tc.in), tc.want; !proto.Equal(got, want) {
 				t.Errorf("TypedValueOf(%q) failed: got %q, want %q", tc.in, got, want)
 			}
 		})
