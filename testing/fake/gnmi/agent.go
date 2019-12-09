@@ -47,8 +47,9 @@ type Agent struct {
 	state  fpb.State
 	config *fpb.Config
 	// cMu protects clients.
-	cMu     sync.Mutex
-	clients map[string]*Client
+	cMu      sync.Mutex
+	clients  map[string]*Client
+	requests []*gnmipb.SubscribeRequest
 }
 
 // New returns an initialized fake agent.
@@ -160,13 +161,20 @@ func (a *Agent) Subscribe(stream gnmipb.GNMI_SubscribeServer) error {
 
 	a.cMu.Lock()
 	a.clients[c.String()] = c
+	a.requests = nil
 	a.cMu.Unlock()
 
 	err := c.Run(stream)
 
 	a.cMu.Lock()
 	delete(a.clients, c.String())
+	a.requests = c.requests
 	a.cMu.Unlock()
 
 	return err
+}
+
+// Requests returns all the subscribe requests received by last closed subscribe stream.
+func (a *Agent) Requests() []*gnmipb.SubscribeRequest {
+	return a.requests
 }
