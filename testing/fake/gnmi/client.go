@@ -78,13 +78,13 @@ func (c *Client) Run(stream gpb.GNMI_SubscribeServer) (err error) {
 	}()
 
 	query, err := stream.Recv()
-	c.requests = append(c.requests, query)
 	if err != nil {
 		if err == io.EOF {
 			return grpc.Errorf(codes.Aborted, "stream EOF received before init")
 		}
 		return grpc.Errorf(grpc.Code(err), "received error from client")
 	}
+	c.requests = append(c.requests, query)
 	log.V(1).Infof("Client %s recieved initial query: %v", c, query)
 
 	c.subscribe = query.GetSubscribe()
@@ -124,7 +124,6 @@ var syncResp = &gpb.SubscribeResponse{
 func (c *Client) recv(stream gpb.GNMI_SubscribeServer) {
 	for {
 		event, err := stream.Recv()
-		c.requests = append(c.requests, event)
 		switch err {
 		default:
 			log.V(1).Infof("Client %s received error: %v", c, err)
@@ -134,6 +133,7 @@ func (c *Client) recv(stream gpb.GNMI_SubscribeServer) {
 			log.V(1).Infof("Client %s received io.EOF", c)
 			return
 		case nil:
+			c.requests = append(c.requests, event)
 		}
 		if c.subscribe.Mode == gpb.SubscriptionList_POLL {
 			log.V(1).Infof("Client %s received Poll event: %v", c, event)
