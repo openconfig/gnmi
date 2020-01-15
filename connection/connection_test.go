@@ -23,8 +23,8 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/grpc"
 	"github.com/openconfig/gnmi/unimplemented"
+	"google.golang.org/grpc"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -241,9 +241,6 @@ func TestConcurrentDialErr(t *testing.T) {
 		go func() {
 			<-start
 			_, _, err := m.Connection(ctx, "")
-			if err == nil {
-				t.Fatal("got no error, want error")
-			}
 			errs <- err
 			wg.Done()
 		}()
@@ -252,14 +249,12 @@ func TestConcurrentDialErr(t *testing.T) {
 	wg.Wait()
 
 	close(errs)
-	var prevErr error
-	for err := range errs {
-		if prevErr == nil {
-			prevErr = err
-		}
-		if err != prevErr {
-			t.Fatal("got different error instance, want same")
-		}
+
+	err1 := <-errs
+	err2 := <-errs
+
+	if err1 != err2 || err1 == nil {
+		t.Fatalf("err1:%q err2:%q should be the same and non-nil", err1, err2)
 	}
 }
 
