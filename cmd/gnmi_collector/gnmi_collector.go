@@ -25,6 +25,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"sync"
 	"time"
 
 	
@@ -35,9 +36,11 @@ import (
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
 	gnmiclient "github.com/openconfig/gnmi/client/gnmi"
+	coll "github.com/openconfig/gnmi/collector/collector"
 	"github.com/openconfig/gnmi/subscribe"
 	"github.com/openconfig/gnmi/target"
 
+	cpb "github.com/openconfig/gnmi/proto/collector/collector_go_proto"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	targetpb "github.com/openconfig/gnmi/proto/target"
 )
@@ -76,7 +79,7 @@ func runCollector(ctx context.Context) error {
 		return errors.New("key_file must be specified")
 	}
 
-	c := collector{config: &targetpb.Configuration{}}
+	c := collector{config: &targetpb.Configuration{}, cancelFuncs: map[string]func(){}}
 	// Initialize configuration.
 	buf, err := ioutil.ReadFile(*configFile)
 	if err != nil {
@@ -108,6 +111,8 @@ func runCollector(ctx context.Context) error {
 
 	// Create a grpc Server.
 	srv := grpc.NewServer(grpc.Creds(creds))
+	// Initialize the Collector server.
+	cpb.RegisterCollectorServer(srv, coll.New(c.reconnect))
 	// Initialize gNMI Proxy Subscribe server.
 	subscribeSrv, err := subscribe.NewServer(c.cache)
 	if err != nil {
@@ -177,8 +182,28 @@ func (s *state) handleUpdate(msg proto.Message) error {
 }
 
 type collector struct {
-	cache  *cache.Cache
-	config *targetpb.Configuration
+	cache       *cache.Cache
+	config      *targetpb.Configuration
+	mu          sync.Mutex
+	cancelFuncs map[string]func()
+}
+
+func (c *collector) addCancel(target string, cancel func()) {
+	c.mu.Lock()
+	c.cancelFuncs[target] = cancel
+	c.mu.Unlock()
+}
+
+func (c *collector) reconnect(target string) error {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	cancel, ok := c.cancelFuncs[target]
+	if !ok {
+		return fmt.Errorf("no such target: %q", target)
+	}
+	cancel()
+	delete(c.cancelFuncs, target)
+	return nil
 }
 
 func (c *collector) start(ctx context.Context) {
@@ -213,9 +238,18 @@ func (c *collector) start(ctx context.Context) {
 				log.Errorf("query.Validate(): %v", err)
 				return
 			}
-			cl := client.Reconnect(&client.BaseClient{}, s.disconnect, nil)
-			if err := cl.Subscribe(ctx, q, gnmiclient.Type); err != nil {
-				log.Errorf("Subscribe failed for target %q: %v", name, err)
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				default:
+				}
+				sctx, cancel := context.WithCancel(ctx)
+				c.addCancel(name, cancel)
+				cl := client.Reconnect(&client.BaseClient{}, s.disconnect, nil)
+				if err := cl.Subscribe(sctx, q, gnmiclient.Type); err != nil {
+					log.Errorf("Subscribe failed for target %q: %v", name, err)
+				}
 			}
 		}(name, target)
 	}
