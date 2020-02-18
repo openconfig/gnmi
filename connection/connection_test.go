@@ -233,32 +233,34 @@ func TestConcurrentDialErr(t *testing.T) {
 		t.Fatalf("Failed to initialize Manager: %v", err)
 	}
 	var wg sync.WaitGroup
-	lim := 2
-	wg.Add(lim)
-	errs := make(chan error, lim)
+	errs := make(chan error)
+	defer close(errs)
 	start := make(chan struct{})
 
+	lim := 2
+	wg.Add(lim)
 	for i := 0; i < lim; i++ {
 		go func() {
+			wg.Done()
 			<-start
 			_, _, err := m.Connection(ctx, "")
-			if err == nil {
-				t.Fatal("got no error, want error")
-			}
 			errs <- err
-			wg.Done()
 		}()
 	}
-	close(start)
-	wg.Wait()
 
-	close(errs)
+	// Wait for all goroutines to be ready.
+	wg.Wait()
+	close(start)
+
 	var prevErr error
-	for err := range errs {
+	for i := 0; i < lim; i++ {
+		err := <-errs
+		if err == nil {
+			t.Fatal("got no error, want error")
+		}
 		if prevErr == nil {
 			prevErr = err
-		}
-		if err != prevErr {
+		} else if err != prevErr {
 			t.Fatal("got different error instance, want same")
 		}
 	}
