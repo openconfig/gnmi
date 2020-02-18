@@ -53,17 +53,19 @@ func TestCtxCanceled(t *testing.T) {
 		t.Fatalf("Failed to initialize Manager: %v", err)
 	}
 	if _, _, err := m.Connection(ctx, addr); err == nil {
-		t.Errorf("Connection returned no error, want error")
+		t.Error("Connection returned no error, want error")
 	}
 }
 
 func assertConns(t *testing.T, m *Manager, want int) {
+	t.Helper()
 	if l := len(m.conns); l != want {
 		t.Fatalf("got %v connections, want %v", l, want)
 	}
 }
 
 func assertRefs(t *testing.T, m *Manager, addr string, want int) {
+	t.Helper()
 	c, ok := m.conns[addr]
 	if !ok {
 		t.Fatalf("connection %q missing", addr)
@@ -88,11 +90,11 @@ func TestConcurrentConnection(t *testing.T) {
 	for i := 0; i < lim; i++ {
 		go func() {
 			conn, _, err := m.Connection(ctx, addr)
-			if err != nil {
-				t.Fatalf("got error creating connection: %v, want no error", err)
-			}
-			if conn == nil {
-				t.Fatalf("got nil connection, expected not nil")
+			switch {
+			case err != nil:
+				t.Errorf("got error creating connection: %v, want no error", err)
+			case conn == nil:
+				t.Error("got nil connection, expected not nil")
 			}
 			wg.Done()
 		}()
@@ -174,10 +176,10 @@ func TestConnectionDone(t *testing.T) {
 				conn, done, err := m.Connection(ctx, c.connectionID)
 				wg.Done()
 				if conn == nil {
-					t.Fatalf("got nil connection")
+					t.Error("got nil connection")
 				}
 				if err != nil {
-					t.Fatalf("got error creating connection: %v, want no error", err)
+					t.Errorf("got error creating connection: %v, want no error", err)
 				}
 				if d < c.dones {
 					go func() {
