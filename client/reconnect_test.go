@@ -34,9 +34,9 @@ func TestReconnect(t *testing.T) {
 
 	disconnect := make(chan struct{}, 1)
 	reset := make(chan struct{})
+	client.RetryBaseDelay = time.Nanosecond
+	client.RetryMaxDelay = time.Millisecond
 	rc := client.Reconnect(c, func() { disconnect <- struct{}{} }, func() { reset <- struct{}{} })
-	client.ReconnectBaseDelay = time.Nanosecond
-	client.ReconnectMaxDelay = time.Millisecond
 
 	subscribeDone := make(chan struct{})
 	go func() {

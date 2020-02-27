@@ -19,20 +19,23 @@ package client
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"sync"
 	"time"
 
 	log "github.com/golang/glog"
+	"github.com/cenkalti/backoff/v4"
 )
 
 var (
-	// ReconnectBaseDelay is the minimum delay between re-Subscribe attempts in
-	// Reconnect. You can change this before creating ReconnectClient instances.
-	ReconnectBaseDelay = time.Second
-	// ReconnectMaxDelay is the maximum delay between re-Subscribe attempts in
-	// Reconnect. You can change this before creating ReconnectClient instances.
-	ReconnectMaxDelay = time.Minute
+	// RetryBaseDelay is the initial retry interval for re-Subscribe attempts.
+	// You can change this before creating ReconnectClient instances.
+	RetryBaseDelay = time.Second
+	// RetryMaxDelay caps the retry interval for re-Subscribe attempts.
+	// You can change this before creating ReconnectClient instances.
+	RetryMaxDelay = time.Minute
+	// RetryRandomization is the randomization factor applied to the retry
+	// interval. You can change this before creating ReconnectClient instances.
+	RetryRandomization = 0.5
 )
 
 // ReconnectClient is a wrapper around any Client that never returns from
@@ -43,6 +46,7 @@ var (
 // queries will fail immediately in Subscribe.
 type ReconnectClient struct {
 	Client
+	backoff    *backoff.ExponentialBackOff
 	disconnect func()
 	reset      func()
 
@@ -64,7 +68,12 @@ var _ Client = &ReconnectClient{}
 //
 // Closing the returned ReconnectClient will unblock Subscribe.
 func Reconnect(c Client, disconnect, reset func()) *ReconnectClient {
-	return &ReconnectClient{Client: c, disconnect: disconnect, reset: reset}
+	e := backoff.NewExponentialBackOff()
+	e.MaxElapsedTime = 0 // Retry Subscribe indefinitely.
+	e.InitialInterval = RetryBaseDelay
+	e.MaxInterval = RetryMaxDelay
+	e.RandomizationFactor = RetryRandomization
+	return &ReconnectClient{Client: c, backoff: e, disconnect: disconnect, reset: reset}
 }
 
 // Subscribe implements Client interface.
@@ -78,14 +87,12 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 	ctx, done := p.initDone(ctx)
 	defer done()
 
-	failCount := 0
 	for {
 		start := time.Now()
 		err := p.Client.Subscribe(ctx, q, clientType...)
 		if p.disconnect != nil {
 			p.disconnect()
 		}
-		failCount++
 
 		// Check if Subscribe returned because ctx was canceled.
 		select {
@@ -95,16 +102,16 @@ func (p *ReconnectClient) Subscribe(ctx context.Context, q Query, clientType ...
 		}
 
 		if err == nil {
-			failCount = 0
+			p.backoff.Reset()
 		}
 		// Since Client won't tell us whether error was immediate or after
 		// streaming for a while, try to "guess" if it's the latter.
-		if time.Since(start) > ReconnectMaxDelay {
-			failCount = 0
+		if time.Since(start) > RetryMaxDelay {
+			p.backoff.Reset()
 		}
 
-		bo := backoff(ReconnectBaseDelay, ReconnectMaxDelay, failCount)
-		log.Errorf("client.Subscribe (target %q) failed (%d times): %v; reconnecting in %s", q.Target, failCount, err, bo)
+		bo := p.backoff.NextBackOff()
+		log.Errorf("client.Subscribe (target %q) failed: %v; reconnecting in %s", q.Target, err, bo)
 		time.Sleep(bo)
 
 		// Signal caller right before we attempt to reconnect.
@@ -170,31 +177,4 @@ func (p *ReconnectClient) Impl() (Impl, error) {
 // Poll may fail if Subscribe is reconnecting when it's called.
 func (p *ReconnectClient) Poll() error {
 	return p.Client.Poll()
-}
-
-const (
-	backoffFactor = 1.3 // backoff increases by this factor on each retry
-	backoffRange  = 0.4 // backoff is randomized downwards by this factor
-)
-
-// backoff a duration to wait for before retrying a query. The duration grows
-// exponentially as retries increases.
-func backoff(baseDelay, maxDelay time.Duration, retries int) time.Duration {
-	backoff, max := float64(baseDelay), float64(maxDelay)
-	for backoff < max && retries > 0 {
-		backoff = backoff * backoffFactor
-		retries--
-	}
-	if backoff > max {
-		backoff = max
-	}
-
-	// Randomize backoff delays so that if a cluster of requests start at
-	// the same time, they won't operate in lockstep.  We just subtract up
-	// to 40% so that we obey maxDelay.
-	backoff -= backoff * backoffRange * rand.Float64()
-	if backoff < 0 {
-		return 0
-	}
-	return time.Duration(backoff)
 }
