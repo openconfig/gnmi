@@ -8,6 +8,8 @@ import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
 
 package gnmi.fake;
 
+option go_package = "testing/fake/proto;gnmi_fake";
+
 service AgentManager {
   // Add adds an agent to the server.
   rpc Add(Config) returns (Config);

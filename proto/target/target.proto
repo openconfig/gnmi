@@ -21,6 +21,8 @@ package target;
 
 import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
 
+option go_package = "proto/target";
+
 // Configuration holds all information necessary for a caching gNMI collector
 // to establish subscriptions to a list of gNMI targets.
 message Configuration {

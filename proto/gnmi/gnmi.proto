@@ -39,6 +39,8 @@ extend google.protobuf.FileOptions {
 // the Capabilities RPC.
 option (gnmi_service) = "0.7.0";
 
+option go_package = "github.com/openconfig/gnmi/proto/gnmi";
+
 service gNMI {
   // Capabilities allows the client to retrieve the set of capabilities that
   // is supported by the target. This allows the target to validate the
