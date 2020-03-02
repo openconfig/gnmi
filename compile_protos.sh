@@ -23,9 +23,11 @@ protoc -I=$proto_imports --go_out=. testing/fake/proto/fake.proto
 protoc -I=$proto_imports --go_out=plugins=grpc:. proto/gnmi/gnmi.proto
 protoc -I=$proto_imports --go_out=plugins=grpc:. proto/gnmi_ext/gnmi_ext.proto
 protoc -I=$proto_imports --go_out=. proto/target/target.proto
+protoc -I=$proto_imports --go_out=plugins=grpc:. proto/collector/collector.proto
 
 # Python
 python -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. testing/fake/proto/fake.proto
 python -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/gnmi_ext/gnmi_ext.proto
 python -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/gnmi_ext/gnmi_ext.proto
 python -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/target/target.proto
+python -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/collector/collector.proto
