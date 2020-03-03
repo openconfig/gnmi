@@ -26,7 +26,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 
-	pb "github.com/openconfig/gnmi/proto/collector/collector_go_proto"
+	pb "github.com/openconfig/gnmi/proto/collector"
 )
 
 // Server provides an implementation of a gRPC service to allow reconnection of

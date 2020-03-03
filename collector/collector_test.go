@@ -21,7 +21,7 @@ import (
 	"fmt"
 	"testing"
 
-	pb "github.com/openconfig/gnmi/proto/collector/collector_go_proto"
+	pb "github.com/openconfig/gnmi/proto/collector"
 )
 
 func TestReconnect(t *testing.T) {

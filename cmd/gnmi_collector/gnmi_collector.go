@@ -28,7 +28,6 @@ import (
 	"sync"
 	"time"
 
-	
 	log "github.com/golang/glog"
 	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/credentials"
@@ -36,11 +35,11 @@ import (
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
 	gnmiclient "github.com/openconfig/gnmi/client/gnmi"
-	coll "github.com/openconfig/gnmi/collector/collector"
+	coll "github.com/openconfig/gnmi/collector"
 	"github.com/openconfig/gnmi/subscribe"
 	"github.com/openconfig/gnmi/target"
 
-	cpb "github.com/openconfig/gnmi/proto/collector/collector_go_proto"
+	cpb "github.com/openconfig/gnmi/proto/collector"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	targetpb "github.com/openconfig/gnmi/proto/target"
 )
