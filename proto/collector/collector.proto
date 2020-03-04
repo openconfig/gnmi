@@ -17,6 +17,8 @@ syntax = "proto3";
 
 package gnmi;
 
+option go_package = "github.com/openconfig/gnmi/proto/collector";
+
 service Collector {
   // Reconnect requests that the existing connections for one or more specified
   // targets will be stopped and new connections established.

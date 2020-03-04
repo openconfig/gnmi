@@ -19,11 +19,11 @@ set -euo pipefail
 proto_imports=".:${GOPATH}/src/github.com/google/protobuf/src:${GOPATH}/src"
 
 # Go
-protoc -I=$proto_imports --go_out=. testing/fake/proto/fake.proto
-protoc -I=$proto_imports --go_out=plugins=grpc:. proto/gnmi/gnmi.proto
-protoc -I=$proto_imports --go_out=plugins=grpc:. proto/gnmi_ext/gnmi_ext.proto
-protoc -I=$proto_imports --go_out=. proto/target/target.proto
-protoc -I=$proto_imports --go_out=plugins=grpc:. proto/collector/collector.proto
+protoc -I=$proto_imports --go_out=paths=source_relative:. testing/fake/proto/fake.proto
+protoc -I=$proto_imports --go_out=plugins=grpc,paths=source_relative:. proto/gnmi/gnmi.proto
+protoc -I=$proto_imports --go_out=plugins=grpc,paths=source_relative:. proto/gnmi_ext/gnmi_ext.proto
+protoc -I=$proto_imports --go_out=paths=source_relative:. proto/target/target.proto
+protoc -I=$proto_imports --go_out=plugins=grpc,paths=source_relative:. proto/collector/collector.proto
 
 # Python
 python -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. testing/fake/proto/fake.proto
