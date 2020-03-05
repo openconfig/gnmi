@@ -19,8 +19,8 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   name='proto/collector/collector.proto',
   package='gnmi',
   syntax='proto3',
-  serialized_options=None,
-  serialized_pb=_b('\n\x1fproto/collector/collector.proto\x12\x04gnmi\"\"\n\x10ReconnectRequest\x12\x0e\n\x06target\x18\x01 \x03(\t\"\x05\n\x03Nil2=\n\tCollector\x12\x30\n\tReconnect\x12\x16.gnmi.ReconnectRequest\x1a\t.gnmi.Nil\"\x00\x62\x06proto3')
+  serialized_options=_b('Z/github.com/openconfig/gnmi/proto/collector;gnmi'),
+  serialized_pb=_b('\n\x1fproto/collector/collector.proto\x12\x04gnmi\"\"\n\x10ReconnectRequest\x12\x0e\n\x06target\x18\x01 \x03(\t\"\x05\n\x03Nil2=\n\tCollector\x12\x30\n\tReconnect\x12\x16.gnmi.ReconnectRequest\x1a\t.gnmi.Nil\"\x00\x42\x31Z/github.com/openconfig/gnmi/proto/collector;gnmib\x06proto3')
 )
 
 
@@ -99,6 +99,7 @@ Nil = _reflection.GeneratedProtocolMessageType('Nil', (_message.Message,), dict(
 _sym_db.RegisterMessage(Nil)
 
 
+DESCRIPTOR._options = None
 
 _COLLECTOR = _descriptor.ServiceDescriptor(
   name='Collector',
