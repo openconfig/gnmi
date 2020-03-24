@@ -7,6 +7,7 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/golang/protobuf v1.3.4
 	github.com/google/go-cmp v0.4.0
+	github.com/google/protobuf v3.11.4+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/goyang v0.0.0-20200115183954-d0a48929f0ea // indirect
 	github.com/openconfig/ygot v0.6.0
