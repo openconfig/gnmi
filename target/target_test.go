@@ -21,8 +21,8 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
+	"github.com/golang/protobuf/proto"
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	pb "github.com/openconfig/gnmi/proto/target"
 )

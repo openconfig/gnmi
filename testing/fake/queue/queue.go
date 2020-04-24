@@ -334,6 +334,61 @@ func (v *value) updateBoolValue() error {
 	return nil
 }
 
+func (v *value) updateUintValue() error {
+	val := v.v.GetUintValue()
+	if val == nil {
+		return fmt.Errorf("invalid UintValue for %q", v.v)
+	}
+	var newval uint64
+	switch val.Distribution.(type) {
+	case *fpb.UintValue_Range:
+		rng := val.GetRange()
+		if rng.Minimum > rng.Maximum {
+			return fmt.Errorf("invalid minimum/maximum in UintRange for %q", v.v)
+		}
+		if val.Value < rng.Minimum || val.Value > rng.Maximum {
+			return fmt.Errorf("value not in [minimum, maximum] in UintRange for %q", v.v)
+		}
+
+		left, right := int64(rng.GetMinimum()), int64(rng.GetMaximum())
+		if rng.DeltaMin != 0 || rng.DeltaMax != 0 {
+			if rng.DeltaMin > rng.DeltaMax {
+				return fmt.Errorf("invalid delta_min/delta_max in UintRange for %q", v.v)
+			}
+			left, right = rng.GetDeltaMin(), rng.GetDeltaMax()
+			newval = val.Value
+		}
+		tmpVal := int64(newval) + v.r.Int63n(right-left+1) + left
+		if tmpVal < 0 {
+			newval = rng.Minimum
+		} else {
+			newval = uint64(tmpVal)
+		}
+		if newval > rng.Maximum {
+			newval = rng.Maximum
+		}
+		if newval < rng.Minimum {
+			newval = rng.Minimum
+		}
+	case *fpb.UintValue_List:
+		list := val.GetList()
+		options := list.GetOptions()
+		if len(options) == 0 {
+			return fmt.Errorf("missing options on UintValue_List for %q", v.v)
+		}
+		if list.GetRandom() {
+			newval = options[v.r.Intn(len(options))]
+		} else {
+			newval = options[0]
+			list.Options = append(options[1:], options[0])
+		}
+	default:
+		newval = val.Value
+	}
+	val.Value = newval
+	return nil
+}
+
 func (v *value) nextValue() error {
 	if v.v.Repeat == 1 {
 		// This value has exhausted all of its updates, drop it.
@@ -357,6 +412,8 @@ func (v *value) nextValue() error {
 		return v.updateStringValue()
 	case *fpb.Value_BoolValue:
 		return v.updateBoolValue()
+	case *fpb.Value_UintValue:
+		return v.updateUintValue()
 	case *fpb.Value_Sync:
 		return nil
 	case *fpb.Value_Delete:
@@ -377,6 +434,8 @@ func ValueOf(v *fpb.Value) interface{} {
 		return val.StringValue.Value
 	case *fpb.Value_BoolValue:
 		return val.BoolValue.Value
+	case *fpb.Value_UintValue:
+		return val.UintValue.Value
 	case *fpb.Value_Sync:
 		return val.Sync
 	case *fpb.Value_Delete:
@@ -399,6 +458,8 @@ func TypedValueOf(v *fpb.Value) *gpb.TypedValue {
 		tv.Value = &gpb.TypedValue_StringVal{val.StringValue.Value}
 	case *fpb.Value_BoolValue:
 		tv.Value = &gpb.TypedValue_BoolVal{val.BoolValue.Value}
+	case *fpb.Value_UintValue:
+		tv.Value = &gpb.TypedValue_UintVal{val.UintValue.Value}
 	default:
 		return nil
 	}

@@ -148,7 +148,9 @@ func (c *Cache) Query(target string, query []string, fn ctree.VisitFunc) error {
 		c.mu.RLock()
 		// Run the query sequentially for each target cache.
 		for _, target := range c.targets {
-			target.t.Query(query, fn)
+			if err := target.t.Query(query, fn); err != nil {
+				return err
+			}
 		}
 		c.mu.RUnlock()
 	default:
@@ -156,7 +158,7 @@ func (c *Cache) Query(target string, query []string, fn ctree.VisitFunc) error {
 		if dc == nil {
 			return fmt.Errorf("target %q not found in cache", target)
 		}
-		dc.t.Query(query, fn)
+		return dc.t.Query(query, fn)
 	}
 	return nil
 }
@@ -256,12 +258,12 @@ func (t *Target) GnmiUpdate(n *pb.Notification) error {
 			// in the non-Atomic case, so treat equally.
 			return nil
 		}
-		t.meta.AddInt(metadata.UpdateCount, int64(l))
 		nd, err := t.gnmiUpdate(n)
 		if err != nil {
 			return err
 		}
 		if nd != nil {
+			t.meta.AddInt(metadata.UpdateCount, int64(l))
 			t.client(nd)
 		}
 		return nil
@@ -284,8 +286,8 @@ func (t *Target) GnmiUpdate(n *pb.Notification) error {
 			errs.Add(err)
 			continue
 		}
-		t.meta.AddInt(metadata.UpdateCount, 1)
 		if nd != nil {
+			t.meta.AddInt(metadata.UpdateCount, 1)
 			t.client(nd)
 		}
 	}
@@ -362,7 +364,7 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 		// Simulate event-driven for all non-atomic updates.
 		if !n.Atomic && value.Equal(old.Update[0].Val, n.Update[0].Val) {
 			t.meta.AddInt(metadata.SuppressedCount, 1)
-			return nil, errors.New("suppressed duplicate value")
+			return nil, nil
 		}
 		return oldval, nil
 	}
@@ -419,8 +421,9 @@ func (t *Target) updateSize(func(*ctree.Leaf)) {
 		return int64(len(buf))
 	}
 	t.t.Query([]string{"*"},
-		func(_ []string, _ *ctree.Leaf, v interface{}) {
+		func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			s += size(v)
+			return nil
 		})
 	t.meta.SetInt(metadata.Size, s)
 }

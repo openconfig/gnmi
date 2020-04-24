@@ -231,51 +231,59 @@ func (t *Tree) GetLeaf(path []string) *Leaf {
 //
 // Note that l.Value can *not* be called inside VisitFunc, because the node is
 // already locked by Query/Walk.
-type VisitFunc func(path []string, l *Leaf, val interface{})
+//
+// If the function returns an error, the Walk or Query will terminate early and
+// return the supplied error.
+type VisitFunc func(path []string, l *Leaf, val interface{}) error
 
-func (t *Tree) enumerateChildren(prefix, path []string, f VisitFunc) {
+func (t *Tree) enumerateChildren(prefix, path []string, f VisitFunc) error {
 	// Caller should hold a read lock on t.
 	if len(path) == 0 {
 		switch b := t.leafBranch.(type) {
 		case branch:
 			for k, br := range b {
-				br.queryInternal(append(prefix, k), path, f)
+				if err := br.queryInternal(append(prefix, k), path, f); err != nil {
+					return err
+				}
 			}
 		default:
-			f(prefix, (*Leaf)(t), t.leafBranch)
+			return f(prefix, (*Leaf)(t), t.leafBranch)
 		}
-		return
+		return nil
 	}
 	if b, ok := t.leafBranch.(branch); ok {
 		for k, br := range b {
-			br.queryInternal(append(prefix, k), path[1:], f)
+			if err := br.queryInternal(append(prefix, k), path[1:], f); err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 // Query calls f for all leaves that match a given query where zero or more
 // nodes in path may be specified by globs (*). Results and their full paths
 // are passed to f as they are found in the Tree. No ordering of paths is
 // guaranteed.
-func (t *Tree) Query(path []string, f VisitFunc) {
-	t.queryInternal(nil, path, f)
+func (t *Tree) Query(path []string, f VisitFunc) error {
+	return t.queryInternal(nil, path, f)
 }
 
-func (t *Tree) queryInternal(prefix, path []string, f VisitFunc) {
+func (t *Tree) queryInternal(prefix, path []string, f VisitFunc) error {
 	defer t.mu.RUnlock()
 	t.mu.RLock()
 	if len(path) == 0 || path[0] == "*" {
-		t.enumerateChildren(prefix, path, f)
-		return
+		return t.enumerateChildren(prefix, path, f)
 	}
 	if b, ok := t.leafBranch.(branch); ok {
 		if br := b[path[0]]; br != nil {
-			br.queryInternal(append(prefix, path[0]), path[1:], f)
+			return br.queryInternal(append(prefix, path[0]), path[1:], f)
 		}
 	}
+	return nil
 }
 
-func (t *Tree) walkInternal(path []string, f VisitFunc) {
+func (t *Tree) walkInternal(path []string, f VisitFunc) error {
 	defer t.mu.RUnlock()
 	t.mu.RLock()
 	if b, ok := t.leafBranch.(branch); ok {
@@ -283,24 +291,26 @@ func (t *Tree) walkInternal(path []string, f VisitFunc) {
 		for name, br := range b {
 			p := make([]string, l, l+1)
 			copy(p, path)
-			br.walkInternal(append(p, name), f)
+			if err := br.walkInternal(append(p, name), f); err != nil {
+				return err
+			}
 		}
-		return
+		return nil
 	}
 	// If this is the root node and it has no children and the value is nil,
 	// most likely it's just the zero value of Tree not a valid leaf.
 	if len(path) == 0 && t.leafBranch == nil {
-		return
+		return nil
 	}
-	f(path, (*Leaf)(t), t.leafBranch)
+	return f(path, (*Leaf)(t), t.leafBranch)
 }
 
 // Walk calls f for all leaves.
-func (t *Tree) Walk(f VisitFunc) {
-	t.walkInternal(nil, f)
+func (t *Tree) Walk(f VisitFunc) error {
+	return t.walkInternal(nil, f)
 }
 
-func (t *Tree) walkInternalSorted(path []string, f VisitFunc) {
+func (t *Tree) walkInternalSorted(path []string, f VisitFunc) error {
 	defer t.mu.RUnlock()
 	t.mu.RLock()
 	if b, ok := t.leafBranch.(branch); ok {
@@ -313,21 +323,23 @@ func (t *Tree) walkInternalSorted(path []string, f VisitFunc) {
 		for _, name := range names {
 			p := make([]string, l, l+1)
 			copy(p, path)
-			b[name].walkInternalSorted(append(p, name), f)
+			if err := b[name].walkInternalSorted(append(p, name), f); err != nil {
+				return err
+			}
 		}
-		return
+		return nil
 	}
 	// If this is the root node and it has no children and the value is nil,
 	// most likely it's just the zero value of Tree not a valid leaf.
 	if len(path) == 0 && t.leafBranch == nil {
-		return
+		return nil
 	}
-	f(path, (*Leaf)(t), t.leafBranch)
+	return f(path, (*Leaf)(t), t.leafBranch)
 }
 
 // WalkSorted calls f for all leaves in string sorted order.
-func (t *Tree) WalkSorted(f VisitFunc) {
-	t.walkInternalSorted(nil, f)
+func (t *Tree) WalkSorted(f VisitFunc) error {
+	return t.walkInternalSorted(nil, f)
 }
 
 // internalDelete removes nodes recursively that match subpath.  It returns true

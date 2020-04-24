@@ -43,6 +43,9 @@ func gRPCMeta(ctx context.Context, name string, t *tpb.Target, cred CredentialsC
 	c := t.GetCredentials()
 	if user := c.GetUsername(); user != "" {
 		if id := c.GetPasswordId(); id != "" {
+			if cred == nil {
+				return nil, fmt.Errorf("nil CredentialsClient used to lookup password ID for target %q", name)
+			}
 			p, err := cred.Lookup(ctx, id)
 			if err != nil {
 				return nil, fmt.Errorf("failed loading credentials for target %q: %v", name, err)

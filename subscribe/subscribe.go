@@ -24,10 +24,10 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/peer"
 	"google.golang.org/grpc/status"
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/coalesce"
 	"github.com/openconfig/gnmi/ctree"
@@ -318,12 +318,13 @@ func (s *Server) processSubscription(c *streamClient) {
 				return
 			}
 			// Note that fullPath doesn't contain target name as the first element.
-			s.c.Query(c.target, fullPath, func(_ []string, l *ctree.Leaf, _ interface{}) {
+			s.c.Query(c.target, fullPath, func(_ []string, l *ctree.Leaf, _ interface{}) error {
 				// Stop processing query results on error.
 				if err != nil {
-					return
+					return err
 				}
 				_, err = c.queue.Insert(l)
+				return nil
 			})
 			if err != nil {
 				return
