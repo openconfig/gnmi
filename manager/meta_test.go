@@ -50,6 +50,16 @@ func TestGRPCMeta(t *testing.T) {
 				Password, "pass_passwordID1",
 			),
 		}, {
+			name: "password ID with nil CredentialsClient",
+			t: &tpb.Target{
+				Credentials: &tpb.Credentials{
+					Username:   "user1",
+					PasswordId: "passwordID1",
+				},
+				Addresses: []string{"111.11.11.111"},
+			},
+			wantErr: true,
+		}, {
 			name: "valid password",
 			t: &tpb.Target{
 				Credentials: &tpb.Credentials{
@@ -58,7 +68,6 @@ func TestGRPCMeta(t *testing.T) {
 				},
 				Addresses: []string{"111.11.11.111"},
 			},
-			c: &fakeCreds{},
 			want: metadata.Pairs(
 				Target, "valid password",
 				Username, "user1",
@@ -98,7 +107,6 @@ func TestGRPCMeta(t *testing.T) {
 			t: &tpb.Target{
 				Addresses: []string{"111.11.11.111"},
 			},
-			c: &fakeCreds{},
 			want: metadata.Pairs(
 				Target, "no username",
 			),

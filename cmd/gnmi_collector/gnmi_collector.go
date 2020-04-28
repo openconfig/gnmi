@@ -30,9 +30,9 @@ import (
 
 	
 	log "github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
 	gnmiclient "github.com/openconfig/gnmi/client/gnmi"

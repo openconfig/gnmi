@@ -40,8 +40,8 @@ import (
 	"flag"
 	
 	log "github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
 	"golang.org/x/crypto/ssh/terminal"
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/cli"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/flags"

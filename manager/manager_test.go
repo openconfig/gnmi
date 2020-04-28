@@ -32,6 +32,7 @@ import (
 	log "github.com/golang/glog"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/connection"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -111,9 +112,8 @@ func TestNewManager(t *testing.T) {
 		wantErr bool
 	}{
 		{
-			desc:    "missing creds",
-			c:       Config{ConnectionManager: newFakeConnection(t)},
-			wantErr: true,
+			desc: "missing creds",
+			c:    Config{ConnectionManager: newFakeConnection(t)},
 		}, {
 			desc:    "missing connection manager",
 			c:       Config{Credentials: &fakeCreds{}},
@@ -552,4 +552,254 @@ func TestRetrySubscribe(t *testing.T) {
 	go fc.sendUpdate()
 	<-mTarget.finished
 	r.assertLast(t, "no recovery after remove", nil, nil, nil, 0)
+}
+
+func TestRemoveDuringBackoff(t *testing.T) {
+	origBaseDelay, origMaxDelay := RetryBaseDelay, RetryMaxDelay
+	defer func() { RetryBaseDelay, RetryMaxDelay = origBaseDelay, origMaxDelay }()
+	RetryBaseDelay, RetryMaxDelay = time.Hour, time.Hour // High delay exceeding test timeout.
+
+	addr, stop := newDevice(t, &fakeServer{})
+	defer stop()
+
+	origSubscribeClient := subscribeClient
+	defer func() { subscribeClient = origSubscribeClient }()
+	fc := newFakeSubscribeClient()
+	subscribeClient = func(ctx context.Context, conn *grpc.ClientConn) (gpb.GNMI_SubscribeClient, error) {
+		go func() {
+			select {
+			case <-ctx.Done():
+				fc.sendRecvErr() // Simulate stream closure.
+			}
+		}()
+		return fc, nil
+	}
+
+	m, err := NewManager(Config{
+		Credentials:       &fakeCreds{},
+		ConnectionManager: newFakeConnection(t),
+	})
+	if err != nil {
+		t.Fatal("could not initialize Manager")
+	}
+	chHandleUpdate := make(chan struct{}, 1)
+	m.testSync = func() {
+		chHandleUpdate <- struct{}{}
+	}
+
+	name := "device1"
+	err = m.Add(name, &tpb.Target{Addresses: []string{addr}}, validSubscribeRequest)
+	if err != nil {
+		t.Fatalf("got error adding: %v, want no error", err)
+	}
+	assertTargets(t, m, 1)
+
+	// Induce failure and backoff.
+	fc.sendRecvErr()
+	<-chHandleUpdate
+
+	if err := m.Remove(name); err != nil {
+		t.Fatalf("got error removing: %v, want no error", err)
+	}
+	assertTargets(t, m, 0)
+}
+
+func TestCancelSubscribe(t *testing.T) {
+	origSubscribeClient := subscribeClient
+	defer func() { subscribeClient = origSubscribeClient }()
+	fc := newFakeSubscribeClient()
+	subscribeClient = func(ctx context.Context, conn *grpc.ClientConn) (gpb.GNMI_SubscribeClient, error) {
+		return fc, nil
+	}
+
+	addr, stop := newDevice(t, &fakeServer{})
+	defer stop()
+
+	m, err := NewManager(Config{
+		Credentials:       &fakeCreds{},
+		ConnectionManager: newFakeConnection(t),
+	})
+	if err != nil {
+		t.Fatal("could not initialize Manager")
+	}
+
+	cCtx, cancel := context.WithCancel(context.Background())
+	cancel()
+	conn, done, err := m.connectionManager.Connection(context.Background(), addr)
+	if err != nil {
+		t.Fatalf("error creating connection: %v", err)
+	}
+	defer done()
+	if err := m.subscribe(cCtx, "device", conn, &gpb.SubscribeRequest{}); err == nil {
+		t.Fatalf("got no error, want error")
+	}
+}
+
+func TestCustomizeRequest(t *testing.T) {
+	dev := "device"
+	tests := []struct {
+		desc string
+		sr   *gpb.SubscribeRequest
+		want *gpb.SubscribeRequest
+	}{
+		{
+			desc: "no existing prefix",
+			sr: &gpb.SubscribeRequest{
+				Request: &gpb.SubscribeRequest_Subscribe{
+					&gpb.SubscriptionList{
+						Subscription: []*gpb.Subscription{
+							{
+								Path: &gpb.Path{
+									Elem: []*gpb.PathElem{{Name: "path1"}},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &gpb.SubscribeRequest{
+				Request: &gpb.SubscribeRequest_Subscribe{
+					&gpb.SubscriptionList{
+						Prefix: &gpb.Path{Target: dev},
+						Subscription: []*gpb.Subscription{
+							{
+								Path: &gpb.Path{
+									Elem: []*gpb.PathElem{{Name: "path1"}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "existing prefix",
+			sr: &gpb.SubscribeRequest{
+				Request: &gpb.SubscribeRequest_Subscribe{
+					&gpb.SubscriptionList{
+						Prefix: &gpb.Path{Origin: "openconfig"},
+						Subscription: []*gpb.Subscription{
+							{
+								Path: &gpb.Path{
+									Elem: []*gpb.PathElem{{Name: "path1"}},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &gpb.SubscribeRequest{
+				Request: &gpb.SubscribeRequest_Subscribe{
+					&gpb.SubscriptionList{
+						Prefix: &gpb.Path{Origin: "openconfig", Target: dev},
+						Subscription: []*gpb.Subscription{
+							{
+								Path: &gpb.Path{
+									Elem: []*gpb.PathElem{{Name: "path1"}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+		{
+			desc: "existing prefix with target",
+			sr: &gpb.SubscribeRequest{
+				Request: &gpb.SubscribeRequest_Subscribe{
+					&gpb.SubscriptionList{
+						Prefix: &gpb.Path{Origin: "openconfig", Target: "unknown target"},
+						Subscription: []*gpb.Subscription{
+							{
+								Path: &gpb.Path{
+									Elem: []*gpb.PathElem{{Name: "path1"}},
+								},
+							},
+						},
+					},
+				},
+			},
+			want: &gpb.SubscribeRequest{
+				Request: &gpb.SubscribeRequest_Subscribe{
+					&gpb.SubscriptionList{
+						Prefix: &gpb.Path{Origin: "openconfig", Target: dev},
+						Subscription: []*gpb.Subscription{
+							{
+								Path: &gpb.Path{
+									Elem: []*gpb.PathElem{{Name: "path1"}},
+								},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		got := customizeRequest(dev, tt.sr)
+		if !proto.Equal(got, tt.want) {
+			t.Errorf("%s: got %v, want %v", tt.desc, got, tt.want)
+		}
+	}
+}
+
+func TestCreateConn(t *testing.T) {
+	addr, stop := newDevice(t, &fakeServer{})
+	defer stop()
+
+	tests := []struct {
+		desc    string
+		ta      *tpb.Target
+		makeCtx func() context.Context
+		wantErr bool
+	}{
+		{
+			desc: "missing address",
+			ta:   &tpb.Target{},
+			makeCtx: func() context.Context {
+				return context.Background()
+			},
+			wantErr: true,
+		},
+		{
+			desc: "canceled context",
+			ta: &tpb.Target{
+				Addresses: []string{addr},
+			},
+			makeCtx: func() context.Context {
+				cCtx, cancel := context.WithCancel(context.Background())
+				cancel()
+				return cCtx
+			},
+			wantErr: true,
+		},
+		{
+			desc: "valid",
+			ta: &tpb.Target{
+				Addresses: []string{addr},
+			},
+			makeCtx: func() context.Context {
+				return context.Background()
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		m, err := NewManager(Config{
+			Credentials:       &fakeCreds{},
+			ConnectionManager: newFakeConnection(t),
+		})
+		if err != nil {
+			t.Fatal("could not initialize Manager")
+		}
+		_, _, err = m.createConn(tt.makeCtx(), "device", tt.ta)
+		switch {
+		case err == nil && !tt.wantErr:
+		case err == nil && tt.wantErr:
+			t.Errorf("%v: got no error, want error.", tt.desc)
+		case err != nil && !tt.wantErr:
+			t.Errorf("%v: got error, want no error.", tt.desc)
+		}
+	}
 }

@@ -17,6 +17,7 @@ limitations under the License.
 package ctree
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
 	"runtime"
@@ -134,7 +135,7 @@ type expectedQuery struct {
 func TestQuery(t *testing.T) {
 	tr := &Tree{}
 	results := make(map[string]interface{})
-	appendResults := func(p []string, _ *Leaf, v interface{}) { results[strings.Join(p, "/")] = v }
+	appendResults := func(p []string, _ *Leaf, v interface{}) error { results[strings.Join(p, "/")] = v; return nil }
 
 	tr.Query([]string{"*"}, appendResults)
 	if len(results) > 0 {
@@ -179,12 +180,13 @@ func TestWalk(t *testing.T) {
 	tr := &Tree{}
 	buildTree(tr)
 	paths := [][]string{}
-	tr.Walk(func(path []string, _ *Leaf, value interface{}) {
+	tr.Walk(func(path []string, _ *Leaf, value interface{}) error {
 		got, want := value.(string), strings.Join(path, "/")
 		if got != want {
 			t.Errorf("Walk got value %q, want %q", got, want)
 		}
 		paths = append(paths, path)
+		return nil
 	})
 	if got, want := len(paths), len(testPaths); got != want {
 		t.Errorf("Walk got %d paths, want %d", got, want)
@@ -213,12 +215,13 @@ func TestWalkSorted(t *testing.T) {
 	tr := &Tree{}
 	buildTree(tr)
 	paths := [][]string{}
-	tr.WalkSorted(func(path []string, _ *Leaf, value interface{}) {
+	tr.WalkSorted(func(path []string, _ *Leaf, value interface{}) error {
 		got, want := value.(string), strings.Join(path, "/")
 		if got != want {
 			t.Errorf("WalkSorted got value %q, want %q", got, want)
 		}
 		paths = append(paths, path)
+		return nil
 	})
 	if got, want := len(paths), len(testPaths); got != want {
 		t.Errorf("WalkSorted got %d paths, want %d", got, want)
@@ -230,12 +233,44 @@ func TestWalkSorted(t *testing.T) {
 
 func TestEmptyWalk(t *testing.T) {
 	tr := &Tree{}
-	tr.Walk(func(_ []string, _ *Leaf, _ interface{}) {
+	tr.Walk(func(_ []string, _ *Leaf, _ interface{}) error {
 		t.Error("Walk on empty tree should not call func.")
+		return nil
 	})
-	tr.WalkSorted(func(_ []string, _ *Leaf, _ interface{}) {
+	tr.WalkSorted(func(_ []string, _ *Leaf, _ interface{}) error {
 		t.Error("WalkSorted on empty tree should not call func.")
+		return nil
 	})
+}
+
+func TestVisitFuncError(t *testing.T) {
+	tr := &Tree{}
+	buildTree(tr)
+	err := errors.New("error")
+	var count int
+	visitFunc := func(_ []string, _ *Leaf, _ interface{}) error {
+		count++
+		switch count {
+		case 1:
+			return err
+		default:
+			return fmt.Errorf("got count %d, want 1", count)
+		}
+	}
+
+	if got := tr.Query([]string{"*"}, visitFunc); got != err {
+		t.Errorf("got error %q, want error %q", got, err)
+	}
+
+	count = 0
+	if got := tr.Walk(visitFunc); got != err {
+		t.Errorf("got error %q, want error %q", got, err)
+	}
+
+	count = 0
+	if got := tr.WalkSorted(visitFunc); got != err {
+		t.Errorf("got error %q, want error %q", got, err)
+	}
 }
 
 type expectedDelete struct {
@@ -434,8 +469,9 @@ func TestParallelDelete(t *testing.T) {
 }
 
 func query(tr *Tree, path []string) (ret []interface{}) {
-	tr.Query(path, func(_ []string, _ *Leaf, val interface{}) {
+	tr.Query(path, func(_ []string, _ *Leaf, val interface{}) error {
 		ret = append(ret, val)
+		return nil
 	})
 	return ret
 }
@@ -568,7 +604,7 @@ func BenchmarkTreeParallelQuerySingle(b *testing.B) {
 	var x int64
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
-			t.Query(makePath(atomic.AddInt64(&x, 1)), func(_ []string, _ *Leaf, val interface{}) { c <- val })
+			t.Query(makePath(atomic.AddInt64(&x, 1)), func(_ []string, _ *Leaf, val interface{}) error { c <- val; return nil })
 		}
 	})
 	close(c)
@@ -604,7 +640,7 @@ func BenchmarkTreeParallelQueryMany(b *testing.B) {
 	b.RunParallel(func(pb *testing.PB) {
 		for pb.Next() {
 			// For each query, use only a subpath to retrieve multiple elements.
-			t.Query(makePath(atomic.AddInt64(&x, 1))[0:3], func(_ []string, _ *Leaf, val interface{}) { c <- val })
+			t.Query(makePath(atomic.AddInt64(&x, 1))[0:3], func(_ []string, _ *Leaf, val interface{}) error { c <- val; return nil })
 		}
 	})
 	close(c)

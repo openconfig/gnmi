@@ -28,8 +28,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/go-cmp/cmp"
+	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/metadata"
@@ -121,18 +121,20 @@ func TestMetadataStale(t *testing.T) {
 		c.GnmiUpdate(n)
 		c.GetTarget("dev1").updateMeta(nil)
 		path := metadata.Path(metadata.StaleCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			staleCount := v.(*pb.Notification).Update[0].Val.GetIntVal()
 			if staleCount != int64(i) {
 				t.Errorf("got staleCount = %d, want %d", staleCount, i)
 			}
+			return nil
 		})
 		path = metadata.Path(metadata.UpdateCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			updates := v.(*pb.Notification).Update[0].Val.GetIntVal()
 			if updates != 1 {
 				t.Errorf("got updates %d, want 1", updates)
 			}
+			return nil
 		})
 	}
 }
@@ -161,18 +163,20 @@ func TestMetadataSuppressed(t *testing.T) {
 		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), strconv.Itoa(i), false))
 		c.GetTarget("dev1").updateMeta(nil)
 		path := metadata.Path(metadata.SuppressedCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			suppressedCount := v.(*pb.Notification).Update[0].Val.GetIntVal()
 			if suppressedCount != 0 {
 				t.Errorf("got suppressedCount = %d, want 0", suppressedCount)
 			}
+			return nil
 		})
 		path = metadata.Path(metadata.UpdateCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			updates := v.(*pb.Notification).Update[0].Val.GetIntVal()
 			if updates != int64(i+1) {
 				t.Errorf("got updates %d, want %d", updates, i)
 			}
+			return nil
 		})
 	}
 	c.Reset("dev1")
@@ -181,18 +185,20 @@ func TestMetadataSuppressed(t *testing.T) {
 		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), "same value", false))
 		c.GetTarget("dev1").updateMeta(nil)
 		path := metadata.Path(metadata.SuppressedCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			suppressedCount := v.(*pb.Notification).Update[0].Val.GetIntVal()
 			if suppressedCount != int64(i) {
 				t.Errorf("got suppressedCount = %d, want %d", suppressedCount, i)
 			}
+			return nil
 		})
 		path = metadata.Path(metadata.UpdateCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			updates := v.(*pb.Notification).Update[0].Val.GetIntVal()
 			if updates != 1 {
 				t.Errorf("got updates %d, want 1", updates)
 			}
+			return nil
 		})
 	}
 }
@@ -205,11 +211,12 @@ func TestMetadataLatency(t *testing.T) {
 		metadata.Path(metadata.LatencyMax),
 		metadata.Path(metadata.LatencyMin),
 	} {
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			if l := v.(*pb.Notification).Update[0].Val.GetIntVal(); l != 0 {
 				t.Errorf("%s exists with value %d when device not in sync",
 					strings.Join(path, "/"), l)
 			}
+			return nil
 		})
 	}
 	timestamp := time.Now().Add(-time.Minute).UnixNano()
@@ -221,12 +228,13 @@ func TestMetadataLatency(t *testing.T) {
 		metadata.Path(metadata.LatencyMax),
 		metadata.Path(metadata.LatencyMin),
 	} {
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			l := v.(*pb.Notification).Update[0].Val.GetIntVal()
 			if want := time.Minute.Nanoseconds(); l < want {
 				t.Errorf("%s got value %d, want greater than %d",
 					strings.Join(path, "/"), l, want)
 			}
+			return nil
 		})
 	}
 }
@@ -250,8 +258,9 @@ func TestUpdateMetadata(t *testing.T) {
 		{metadata.Root, metadata.LatencyMax},
 	}
 	var got [][]string
-	c.Query("dev1", []string{metadata.Root}, func(path []string, _ *ctree.Leaf, _ interface{}) {
+	c.Query("dev1", []string{metadata.Root}, func(path []string, _ *ctree.Leaf, _ interface{}) error {
 		got = append(got, path)
+		return nil
 	})
 	sort.Slice(got, func(i, j int) bool { return less(got[i], got[j]) })
 	sort.Slice(want, func(i, j int) bool { return less(want[i], want[j]) })
@@ -266,9 +275,10 @@ func TestUpdateSize(t *testing.T) {
 	c.UpdateSize()
 	c.UpdateMetadata()
 	var val int64
-	c.Query("dev1", []string{metadata.Root, metadata.Size}, func(_ []string, _ *ctree.Leaf, v interface{}) {
+	c.Query("dev1", []string{metadata.Root, metadata.Size}, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 		t.Logf("%v", v)
 		val = v.(*pb.Notification).Update[0].Val.GetIntVal()
+		return nil
 	})
 	if val <= 1000 {
 		t.Errorf("got size of %d want > 1000", val)
@@ -302,7 +312,7 @@ func makeQueries(u updateQueryData, c *Cache, n int, wg *sync.WaitGroup) {
 	for i := 0; i < n; i++ {
 		target := u.targets[r.Intn(len(u.targets))]
 		path := u.paths[r.Intn(len(u.paths))]
-		c.Query(target, path, func([]string, *ctree.Leaf, interface{}) {})
+		c.Query(target, path, func([]string, *ctree.Leaf, interface{}) error { return nil })
 	}
 	wg.Done()
 }
@@ -387,7 +397,10 @@ func notificationBundle(dev string, prefix []string, ts int64, updates []update)
 
 func TestGNMIQuery(t *testing.T) {
 	c := New([]string{"dev1"})
-	c.Query("", nil, func([]string, *ctree.Leaf, interface{}) { t.Error("querying without a target invoked callback") })
+	c.Query("", nil, func([]string, *ctree.Leaf, interface{}) error {
+		t.Error("querying without a target invoked callback")
+		return nil
+	})
 	updates := []struct {
 		t *pb.Notification
 		q bool
@@ -425,7 +438,7 @@ func TestGNMIQuery(t *testing.T) {
 			t.Errorf("#%d: got %v, want %v", x, r, tt.q)
 		}
 		var results []interface{}
-		appendResults := func(_ []string, _ *ctree.Leaf, val interface{}) { results = append(results, val) }
+		appendResults := func(_ []string, _ *ctree.Leaf, val interface{}) error { results = append(results, val); return nil }
 		c.Query(target, p, appendResults)
 		if len(results) != 1 {
 			if tt.v != "" {
@@ -456,7 +469,7 @@ func TestGNMIQueryAll(t *testing.T) {
 		t.Error("Query not executed against cache for target * and path a")
 	}
 	var results []interface{}
-	appendResults := func(_ []string, _ *ctree.Leaf, val interface{}) { results = append(results, val) }
+	appendResults := func(_ []string, _ *ctree.Leaf, val interface{}) error { results = append(results, val); return nil }
 	c.Query(target, path, appendResults)
 	for _, v := range results {
 		val := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_StringVal).StringVal
@@ -548,7 +561,7 @@ func TestGNMIAtomic(t *testing.T) {
 			t.Errorf("%v: expected err, got nil", tt.desc)
 		}
 		for _, q := range tt.queries {
-			c.Query("dev1", q.path, func(_ []string, _ *ctree.Leaf, val interface{}) {
+			c.Query("dev1", q.path, func(_ []string, _ *ctree.Leaf, val interface{}) error {
 				if !q.expect {
 					t.Errorf("Query(%p): got notification %v, want none", q.path, val)
 				} else {
@@ -556,6 +569,7 @@ func TestGNMIAtomic(t *testing.T) {
 						t.Errorf("got:\n%s want\n%s", proto.MarshalTextString(v), proto.MarshalTextString(tt.noti))
 					}
 				}
+				return nil
 			})
 		}
 	}
@@ -573,48 +587,53 @@ func TestGNMIUpdateMeta(t *testing.T) {
 
 		var path []string
 		path = metadata.Path(metadata.Size)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			newSize := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
 			if newSize <= lastSize {
 				t.Errorf("%s didn't increase after adding leaf #%d",
 					strings.Join(path, "/"), i+1)
 			}
 			lastSize = newSize
+			return nil
 		})
 		path = metadata.Path(metadata.LeafCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			newCount := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
 			if newCount <= lastCount {
 				t.Errorf("%s didn't increase after adding leaf #%d",
 					strings.Join(path, "/"), i+1)
 			}
 			lastCount = newCount
+			return nil
 		})
 		path = metadata.Path(metadata.AddCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			newAdds := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
 			if newAdds <= lastAdds {
 				t.Errorf("%s didn't increase after adding leaf #%d",
 					strings.Join(path, "/"), i+1)
 			}
 			lastAdds = newAdds
+			return nil
 		})
 		path = metadata.Path(metadata.UpdateCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			newUpds := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
 			if newUpds <= lastUpds {
 				t.Errorf("%s didn't increase after adding leaf #%d",
 					strings.Join(path, "/"), i+1)
 			}
 			lastUpds = newUpds
+			return nil
 		})
 		path = metadata.Path(metadata.DelCount)
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			dels := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
 			if dels > 0 {
 				t.Errorf("%s is %d after adding leaf #%d, even though no leaves were removed",
 					strings.Join(path, "/"), dels, i+1)
 			}
+			return nil
 		})
 	}
 	for _, path := range [][]string{
@@ -622,11 +641,12 @@ func TestGNMIUpdateMeta(t *testing.T) {
 		metadata.Path(metadata.LatencyMax),
 		metadata.Path(metadata.LatencyMin),
 	} {
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			if l := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal; l != 0 {
 				t.Errorf("%s exists with value %d when device not in sync",
 					strings.Join(path, "/"), l)
 			}
+			return nil
 		})
 	}
 	pathGen := func(ph []string) *pb.Path {
@@ -657,19 +677,23 @@ func TestGNMIUpdateMeta(t *testing.T) {
 		metadata.Path(metadata.LatencyMax),
 		metadata.Path(metadata.LatencyMin),
 	} {
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			l := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
 			if want := time.Minute.Nanoseconds(); l < want {
 				t.Errorf("%s got value %d, want greater than %d",
 					strings.Join(path, "/"), l, want)
 			}
+			return nil
 		})
 	}
 }
 
 func TestGNMIQueryWithPathElem(t *testing.T) {
 	c := New([]string{"dev1"})
-	c.Query("", nil, func([]string, *ctree.Leaf, interface{}) { t.Error("querying without a target invoked callback") })
+	c.Query("", nil, func([]string, *ctree.Leaf, interface{}) error {
+		t.Error("querying without a target invoked callback")
+		return nil
+	})
 	ns := []struct {
 		n *pb.Notification
 		q []string
@@ -743,7 +767,7 @@ func TestGNMIQueryWithPathElem(t *testing.T) {
 		}
 		p := joinPrefixAndPath(tt.n.GetPrefix(), gp)
 		var results []interface{}
-		appendResults := func(_ []string, _ *ctree.Leaf, val interface{}) { results = append(results, val) }
+		appendResults := func(_ []string, _ *ctree.Leaf, val interface{}) error { results = append(results, val); return nil }
 		c.Query(target, p, appendResults)
 		if len(results) != 1 {
 			if tt.e != "" {
@@ -866,12 +890,13 @@ func TestGNMIReset(t *testing.T) {
 	}
 	var results []interface{}
 	var hasMeta bool
-	appendResults := func(path []string, _ *ctree.Leaf, val interface{}) {
+	appendResults := func(path []string, _ *ctree.Leaf, val interface{}) error {
 		if path[0] == metadata.Root {
 			hasMeta = true
 		} else {
 			results = append(results, val)
 		}
+		return nil
 	}
 	for _, target := range targets {
 		results = nil
@@ -985,7 +1010,7 @@ func TestGNMIUpdate(t *testing.T) {
 			},
 			wantUpdates:    1,
 			wantSuppressed: 1,
-			wantErr:        true,
+			wantErr:        false,
 		}, {
 			desc: "no duplicates",
 			initial: notificationBundle(dev, prefix, 0, []update{
@@ -1059,7 +1084,7 @@ func TestGNMIUpdate(t *testing.T) {
 			},
 			wantUpdates:    2,
 			wantSuppressed: 1,
-			wantErr:        true,
+			wantErr:        false,
 		}, {
 			desc: "stale updates - same timestamp",
 			initial: notificationBundle(dev, prefix, 0, []update{
@@ -1153,17 +1178,18 @@ func TestGNMIUpdate(t *testing.T) {
 		}
 
 		checkMeta := func(desc string, path []string, want int) {
-			c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+			c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 				got := v.(*pb.Notification).Update[0].Val.GetIntVal()
 				if got != int64(want) {
 					t.Errorf("%v: got %v = %d, want %d", desc, path, got, want)
 				}
+				return nil
 			})
 		}
 
 		checkState := func(desc string, states []state) {
 			for _, s := range states {
-				c.Query(dev, s.path, func(_ []string, _ *ctree.Leaf, v interface{}) {
+				c.Query(dev, s.path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 					if s.deleted {
 						t.Errorf("%v: Query(%p): got %v, want none", desc, s.path, v)
 					} else {
@@ -1172,6 +1198,7 @@ func TestGNMIUpdate(t *testing.T) {
 							t.Errorf("%v: got:\n%s want\n%s", desc, proto.MarshalTextString(got), proto.MarshalTextString(want))
 						}
 					}
+					return nil
 				})
 			}
 		}

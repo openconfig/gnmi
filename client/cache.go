@@ -20,7 +20,6 @@ import (
 	"context"
 	"fmt"
 
-	log "github.com/golang/glog"
 	"github.com/openconfig/gnmi/ctree"
 )
 
@@ -104,13 +103,13 @@ func (c *CacheClient) Synced() <-chan struct{} {
 func (c *CacheClient) Leaves() Leaves {
 	// Convert node items into Leaf (expand TreeVal leaves).
 	var pvs Leaves
-	c.WalkSorted(func(path []string, _ *ctree.Leaf, value interface{}) {
+	c.WalkSorted(func(path []string, _ *ctree.Leaf, value interface{}) error {
 		tv, ok := value.(TreeVal)
 		if !ok {
-			log.Errorf("Invalid value in tree: %s=%#v", path, value)
-			return
+			return fmt.Errorf("Invalid value in tree: %s=%#v", path, value)
 		}
 		pvs = append(pvs, Leaf{Path: path, Val: tv.Val, TS: tv.TS})
+		return nil
 	})
 	return pvs
 }

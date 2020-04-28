@@ -26,10 +26,10 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
 	"github.com/cenkalti/backoff/v4"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
+	"github.com/golang/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	tpb "github.com/openconfig/gnmi/proto/target"
@@ -60,7 +60,8 @@ type CredentialsClient interface {
 type Config struct {
 	// Connect will be invoked when a target connects.
 	Connect func(string)
-	// Credentials provides credentials lookup.
+	// Credentials is an optional client used to lookup passwords for targets
+	// with a specified username and password ID.
 	Credentials CredentialsClient
 	// Reset will be invoked when a target disconnects.
 	Reset func(string)
@@ -110,9 +111,6 @@ type ConnectionManager interface {
 
 // NewManager returns a new target Manager.
 func NewManager(cfg Config) (*Manager, error) {
-	if cfg.Credentials == nil {
-		return nil, errors.New("nil Config.Credentials supplied")
-	}
 	if cfg.ConnectionManager == nil {
 		return nil, errors.New("nil Config.ConnectionManager supplied")
 	}
@@ -121,6 +119,7 @@ func NewManager(cfg Config) (*Manager, error) {
 	e.InitialInterval = RetryBaseDelay
 	e.MaxInterval = RetryMaxDelay
 	e.RandomizationFactor = RetryRandomization
+	e.Reset()
 	return &Manager{
 		backoff:           e,
 		connect:           cfg.Connect,
@@ -135,11 +134,7 @@ func NewManager(cfg Config) (*Manager, error) {
 	}, nil
 }
 
-func (m *Manager) handleGNMIUpdate(name string, msg proto.Message) error {
-	resp, ok := msg.(*gpb.SubscribeResponse)
-	if !ok {
-		return fmt.Errorf("failed to type assert message %#v", msg)
-	}
+func (m *Manager) handleGNMIUpdate(name string, resp *gpb.SubscribeResponse) error {
 	log.V(2).Info(resp)
 	if resp.Response == nil {
 		return fmt.Errorf("nil Response")
@@ -226,22 +221,14 @@ func (m *Manager) subscribe(ctx context.Context, name string, conn *grpc.ClientC
 	default:
 	}
 
-	// Clone the request template and customize target prefix.
-	cl := proto.Clone(sr).(*gpb.SubscribeRequest)
-	if s := cl.GetSubscribe(); s != nil {
-		if p := s.GetPrefix(); p != nil {
-			p.Target = name
-		} else {
-			s.Prefix = &gpb.Path{Target: name}
-		}
-	}
 	log.Infof("Attempting to open stream to target %q", name)
 	sc, err := subscribeClient(ctx, conn)
 	if err != nil {
 		return fmt.Errorf("error opening stream to target %q: %v", name, err)
 	}
-	log.V(2).Infof("Sending subscription request to target %q: %v", name, cl)
-	if err := sc.Send(cl); err != nil {
+	cr := customizeRequest(name, sr)
+	log.V(2).Infof("Sending subscription request to target %q: %v", name, cr)
+	if err := sc.Send(cr); err != nil {
 		return fmt.Errorf("error sending subscription request to target %q: %v", name, err)
 	}
 	log.Infof("Target %q successfully subscribed", name)
@@ -249,6 +236,19 @@ func (m *Manager) subscribe(ctx context.Context, name string, conn *grpc.ClientC
 		return fmt.Errorf("stream failed for target %q: %v", name, err)
 	}
 	return nil
+}
+
+// customizeRequest clones the request template and customizes target prefix.
+func customizeRequest(target string, sr *gpb.SubscribeRequest) *gpb.SubscribeRequest {
+	cl := proto.Clone(sr).(*gpb.SubscribeRequest)
+	if s := cl.GetSubscribe(); s != nil {
+		if p := s.GetPrefix(); p != nil {
+			p.Target = target
+		} else {
+			s.Prefix = &gpb.Path{Target: target}
+		}
+	}
+	return cl
 }
 
 func (m *Manager) retryMonitor(ctx context.Context, ta *target) {
@@ -267,12 +267,10 @@ func (m *Manager) retryMonitor(ctx context.Context, ta *target) {
 	sCtx := m.reconnectCtx(ctx, ta)
 	for {
 		select {
+		case <-ctx.Done():
+			// Avoid blocking on backoff timer when removing target.
+			return
 		case <-timer.C:
-			select {
-			case <-ctx.Done():
-				return
-			default:
-			}
 			select {
 			case <-sCtx.Done():
 				// Create a new subcontext if the target was forcibly reconnected.
