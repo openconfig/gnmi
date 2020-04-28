@@ -15,7 +15,7 @@ jobs:
         go: [ '1.12', '1.13', '1.14' ]
     steps:
       - name: Set up timezone
-        uses: zcong1993/setup-timezone@v1
+        uses: zcong1993/setup-timezone@v1.0
         with:
             timezone: America/Los_Angeles
       
