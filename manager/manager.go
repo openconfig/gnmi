@@ -135,7 +135,9 @@ func NewManager(cfg Config) (*Manager, error) {
 }
 
 func (m *Manager) handleGNMIUpdate(name string, resp *gpb.SubscribeResponse) error {
-	log.V(2).Info(resp)
+	if log.V(2) {
+		log.Info(resp)
+	}
 	if resp.Response == nil {
 		return fmt.Errorf("nil Response")
 	}
