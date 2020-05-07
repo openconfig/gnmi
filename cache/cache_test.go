@@ -17,6 +17,7 @@ limitations under the License.
 package cache
 
 import (
+	"errors"
 	"fmt"
 	"math/rand"
 	"reflect"
@@ -481,6 +482,25 @@ func TestGNMIQueryAll(t *testing.T) {
 	if len(updates) > 0 {
 		t.Errorf("the following updates were not received for query of target * with path a: %v", updates)
 	}
+}
+
+func TestGNMIQueryAllError(t *testing.T) {
+	c := New([]string{"dev1", "dev2", "dev3"})
+	updates := map[string]*pb.Notification{
+		"value1": gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", false),
+		"value2": gnmiNotification("dev2", []string{}, []string{"a", "c"}, 0, "value2", false),
+		"value3": gnmiNotification("dev3", []string{}, []string{"a", "d"}, 0, "value3", false),
+	}
+	// Add updates to cache.
+	for _, u := range updates {
+		c.GnmiUpdate(u)
+	}
+	errVisit := func(_ []string, _ *ctree.Leaf, val interface{}) error { return errors.New("some error") }
+	if err := c.Query("*", []string{"a"}, errVisit); err == nil {
+		t.Fatalf("Query returned no error, want error")
+	}
+	defer c.mu.Unlock()
+	c.mu.Lock() // Cache is left unlocked.
 }
 
 func TestGNMIAtomic(t *testing.T) {

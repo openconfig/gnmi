@@ -145,6 +145,7 @@ func (c *Cache) Query(target string, query []string, fn ctree.VisitFunc) error {
 	case target == "":
 		return errors.New("no target specified in query")
 	case target == "*":
+		defer c.mu.RUnlock()
 		c.mu.RLock()
 		// Run the query sequentially for each target cache.
 		for _, target := range c.targets {
@@ -152,7 +153,6 @@ func (c *Cache) Query(target string, query []string, fn ctree.VisitFunc) error {
 				return err
 			}
 		}
-		c.mu.RUnlock()
 	default:
 		dc := c.GetTarget(target)
 		if dc == nil {
