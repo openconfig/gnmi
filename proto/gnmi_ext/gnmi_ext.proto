@@ -46,6 +46,9 @@ enum ExtensionID {
   // New extensions are to be defined within this enumeration - their definition
   // MUST link to a reference describing their implementation.
 
+  // Juniper Telemetry header
+  EID_JUNIPER_TELEMETRY_HEADER = 1;
+
   // An experimental extension that may be used during prototyping of a new
   // extension.
   EID_EXPERIMENTAL = 999;
