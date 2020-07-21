@@ -274,6 +274,23 @@ func noti(prefix []string, pp *gpb.Path, ts time.Time, u *gpb.Update) (client.No
 		return client.Delete{Path: p, TS: ts}, nil
 	}
 	if u.Val != nil {
+		switch u.Val.Value.(type) {
+		case *gpb.TypedValue_BytesVal:
+			return client.Update{Path: p, TS: ts, Val: u.Val.Value.(*gpb.TypedValue_BytesVal).BytesVal, Dups: u.Duplicates}, nil
+		case *gpb.TypedValue_JsonVal:
+			var val interface{}
+			if err := json.Unmarshal(u.Val.Value.(*gpb.TypedValue_JsonVal).JsonVal, &val); err != nil {
+				return nil, fmt.Errorf("json.Unmarshal(%q, val): %v", u.Val.Value.(*gpb.TypedValue_JsonVal).JsonVal, err)
+			}
+			return client.Update{Path: p, TS: ts, Val: val, Dups: u.Duplicates}, nil
+		case *gpb.TypedValue_JsonIetfVal:
+			var val interface{}
+			if err := json.Unmarshal(u.Val.Value.(*gpb.TypedValue_JsonIetfVal).JsonIetfVal, &val); err != nil {
+				return nil, fmt.Errorf("json.Unmarshal(%q, val): %v", u.Val.Value.(*gpb.TypedValue_JsonIetfVal).JsonIetfVal, err)
+			}
+			return client.Update{Path: p, TS: ts, Val: val, Dups: u.Duplicates}, nil
+		default:
+		}
 		val, err := value.ToScalar(u.Val)
 		if err != nil {
 			return nil, err
