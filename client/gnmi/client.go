@@ -30,14 +30,14 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc"
 	"github.com/golang/protobuf/proto"
-	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/grpcutil"
 	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/value"
+	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -63,7 +63,6 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		return nil, fmt.Errorf("d.Addrs must only contain one entry: %v", d.Addrs)
 	}
 	opts := []grpc.DialOption{
-		grpc.WithTimeout(d.Timeout),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),
 	}
@@ -79,7 +78,11 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, true)
 		opts = append(opts, grpc.WithPerRPCCredentials(pc))
 	}
-	conn, err := grpc.DialContext(ctx, d.Addrs[0], opts...)
+
+	gCtx, cancel := context.WithTimeout(ctx, d.Timeout)
+	defer cancel()
+
+	conn, err := grpc.DialContext(gCtx, d.Addrs[0], opts...)
 	if err != nil {
 		return nil, fmt.Errorf("Dialer(%s, %v): %v", d.Addrs[0], d.Timeout, err)
 	}
