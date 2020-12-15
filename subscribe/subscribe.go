@@ -97,19 +97,30 @@ func (s *Server) SetACL(a ACL) {
 	s.a = a
 }
 
+// UpdateNotification uses paths in a pb.Notification n to match registered
+// clients in m and pass value v to those clients.
+// prefix is the prefix of n that should be used to match clients in m.
+// Depending on the caller, the target may or may not be in prefix.
+// v should be n itself or the container of n (e.g. a ctree.Leaf) depending
+// on the caller.
+func UpdateNotification(m *match.Match, v interface{}, n *pb.Notification, prefix []string) {
+	var updated map[match.Client]struct{}
+	if len(n.Update) + len(n.Delete) > 1 {
+		updated = make(map[match.Client]struct{})
+	}
+	for _, u := range n.Update {
+		m.UpdateOnce(v, append(prefix, path.ToStrings(u.Path, false)...), updated)
+	}
+	for _, d := range n.Delete {
+		m.UpdateOnce(v, append(prefix, path.ToStrings(d, false)...), updated)
+	}
+}
+
 // Update passes a streaming update to registered clients.
 func (s *Server) Update(n *ctree.Leaf) {
 	switch v := n.Value().(type) {
 	case *pb.Notification:
-		p := path.ToStrings(v.Prefix, true)
-		if len(v.Update) > 0 {
-			p = append(p, path.ToStrings(v.Update[0].Path, false)...)
-		} else if len(v.Delete) > 0 {
-			p = append(p, path.ToStrings(v.Delete[0], false)...)
-		}
-		// If neither update nor delete notification exists,
-		// just go with the path in the prefix
-		s.m.Update(n, p)
+		UpdateNotification(s.m, n, v, path.ToStrings(v.Prefix, true))
 	default:
 		log.Errorf("update is not a known type; type is %T", v)
 	}
@@ -341,12 +352,16 @@ func (s *Server) processPollingSubscription(c *streamClient) {
 	log.Infof("polling subscription: first complete response: %q", c.sr)
 	for {
 		if c.queue.IsClosed() {
+			log.Info("Terminating polling subscription due to closed client queue.")
+			c.errC <- nil
 			return
 		}
 		// Subsequent receives are only triggers to poll again. The contents of the
 		// request are completely ignored.
 		_, err := c.stream.Recv()
 		if err == io.EOF {
+			log.Info("Terminating polling subscription due to EOF.")
+			c.errC <- nil
 			return
 		}
 		if err != nil {

@@ -247,15 +247,15 @@ func (c *Cache) GnmiUpdate(n *pb.Notification) error {
 // a separate gnmi.Notification.
 func (t *Target) GnmiUpdate(n *pb.Notification) error {
 	t.checkTimestamp(T(n.GetTimestamp()))
+	switch {
 	// Store atomic notifications as a single leaf in the tree.
-	if n.Atomic {
+	case n.Atomic:
 		if len(n.GetDelete()) > 0 {
 			return errors.New("atomic deletes unsupported")
 		}
 		l := len(n.GetUpdate())
 		if l == 0 {
-			// This could be considered an error, but is silently allowed
-			// in the non-Atomic case, so treat equally.
+			t.meta.AddInt(metadata.EmptyCount, 1)
 			return nil
 		}
 		nd, err := t.gnmiUpdate(n)
@@ -266,42 +266,66 @@ func (t *Target) GnmiUpdate(n *pb.Notification) error {
 			t.meta.AddInt(metadata.UpdateCount, int64(l))
 			t.client(nd)
 		}
-		return nil
-	}
-	// Break non-atomic notifications with individual leaves per update.
-	updates := n.GetUpdate()
-	deletes := n.GetDelete()
-	n.Update, n.Delete = nil, nil
-	// restore back the notification updates and deletes
-	defer func() {
-		n.Update = updates
-		n.Delete = deletes
-	}()
-	errs := &errlist.List{}
-	for _, u := range updates {
-		noti := proto.Clone(n).(*pb.Notification)
-		noti.Update = []*pb.Update{u}
-		nd, err := t.gnmiUpdate(noti)
-		if err != nil {
-			errs.Add(err)
-			continue
+
+  // Break non-atomic complex notifications into individual leaves per update.
+	case len(n.GetUpdate()) + len(n.GetDelete()) > 1:
+		updates := n.GetUpdate()
+		deletes := n.GetDelete()
+		n.Update, n.Delete = nil, nil
+		// restore back the notification updates and deletes
+		defer func() {
+			n.Update = updates
+			n.Delete = deletes
+		}()
+		errs := &errlist.List{}
+		for _, u := range updates {
+			noti := proto.Clone(n).(*pb.Notification)
+			noti.Update = []*pb.Update{u}
+			nd, err := t.gnmiUpdate(noti)
+			if err != nil {
+				errs.Add(err)
+				continue
+			}
+			if nd != nil {
+				t.meta.AddInt(metadata.UpdateCount, 1)
+				t.client(nd)
+			}
 		}
-		if nd != nil {
+
+		for _, d := range deletes {
+			noti := proto.Clone(n).(*pb.Notification)
+			noti.Delete = []*pb.Path{d}
 			t.meta.AddInt(metadata.UpdateCount, 1)
-			t.client(nd)
+			for _, nd := range t.gnmiRemove(noti) {
+				t.client(nd)
+			}
 		}
-	}
+		return errs.Err()
 
-	for _, d := range deletes {
-		noti := proto.Clone(n).(*pb.Notification)
-		noti.Delete = []*pb.Path{d}
-		t.meta.AddInt(metadata.UpdateCount, 1)
-		for _, nd := range t.gnmiRemove(noti) {
-			t.client(nd)
-		}
-	}
+	// Single update notification could be handled by the above code but is
+	// handled separately to avoid the unnecessary proto.Clone call.
+	case len(n.GetUpdate()) == 1:
+			nd, err := t.gnmiUpdate(n)
+			if err != nil {
+				return err
+			}
+			if nd != nil {
+				t.meta.AddInt(metadata.UpdateCount, 1)
+				t.client(nd)
+			}
 
-	return errs.Err()
+	// Single delete notification also avoids proto.Clone above.
+	case len(n.GetDelete()) == 1:
+			t.meta.AddInt(metadata.UpdateCount, 1)
+			for _, nd := range t.gnmiRemove(n) {
+				t.client(nd)
+			}
+
+	// Empty notification.
+	default:
+		t.meta.AddInt(metadata.EmptyCount, 1)
+	}
+	return nil
 }
 
 func (t *Target) checkTimestamp(ts time.Time) {
@@ -323,8 +347,7 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 		suffix = nil
 	}
 	path := joinPrefixAndPath(n.Prefix, suffix)
-	switch {
-	case path[0] == metadata.Root:
+	if path[0] == metadata.Root {
 		realData = false
 		u := n.Update[0]
 		switch path[1] {
@@ -342,10 +365,13 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 				return nil, fmt.Errorf("%v : has value %v of type %T, expected boolean", metadata.Path(metadata.Connected), u.Val, u.Val)
 			}
 			t.meta.SetBool(metadata.Connected, tv.BoolVal)
+		case metadata.ConnectedAddr:
+			tv, ok := u.Val.Value.(*pb.TypedValue_StringVal)
+			if !ok {
+				return nil, fmt.Errorf("%v : has value %v of type %T, expected string", metadata.Path(metadata.ConnectedAddr), u.Val, u.Val)
+			}
+			t.meta.SetStr(metadata.ConnectedAddr, tv.StringVal)
 		}
-	case t.sync:
-		// Record latency for post-sync target updates.  Exclude metadata updates.
-		t.lat.compute(T(n.GetTimestamp()))
 	}
 	// Update an existing leaf.
 	if oldval := t.t.GetLeaf(path); oldval != nil {
@@ -366,6 +392,11 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 			t.meta.AddInt(metadata.SuppressedCount, 1)
 			return nil, nil
 		}
+		// Compute latency for updated leaves.
+		if t.sync && realData {
+			// Record latency for post-sync target updates.  Exclude metadata updates.
+			t.lat.compute(T(n.GetTimestamp()))
+		}
 		return oldval, nil
 	}
 	// Add a new leaf.
@@ -375,6 +406,11 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 	if realData {
 		t.meta.AddInt(metadata.LeafCount, 1)
 		t.meta.AddInt(metadata.AddCount, 1)
+		// Compute latency for new leaves.
+		if t.sync {
+			// Record latency for post-sync target updates.  Exclude metadata updates.
+			t.lat.compute(T(n.GetTimestamp()))
+		}
 	}
 	return t.t.GetLeaf(path), nil
 }
@@ -462,6 +498,23 @@ func (t *Target) updateMeta(clients func(*ctree.Leaf)) {
 		prev := t.t.GetLeafValue(path)
 		if prev == nil || prev.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal != v {
 			noti := metaNotiInt(t.name, value, v)
+			if n, _ := t.gnmiUpdate(noti); n != nil {
+				if clients != nil {
+					clients(n)
+				}
+			}
+		}
+	}
+
+	for value := range metadata.TargetStrValues {
+		v, err := t.meta.GetStr(value)
+		if err != nil {
+			continue
+		}
+		path := metadata.Path(value)
+		prev := t.t.GetLeafValue(path)
+		if prev == nil || prev.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_StringVal).StringVal != v {
+			noti := metaNotiStr(t.name, value, v)
 			if n, _ := t.gnmiUpdate(noti); n != nil {
 				if clients != nil {
 					clients(n)
@@ -561,4 +614,8 @@ func metaNotiBool(t, m string, v bool) *pb.Notification {
 
 func metaNotiInt(t, m string, v int64) *pb.Notification {
 	return metaNoti(t, m, &pb.TypedValue{Value: &pb.TypedValue_IntVal{v}})
+}
+
+func metaNotiStr(t, m string, v string) *pb.Notification {
+	return metaNoti(t, m, &pb.TypedValue{Value: &pb.TypedValue_StringVal{v}})
 }

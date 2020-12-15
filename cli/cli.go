@@ -20,8 +20,8 @@ package cli
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -99,7 +99,8 @@ func ParseSubscribeProto(p string) (client.Query, error) {
 }
 
 // sendQueryAndDisplay directs a query to the specified target. The returned
-// results are formatted as a JSON string and passed to Config.Display().
+// results are formatted as a human readable string and passed to
+// Config.Display().
 func sendQueryAndDisplay(ctx context.Context, query client.Query, cfg *Config) error {
 	cancel := func() {}
 	if cfg.StreamingDuration > 0 {
@@ -232,7 +233,8 @@ func displayPeer(c client.Client, cfg *Config) {
 }
 
 // displayOnceResults builds all the results returned for for one application of
-// query to the OpenConfig data tree and displays the resulting tree in JSON.
+// query to the OpenConfig data tree and displays the resulting tree in a human
+// readable form.
 func displayOnceResults(ctx context.Context, query client.Query, cfg *Config) error {
 	c := client.New()
 	if err := c.Subscribe(ctx, query, cfg.ClientTypes...); err != nil {
@@ -298,12 +300,7 @@ func displayStreamingResults(ctx context.Context, query client.Query, cfg *Confi
 		} else {
 			b.add(path, val)
 		}
-		result, err := json.MarshalIndent(b, cfg.DisplayPrefix, cfg.DisplayIndent)
-		if err != nil {
-			cfg.Display([]byte(fmt.Sprintf("Error: failed to marshal result: %v", err)))
-			return
-		}
-		cfg.Display(result)
+		cfg.Display(b.display(cfg.DisplayPrefix, cfg.DisplayIndent))
 	}
 	query.NotificationHandler = func(n client.Notification) error {
 		switch v := n.(type) {
@@ -328,21 +325,21 @@ func displayWalk(target string, c *client.CacheClient, cfg *Config) {
 	switch cfg.Timestamp {
 	default:
 		addFunc = func(path []string, v client.TreeVal) {
-			b.add(path, map[string]interface{}{
+			b.add(path, pathmap{
 				"value":     v.Val,
 				"timestamp": v.TS.Format(cfg.Timestamp),
 			})
 		}
 	case "on":
 		addFunc = func(path []string, v client.TreeVal) {
-			b.add(path, map[string]interface{}{
+			b.add(path, pathmap{
 				"value":     v.Val,
 				"timestamp": v.TS.Format(layout),
 			})
 		}
 	case "raw":
 		addFunc = func(path []string, v client.TreeVal) {
-			b.add(path, map[string]interface{}{
+			b.add(path, pathmap{
 				"value":     v.Val,
 				"timestamp": v.TS.UnixNano(),
 			})
@@ -362,11 +359,7 @@ func displayWalk(target string, c *client.CacheClient, cfg *Config) {
 		}
 		return nil
 	})
-	result, err := json.MarshalIndent(b, cfg.DisplayPrefix, cfg.DisplayIndent)
-	if err != nil {
-		cfg.Display([]byte(fmt.Sprintf("Error: failed to marshal result: %v", err)))
-		return
-	}
+	result := b.display(cfg.DisplayPrefix, cfg.DisplayIndent)
 	cfg.Display(result)
 	if cfg.DisplaySize {
 		cfg.Display([]byte(fmt.Sprintf("// total response size: %d", len(result))))
@@ -374,6 +367,40 @@ func displayWalk(target string, c *client.CacheClient, cfg *Config) {
 }
 
 type pathmap map[string]interface{}
+
+func (m pathmap) display(prefix, indent string) []byte {
+	return []byte(prefix + m.str(prefix, indent, ""))
+}
+
+func valStr(val interface{}, prefix, indent, curindent string) string {
+	switch v := val.(type) {
+	case pathmap:
+		return v.str(prefix, indent, curindent+indent)
+	case string:
+		return fmt.Sprintf("%q", v)
+	case []interface{}:
+		vals := make([]string, len(v))
+		for i := 0; i < len(v); i++ {
+			vals[i] = valStr(v[i], prefix, indent, curindent)
+		}
+		return fmt.Sprintf("[%s]", strings.Join(vals, ", "))
+	default:
+		return fmt.Sprintf("%v", v)
+	}
+}
+
+func (m pathmap) str(prefix, indent, curindent string) string {
+	var keys []string
+	for key := range m {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	var vals []string
+	for _, key := range keys {
+		vals = append(vals, prefix+curindent+indent+fmt.Sprintf("%q: %s", key, valStr(m[key], prefix, indent, curindent)))
+	}
+	return "{\n" + strings.Join(vals, ",\n") + "\n" + prefix + curindent + "}"
+}
 
 func (m pathmap) add(path []string, v interface{}) {
 	if len(path) == 1 {

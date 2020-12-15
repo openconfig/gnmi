@@ -249,9 +249,11 @@ func TestUpdateMetadata(t *testing.T) {
 		{metadata.Root, metadata.AddCount},
 		{metadata.Root, metadata.UpdateCount},
 		{metadata.Root, metadata.DelCount},
+		{metadata.Root, metadata.EmptyCount},
 		{metadata.Root, metadata.StaleCount},
 		{metadata.Root, metadata.SuppressedCount},
 		{metadata.Root, metadata.Connected},
+		{metadata.Root, metadata.ConnectedAddr},
 		{metadata.Root, metadata.Sync},
 		{metadata.Root, metadata.Size},
 		{metadata.Root, metadata.LatencyAvg},
@@ -687,7 +689,7 @@ func TestGNMIUpdateMeta(t *testing.T) {
 			Update: []*pb.Update{
 				&pb.Update{
 					Path: pathGen([]string{"a", "1"}),
-					Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{"b"}},
+					Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{"c"}},
 				},
 			},
 		})
@@ -988,14 +990,15 @@ func TestGNMIUpdate(t *testing.T) {
 	path2 := []string{"path2"}
 	path3 := []string{"path3"}
 	tests := []struct {
-		desc           string
-		initial        *pb.Notification
-		notification   *pb.Notification
-		want           []state
-		wantUpdates    int
-		wantSuppressed int
-		wantStale      int
-		wantErr        bool
+		desc              string
+		initial           *pb.Notification
+		notification      *pb.Notification
+		want              []state
+		wantConnectedAddr string
+		wantUpdates       int
+		wantSuppressed    int
+		wantStale         int
+		wantErr           bool
 	}{
 		{
 			desc: "duplicate update",
@@ -1171,12 +1174,35 @@ func TestGNMIUpdate(t *testing.T) {
 			},
 			wantStale: 2,
 			wantErr:   true,
+		}, {
+			desc: "meta connectedAddress reset",
+			initial: notificationBundle(dev, nil, 0, []update{
+				{
+					path: []string{metadata.Root, metadata.ConnectedAddr},
+					val:  "127.1.1.1:8080",
+				},
+			}),
+			notification:      notificationBundle(dev, prefix, 1, []update{}),
+			want:              []state{},
+			wantConnectedAddr: "", // Value is cleared and copied to the cache.
+		}, {
+			desc:    "meta connectedAddress update",
+			initial: notificationBundle(dev, prefix, 0, []update{}),
+			notification: notificationBundle(dev, nil, 1, []update{
+				{
+					path: []string{metadata.Root, metadata.ConnectedAddr},
+					val:  "127.1.1.1:8080",
+				},
+			}),
+			wantConnectedAddr: "127.1.1.1:8080",
+			wantUpdates:       1,
 		},
 	}
 
 	suppressedPath := metadata.Path(metadata.SuppressedCount)
 	updatePath := metadata.Path(metadata.UpdateCount)
 	stalePath := metadata.Path(metadata.StaleCount)
+	connectedAddrPath := metadata.Path(metadata.ConnectedAddr)
 
 	for _, tt := range tests {
 		c := New([]string{dev})
@@ -1197,11 +1223,21 @@ func TestGNMIUpdate(t *testing.T) {
 			continue
 		}
 
-		checkMeta := func(desc string, path []string, want int) {
+		checkMetaInt := func(desc string, path []string, want int) {
 			c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 				got := v.(*pb.Notification).Update[0].Val.GetIntVal()
 				if got != int64(want) {
 					t.Errorf("%v: got %v = %d, want %d", desc, path, got, want)
+				}
+				return nil
+			})
+		}
+
+		checkMetaString := func(desc string, path []string, want string) {
+			c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
+				got := v.(*pb.Notification).Update[0].Val.GetStringVal()
+				if got != string(want) {
+					t.Errorf("%v: got %v = %v, want %v", desc, path, got, want)
 				}
 				return nil
 			})
@@ -1224,9 +1260,10 @@ func TestGNMIUpdate(t *testing.T) {
 		}
 
 		checkState(tt.desc, tt.want)
-		checkMeta(tt.desc, suppressedPath, tt.wantSuppressed)
-		checkMeta(tt.desc, updatePath, tt.wantUpdates)
-		checkMeta(tt.desc, stalePath, tt.wantStale)
+		checkMetaInt(tt.desc, suppressedPath, tt.wantSuppressed)
+		checkMetaInt(tt.desc, updatePath, tt.wantUpdates)
+		checkMetaInt(tt.desc, stalePath, tt.wantStale)
+		checkMetaString(tt.desc, connectedAddrPath, tt.wantConnectedAddr)
 	}
 }
 

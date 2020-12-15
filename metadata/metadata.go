@@ -32,10 +32,16 @@ const (
 	Sync = "sync"
 	// Connected is a boolean that reports whether updates are being received.
 	Connected = "connected"
+	// ConnectedAddr is a string denoting the last-hop IP address of a connected
+	// target.
+	ConnectedAddr = "connectedAddress"
 	// AddCount is the total number of leaves that have been added.
 	AddCount = "targetLeavesAdded"
 	// DelCount is the total number of leaves that have been deleted.
 	DelCount = "targetLeavesDeleted"
+	// EmptyCount is the total number of notifications delivered that contain no
+	// updates or deletes.
+	EmptyCount = "targetLeavesEmpty"
 	// LeafCount is the current total leaves stored in the cache.
 	LeafCount = "targetLeaves"
 	// UpdateCount is the total number of leaf updates received.
@@ -74,6 +80,7 @@ var (
 	TargetIntValues = map[string]bool{
 		AddCount:        true,
 		DelCount:        true,
+		EmptyCount:      true,
 		LeafCount:       true,
 		UpdateCount:     true,
 		StaleCount:      true,
@@ -84,6 +91,11 @@ var (
 		Size:            true,
 		LatestTimestamp: true,
 	}
+
+	// TargetStrValues is the list of all string metadata fields.
+	TargetStrValues = map[string]bool{
+		ConnectedAddr: true,
+	}
 )
 
 // Metadata is the container for all target specific metadata.
@@ -91,25 +103,28 @@ type Metadata struct {
 	mu         sync.Mutex
 	valuesInt  map[string]int64
 	valuesBool map[string]bool
+	valuesStr  map[string]string
 }
 
 // Path is a convenience function that will return the full metadata path for
 // any valid metadata value.  Only metadata values registered above in
-// TargetBoolValues and TargetIntValues will return a path.  An invalid metadata
-// value will return nil.
+// TargetBoolValues, TargetIntValues, and TargetStrValues will return a path.
+// An invalid metadata value will return nil.
 func Path(value string) []string {
-	if TargetBoolValues[value] || TargetIntValues[value] {
+	if TargetBoolValues[value] || TargetIntValues[value] || TargetStrValues[value] {
 		return []string{Root, value}
 	}
 	return nil
 }
 
 // New returns an initialized Metadata structure.  Integer values are
-// initialized to 0 and boolean values are initialized to false.
+// initialized to 0. Boolean values are initialized to false. String values are
+// initialized to empty string.
 func New() *Metadata {
 	m := Metadata{
 		valuesInt:  make(map[string]int64, len(TargetIntValues)),
 		valuesBool: make(map[string]bool, len(TargetBoolValues)),
+		valuesStr:  make(map[string]string, len(TargetStrValues)),
 	}
 	m.Clear()
 	return &m
@@ -133,6 +148,13 @@ func validBool(value string) error {
 	return nil
 }
 
+func validStr(value string) error {
+	if valid := TargetStrValues[value]; !valid {
+		return ErrInvalidValue
+	}
+	return nil
+}
+
 // Clear sets all metadata values to zero values.
 func (m *Metadata) Clear() {
 	m.mu.Lock()
@@ -142,6 +164,9 @@ func (m *Metadata) Clear() {
 	}
 	for k := range TargetIntValues {
 		m.valuesInt[k] = 0
+	}
+	for k := range TargetStrValues {
+		m.valuesStr[k] = ""
 	}
 }
 
@@ -206,6 +231,31 @@ func (m *Metadata) GetBool(value string) (bool, error) {
 	m.mu.Unlock()
 	if !ok {
 		return false, ErrUnsetValue
+	}
+	return v, nil
+}
+
+// SetStr atomically sets the metadata value specified to v.
+func (m *Metadata) SetStr(value, v string) error {
+	if err := validStr(value); err != nil {
+		return err
+	}
+	m.mu.Lock()
+	m.valuesStr[value] = v
+	m.mu.Unlock()
+	return nil
+}
+
+// GetStr atomically retrieves the metadata value specified.
+func (m *Metadata) GetStr(value string) (string, error) {
+	if err := validStr(value); err != nil {
+		return "", err
+	}
+	m.mu.Lock()
+	v, ok := m.valuesStr[value]
+	m.mu.Unlock()
+	if !ok {
+		return "", ErrUnsetValue
 	}
 	return v, nil
 }

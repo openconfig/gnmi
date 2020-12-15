@@ -429,6 +429,113 @@ func TestGNMIStream(t *testing.T) {
 	}
 }
 
+func atomicNotification(prefix client.Path, paths []client.Path, values []int64, timestamp time.Time) *pb.Notification {
+	n := len(paths)
+	if n != len(values) {
+		return nil
+	}
+	us := make([]*pb.Update, 0, n)
+	for i, path := range paths {
+		sv, err := value.FromScalar(values[i])
+		if err != nil {
+			return nil
+		}
+		us = append(us, &pb.Update{
+			Path: &pb.Path{Element: path},
+			Val:  sv,
+		})
+	}
+	return &pb.Notification{
+		Prefix:    &pb.Path{Target: prefix[0], Element: prefix[1:]},
+		Timestamp: timestamp.UnixNano(),
+		Update:    us,
+		Atomic:    true,
+	}
+}
+
+// sendNotification sends a notification.
+func sendNotification(t *testing.T, c *cache.Cache, n *pb.Notification) {
+	t.Helper()
+	if err := c.GnmiUpdate(n); err != nil {
+		t.Errorf("sendNotification: %v", err)
+	}
+}
+
+func TestGNMIStreamAtomic(t *testing.T) {
+	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	prefix := []string{"dev1", "a"}
+	paths := []client.Path{{"b"}, {"c"}, {"d"}}
+	n1 := atomicNotification(prefix, paths, []int64{1, 2, 3}, time.Unix(12345678900, 0))
+	n2 := atomicNotification(prefix, paths, []int64{4, 5, 6}, time.Unix(12345678930, 0))
+	n3 := atomicNotification(prefix, paths, []int64{7, 8, 9}, time.Unix(12345678960, 0))
+	sendNotification(t, cache, n1)
+
+	ns := []*pb.Notification{}
+	sync := false
+	count := 0
+	c := client.BaseClient{}
+	q := client.Query{
+		Addrs:   []string{addr},
+		Target:  "dev1",
+		Queries: []client.Path{{"a"}},
+		Type:    client.Stream,
+		ProtoHandler: func(msg proto.Message) error {
+			resp, ok := msg.(*pb.SubscribeResponse)
+			if !ok {
+				return fmt.Errorf("failed to type assert message %#v", msg)
+			}
+			switch r := resp.Response.(type) {
+			case *pb.SubscribeResponse_Update:
+				count++
+				ns = append(ns, resp.GetUpdate())
+				// The total updates received should be 3, 1 before sync, 2 after.
+				if count == 3 {
+					c.Close()
+				}
+			case *pb.SubscribeResponse_Error:
+				return fmt.Errorf("error in response: %s", r)
+			case *pb.SubscribeResponse_SyncResponse:
+				if sync {
+					t.Fatal("received more than one sync message")
+				}
+				if count != 1 {
+					t.Fatalf("initial updates before sync, got %d, want 1", count)
+				}
+				sync = true
+				// Send some updates after the sync occurred.
+				sendNotification(t, cache, n2)
+				time.AfterFunc(time.Second, func() {
+					sendNotification(t, cache, n3)
+				})
+			default:
+				return fmt.Errorf("unknown response %T: %s", r, r)
+			}
+			return nil
+		},
+		TLS: &tls.Config{InsecureSkipVerify: true},
+	}
+	err = c.Subscribe(context.Background(), q, gnmiclient.Type)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !sync {
+		t.Fatal("streaming query did not send sync message")
+	}
+	if len(ns) != 3 {
+		t.Fatalf("number of notifications received: got %d, want 3", len(ns))
+	}
+	for i, n := range []*pb.Notification{n1, n2, n3} {
+		if diff := cmp.Diff(n, ns[i], cmp.Comparer(proto.Equal)); diff != "" {
+			t.Errorf("diff in received notification %d:\n%s", i+1, diff)
+		}
+	}
+}
+
 func TestGNMIStreamNewUpdates(t *testing.T) {
 	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
@@ -1199,7 +1306,7 @@ func TestGNMIACL(t *testing.T) {
 func TestIsTargetDelete(t *testing.T) {
 	testCases := []struct {
 		name string
-		noti interface{}
+		noti *pb.Notification
 		want bool
 	}{
 		{

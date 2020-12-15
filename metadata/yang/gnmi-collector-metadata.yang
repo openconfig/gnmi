@@ -1,0 +1,131 @@
+module gnmi-collector-metadata {
+  yang-version 1;
+
+  namespace "http://github.com/openconfig/gnmi/yang/collector-metadata";
+
+  prefix "gnmi-coll-metadata";
+
+  container meta {
+    leaf sync {
+      type boolean;
+      description
+        "sync indicates that at least one copy of the target's entire tree has
+        been received, as indicated by the sync_response field in a gNMI
+        SubscribeResponse message
+        (https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md#3514-the-subscriberesponse-message).";
+    }
+
+    leaf connected {
+      type boolean;
+      description
+        "connected reports whether the target has an active gRPC session with
+        the target device; it requires at least 1 update delivered over the
+        connection before being set to true.";
+    }
+
+    leaf connectedAddress {
+      type string;
+      description
+        "connectedAddress denotes the last-hop IP address of a connected target
+        in IP:Port format (e.g., '10.1.1.1:12345',
+        '[123:123:123:123::1]:12345').";
+    }
+
+    leaf targetLeavesAdded {
+      type int64;
+      description
+        "targetLeavesAdded is the total number of leaves that have been added.
+        This number may be larger than meta/targetLeaves due to deletes.";
+    }
+
+    leaf targetLeavesDeleted {
+      type int64;
+      description
+        "targetLeavesDeleted is the total number of leaves that have been
+        deleted.";
+    }
+
+    leaf targetLeavesEmpty {
+      type int64;
+      description
+        "targetLeavesEmpty is the total number of empty notifications received
+        from the target.";
+    }
+
+    leaf targetLeaves {
+      type int64;
+      description
+        "targetLeaves is the total number of leaves available for the target.
+        Note that this does not include any intermediate nodes.";
+    }
+
+    leaf targetLeavesUpdated {
+      type int64;
+      description
+        "targetLeavesUpdated is the total number of leaf updates that have been
+        received from the target by the collector";
+    }
+
+    leaf targetLeavesStale {
+      type int64;
+      description
+        "targetLeavesStale is the total number of leaf updates that were received
+        with a timestamp older than the latest timestamp reported for the target.";
+    }
+
+    leaf targetLeavesSuppressed {
+      type int64;
+      description
+        "targetLeavesSuppressed is the total number of leaf updates that were not
+        forwarded to subscribers because the value had not changed.";
+    }
+
+    leaf latencyAvg {
+      type int64;
+      units nanoseconds;
+      description
+        "latencyAvg is the average latency in nanoseconds between target
+        timestamp and cache reception - latency being calculated by (timestamp
+        of arrival) - (timestamp in update). It is reported per update
+        window based on the commandline flag for metadata updates.";
+    }
+
+    leaf latencyMax {
+      type int64;
+      units nanoseconds;
+      description
+        "latencyMax is the maximum latency in nanoseconds between target
+        timestamp and cache reception - latency being calculated by (timestamp
+        of arrival) - (timestamp in update). It is reported per update
+        window based on the commandline flag for metadata updates.";
+    }
+
+    leaf latencyMin {
+      type int64;
+      units nanoseconds;
+      description
+        "latencyMin is the minimum latency in nanoseconds - latency being
+        calculated by (timestamp of arrival) - (timestamp in update). It is
+        reported per update window based on the commandline flag for metadata
+        updates.";
+    }
+
+    leaf targetSize {
+      type int64;
+      units bytes;
+      description
+        "targetSize is the total number of bytes used to store all values. This
+        count excludes all indexing overhead. This value is updated periodically
+        and may not be up to date at all times.";
+    }
+
+    leaf latestTimestamp {
+      type int64;
+      units nanoseconds;
+      description
+        "latestTimestamp is the latest timestamp in nanoseconds since Epoch time
+        of the latest update received from the target. This value is updated
+        periodically so it may lag behind the actual target updates.";
+    }
+  }
+}

@@ -32,6 +32,11 @@ func TestPath(t *testing.T) {
 			t.Errorf("Path(%q) returned nil for valid value.", value)
 		}
 	}
+	for value := range TargetStrValues {
+		if path := Path(value); path == nil {
+			t.Errorf("Path(%q) returned nil for valid value.", value)
+		}
+	}
 }
 
 func TestGetInt(t *testing.T) {
@@ -56,6 +61,19 @@ func TestGetBool(t *testing.T) {
 			t.Errorf("GetBool(%q) got error: %q, want nil", value, err)
 		case v != false:
 			t.Errorf("GetBool(%q) got %t for uninitialized value, want false", value, v)
+		}
+	}
+}
+
+func TestGetStr(t *testing.T) {
+	m := New()
+	for value := range TargetStrValues {
+		v, err := m.GetStr(value)
+		switch {
+		case err != nil:
+			t.Errorf("GetStr(%q) got error: %q, want nil", value, err)
+		case v != "":
+			t.Errorf("GetStr(%q) got %q for uninitialized value, want empty string", value, v)
 		}
 	}
 }
@@ -131,5 +149,29 @@ func TestSetGetBool(t *testing.T) {
 	}
 	if _, err := m.GetBool("invalid"); err != ErrInvalidValue {
 		t.Error("GetBool accepted invalid metadata value.")
+	}
+}
+
+func TestSetGetStr(t *testing.T) {
+	m := New()
+	if err := m.SetStr("invalid", "invalidValue"); err != ErrInvalidValue {
+		t.Error("SetStr accepted invalid metadata value.")
+	}
+	for _, want := range []string{"value1", "value2", "value3", "value4"} {
+		for value := range TargetStrValues {
+			if err := m.SetStr(value, want); err != nil {
+				t.Errorf("SetStr(%q, %q) returned error: %v", value, want, err)
+			}
+			got, err := m.GetStr(value)
+			if err != nil {
+				t.Errorf("GetStr(%q) returned error: %v", value, err)
+			}
+			if got != want {
+				t.Errorf("GetStr(%q): got %q, want %q", value, got, want)
+			}
+		}
+	}
+	if _, err := m.GetStr("invalid"); err != ErrInvalidValue {
+		t.Error("GetStr accepted invalid metadata value.")
 	}
 }
