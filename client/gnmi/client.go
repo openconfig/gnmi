@@ -79,7 +79,11 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, true)
 		opts = append(opts, grpc.WithPerRPCCredentials(pc))
 	}
-	conn, err := grpc.DialContext(ctx, d.Addrs[0], opts...)
+
+	gCtx, cancel := context.WithTimeout(ctx, d.Timeout)
+	defer cancel()
+
+	conn, err := grpc.DialContext(gCtx, d.Addrs[0], opts...)
 	if err != nil {
 		return nil, fmt.Errorf("Dialer(%s, %v): %v", d.Addrs[0], d.Timeout, err)
 	}
