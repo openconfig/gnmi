@@ -27,7 +27,7 @@ protoc -I=$proto_imports --go_out=. --go_opt=paths=source_relative proto/target/
 
 # Python
 python3 -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. testing/fake/proto/fake.proto
-python3 -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/gnmi_ext/gnmi_ext.proto
+python3 -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/gnmi/gnmi.proto
 python3 -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/gnmi_ext/gnmi_ext.proto
 python3 -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/target/target.proto
 python3 -m grpc_tools.protoc -I=$proto_imports --python_out=. --grpc_python_out=. proto/collector/collector.proto
