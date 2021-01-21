@@ -1,0 +1,35 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+	<groupId>com.cisco</groupId>
+	<artifactId>commons-networking-parent</artifactId>
+	<packaging>pom</packaging>
+	<name>${project.artifactId}</name>
+	<version>0.0.2-SNAPSHOT</version>
+	
+	<properties>
+		<java.version>1.8</java.version>
+	</properties>
+
+	<modules>
+		<module>networking-api</module>
+		<module>commons-networking</module>
+	</modules>
+
+	<dependencyManagement>
+		<dependencies>
+			<dependency>
+				<groupId>com.cisco</groupId>
+				<artifactId>networking-api</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+			<dependency>
+				<groupId>com.cisco</groupId>
+				<artifactId>commons-networking</artifactId>
+				<version>${project.version}</version>
+			</dependency>
+		</dependencies>
+	</dependencyManagement>
+
+</project>
