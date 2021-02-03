@@ -25,12 +25,12 @@ import (
 	"io/ioutil"
 
 	"flag"
-	
+
 	log "github.com/golang/glog"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )
@@ -43,7 +43,7 @@ var (
 	caCert            = flag.String("ca_crt", "", "CA certificate for client certificate validation. Optional.")
 	serverCert        = flag.String("server_crt", "", "TLS server certificate")
 	serverKey         = flag.String("server_key", "", "TLS server private key")
-	allowNoClientCert = flag.Bool("allow_no_client_auth", true, "When set, fake_server will request but not require a client certificate.")
+	allowNoClientCert = flag.Bool("allow_no_client_auth", false, "When set, fake_server will request but not require a client certificate.")
 
 	tunnelAddr = flag.String("tunnel_addr", "", "tunnel server address")
 	tunnelCrt  = flag.String("tunnel_crt", "", "tunnel server cert file")
