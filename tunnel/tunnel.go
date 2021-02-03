@@ -11,11 +11,11 @@ import (
 	log "github.com/golang/glog"
 
 	"github.com/cenkalti/backoff/v4"
-	"google.golang.org/grpc/credentials"
+	"github.com/openconfig/grpctunnel/tunnel"
 	"google.golang.org/grpc"
-	"google.golang.org/grpctunnel/tunnel/tunnel"
+	"google.golang.org/grpc/credentials"
 
-	tpb "google.golang.org/grpctunnel/proto/tunnel/tunnel_go_proto"
+	tpb "github.com/openconfig/grpctunnel/proto/tunnel"
 )
 
 var (

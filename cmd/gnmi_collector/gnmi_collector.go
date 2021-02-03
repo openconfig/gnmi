@@ -28,11 +28,7 @@ import (
 	"sync"
 	"time"
 
-	
 	log "github.com/golang/glog"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc"
-	"google.golang.org/grpctunnel/tunnel/tunnel"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
@@ -40,12 +36,15 @@ import (
 	coll "github.com/openconfig/gnmi/collector"
 	"github.com/openconfig/gnmi/subscribe"
 	"github.com/openconfig/gnmi/target"
-	tw "github.com/openconfig/gnmi/tunnel/tunnel"
+	tw "github.com/openconfig/gnmi/tunnel"
+	"github.com/openconfig/grpctunnel/tunnel"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
-	tunnelpb "google.golang.org/grpctunnel/proto/tunnel/tunnel_go_proto"
 	cpb "github.com/openconfig/gnmi/proto/collector"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	tpb "github.com/openconfig/gnmi/proto/target"
+	tunnelpb "github.com/openconfig/grpctunnel/proto/tunnel"
 )
 
 var (
@@ -320,7 +319,7 @@ func (c *collector) start(ctx context.Context) {
 			select {
 			case target := <-c.chAddTarget:
 				if target.Type != tunnelpb.TargetType_GNMI_GNOI.String() {
-					log.Infof("recived unsupported type type: %s from target:s, skipping", target.Type, target.ID)
+					log.Infof("recived unsupported type type: %s from target:%s, skipping", target.Type, target.ID)
 					continue
 				}
 				if _, ok := c.tConn[target.ID]; ok {
@@ -346,7 +345,7 @@ func (c *collector) start(ctx context.Context) {
 
 			case target := <-c.chDeleteTarget:
 				if target.Type != tunnelpb.TargetType_GNMI_GNOI.String() {
-					log.Infof("recived unsupported type type: %s from target:s, skipping", target.Type, target.ID)
+					log.Infof("recived unsupported type type: %s from target:%s, skipping", target.Type, target.ID)
 					continue
 				}
 				if _, ok := c.tConn[target.ID]; !ok {

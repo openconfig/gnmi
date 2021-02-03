@@ -10,6 +10,7 @@ require (
 	github.com/google/protobuf v3.14.0+incompatible // indirect
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/goyang v0.0.0-20200115183954-d0a48929f0ea // indirect
+	github.com/openconfig/grpctunnel v0.0.0-20210203172913-f92afce4fbb1 // indirect
 	github.com/openconfig/ygot v0.6.0
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20200302210943-78000ba7a073
@@ -18,6 +19,5 @@ require (
 	golang.org/x/text v0.3.4 // indirect
 	google.golang.org/genproto v0.0.0-20201214200347-8c77b98c765d // indirect
 	google.golang.org/grpc v1.34.0
-	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.0.1 // indirect
 	google.golang.org/protobuf v1.25.0
 )

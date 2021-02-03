@@ -21,22 +21,23 @@ limitations under the License.
 package gnmi
 
 import (
-	"golang.org/x/net/context"
 	"errors"
 	"fmt"
 	"net"
 	"strings"
 	"sync"
 
+	"golang.org/x/net/context"
+
 	log "github.com/golang/glog"
+	tw "github.com/openconfig/gnmi/tunnel"
+	"github.com/openconfig/grpctunnel/tunnel"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
-	"google.golang.org/grpctunnel/tunnel/tunnel"
-	tw "github.com/openconfig/gnmi/tunnel/tunnel"
 
-	tunnelpb "google.golang.org/grpctunnel/proto/tunnel/tunnel_go_proto"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
+	tunnelpb "github.com/openconfig/grpctunnel/proto/tunnel"
 )
 
 // Agent manages a single gNMI agent implementation. Each client that connects

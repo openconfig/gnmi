@@ -25,7 +25,7 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/path"
-	"github.com/openconfig/gnmi/tunnel/tunnel"
+	"github.com/openconfig/gnmi/tunnel"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
