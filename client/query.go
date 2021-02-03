@@ -25,6 +25,8 @@ import (
 
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/path"
+	"github.com/openconfig/gnmi/tunnel/tunnel"
+
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -112,6 +114,8 @@ type Destination struct {
 	// Extra contains arbitrary additional metadata to be passed to the
 	// target. Optional.
 	Extra map[string]string
+	// TunnelConn follows the net.Conn interface.
+	TunnelConn *tunnel.Conn
 }
 
 // Validate validates the fields of Destination.
@@ -172,6 +176,8 @@ type Query struct {
 	// SubReq is an optional field. If not nil, gnmi client implementation uses
 	// it rather than generating from client.Query while sending gnmi Subscribe RPC.
 	SubReq *gpb.SubscribeRequest
+	// TunnelConn follows the net.Conn interface.
+	TunnelConn *tunnel.Conn
 }
 
 // Destination extracts a Destination instance out of Query fields.
@@ -187,6 +193,7 @@ func (q Query) Destination() Destination {
 		Credentials: q.Credentials,
 		TLS:         q.TLS,
 		Extra:       q.Extra,
+		TunnelConn:  q.TunnelConn,
 	}
 }
 

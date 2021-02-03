@@ -1,0 +1,11 @@
+target: "targetclient"
+seed: 12345
+values: <
+  path: "interfaces"
+  repeat: 3
+  int_value: <
+    value: 4
+  >
+>
+
+client_type: GRPC_GNMI
