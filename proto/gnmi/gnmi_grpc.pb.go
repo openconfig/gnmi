@@ -11,6 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // GNMIClient is the client API for GNMI service.
@@ -79,7 +80,7 @@ func (c *gNMIClient) Set(ctx context.Context, in *SetRequest, opts ...grpc.CallO
 }
 
 func (c *gNMIClient) Subscribe(ctx context.Context, opts ...grpc.CallOption) (GNMI_SubscribeClient, error) {
-	stream, err := c.cc.NewStream(ctx, &_GNMI_serviceDesc.Streams[0], "/gnmi.gNMI/Subscribe", opts...)
+	stream, err := c.cc.NewStream(ctx, &GNMI_ServiceDesc.Streams[0], "/gnmi.gNMI/Subscribe", opts...)
 	if err != nil {
 		return nil, err
 	}
@@ -164,7 +165,7 @@ type UnsafeGNMIServer interface {
 }
 
 func RegisterGNMIServer(s grpc.ServiceRegistrar, srv GNMIServer) {
-	s.RegisterService(&_GNMI_serviceDesc, srv)
+	s.RegisterService(&GNMI_ServiceDesc, srv)
 }
 
 func _GNMI_Capabilities_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -247,7 +248,10 @@ func (x *gNMISubscribeServer) Recv() (*SubscribeRequest, error) {
 	return m, nil
 }
 
-var _GNMI_serviceDesc = grpc.ServiceDesc{
+// GNMI_ServiceDesc is the grpc.ServiceDesc for GNMI service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var GNMI_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "gnmi.gNMI",
 	HandlerType: (*GNMIServer)(nil),
 	Methods: []grpc.MethodDesc{
