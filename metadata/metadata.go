@@ -69,6 +69,23 @@ const (
 	LatestTimestamp = "latestTimestamp"
 )
 
+// IntValue contains the path and other options for an int64 metadata.
+type IntValue struct {
+	Path     []string // Path of the int64 metadata
+	InitZero bool     // Whether to initiate to 0 (for counters starting from 0).
+}
+
+// RegisterIntValue registers an int64 type metadata whose path and options
+// are in val.
+func RegisterIntValue(name string, val *IntValue) {
+	TargetIntValues[name] = val
+}
+
+// UnregisterIntValue unregisters an int64 type metadata name.
+func UnregisterIntValue(name string) {
+	delete(TargetIntValues, name)
+}
+
 var (
 	// TargetBoolValues is the list of all bool metadata fields.
 	TargetBoolValues = map[string]bool{
@@ -77,19 +94,19 @@ var (
 	}
 
 	// TargetIntValues is the list of all int64 metadata fields.
-	TargetIntValues = map[string]bool{
-		AddCount:        true,
-		DelCount:        true,
-		EmptyCount:      true,
-		LeafCount:       true,
-		UpdateCount:     true,
-		StaleCount:      true,
-		SuppressedCount: true,
-		LatencyAvg:      true,
-		LatencyMax:      true,
-		LatencyMin:      true,
-		Size:            true,
-		LatestTimestamp: true,
+	TargetIntValues = map[string]*IntValue{
+		AddCount:        {[]string{Root, AddCount}, true},
+		DelCount:        {[]string{Root, DelCount}, true},
+		EmptyCount:      {[]string{Root, EmptyCount}, true},
+		LeafCount:       {[]string{Root, LeafCount}, true},
+		UpdateCount:     {[]string{Root, UpdateCount}, true},
+		StaleCount:      {[]string{Root, StaleCount}, true},
+		SuppressedCount: {[]string{Root, SuppressedCount}, true},
+		LatencyAvg:      {[]string{Root, LatencyAvg}, true},
+		LatencyMax:      {[]string{Root, LatencyMax}, true},
+		LatencyMin:      {[]string{Root, LatencyMin}, true},
+		Size:            {[]string{Root, Size}, true},
+		LatestTimestamp: {[]string{Root, LatestTimestamp}, true},
 	}
 
 	// TargetStrValues is the list of all string metadata fields.
@@ -111,8 +128,11 @@ type Metadata struct {
 // TargetBoolValues, TargetIntValues, and TargetStrValues will return a path.
 // An invalid metadata value will return nil.
 func Path(value string) []string {
-	if TargetBoolValues[value] || TargetIntValues[value] || TargetStrValues[value] {
+	if TargetBoolValues[value] || TargetStrValues[value] {
 		return []string{Root, value}
+	}
+	if val := TargetIntValues[value]; val != nil {
+		return val.Path
 	}
 	return nil
 }
@@ -135,7 +155,7 @@ func New() *Metadata {
 var ErrInvalidValue = errors.New("invalid metadata value")
 
 func validInt(value string) error {
-	if valid := TargetIntValues[value]; !valid {
+	if val := TargetIntValues[value]; val == nil {
 		return ErrInvalidValue
 	}
 	return nil
@@ -162,8 +182,12 @@ func (m *Metadata) Clear() {
 	for k := range TargetBoolValues {
 		m.valuesBool[k] = false
 	}
-	for k := range TargetIntValues {
-		m.valuesInt[k] = 0
+	for k, val := range TargetIntValues {
+		if val.InitZero {
+			m.valuesInt[k] = 0
+		} else {
+			delete(m.valuesInt, k)
+		}
 	}
 	for k := range TargetStrValues {
 		m.valuesStr[k] = ""

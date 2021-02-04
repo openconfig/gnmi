@@ -80,6 +80,10 @@ message Config {
     RandomGenerator random = 101;
     FixedGenerator fixed = 102;
   }
+  // tunnel_addr is the address of the tunnel server.
+  string tunnel_addr = 11;
+  // tunnel_crt is the certificate file for the tunnel conection.
+  string tunnel_crt = 12;
 }
 
 message FixedGenerator {
