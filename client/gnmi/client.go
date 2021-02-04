@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"strings"
 	"time"
 
@@ -82,6 +83,13 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 
 	gCtx, cancel := context.WithTimeout(ctx, d.Timeout)
 	defer cancel()
+
+	if d.TunnelConn != nil {
+		withContextDialer := grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return d.TunnelConn, nil
+		})
+		opts = append(opts, withContextDialer)
+	}
 
 	conn, err := grpc.DialContext(gCtx, d.Addrs[0], opts...)
 	if err != nil {
