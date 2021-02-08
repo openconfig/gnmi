@@ -80,6 +80,62 @@ module gnmi-collector-metadata {
         forwarded to subscribers because the value had not changed.";
     }
 
+    container latency {
+      description
+        "latency statistics between target timestamp and cache reception for a
+        list of time window sizes - latency being calculated by (timestamp
+        of arrival) - (timestamp in update). These statistics are reported
+        per update period. Both the update period and window sizes are
+        configurable via commandline flags.";
+
+      list window {
+        key "size";
+
+        description
+          "latency statistics for a time window.";
+
+        leaf size {
+          type leafref {
+            path "../state/size";
+          }
+          description
+            "A reference to a a unique string identifying the time window
+            size (e.g. 2s, 5m).";
+        }
+
+        leaf avg {
+          type int64;
+          units nanoseconds;
+          description
+            "avg is the average latency in nanoseconds of the time window.
+            It is calculated and reported per update period.";
+        }
+
+        leaf max {
+          type int64;
+          units nanoseconds;
+          description
+            "max is the maximum latency in nanoseconds of the time window.
+            It is calculated and reported per update period.";
+        }
+
+        leaf min {
+          type int64;
+          units nanoseconds;
+          description
+            "min is the minimum latency in nanoseconds of the time window.
+            It is calculated and reported per update period.";
+        }
+
+        container state {
+          config false;
+          description
+            "Operational state parameters relating to the latency time window.";
+          uses meta-latency-window-state;
+        }
+      }
+    }
+
     leaf latencyAvg {
       type int64;
       units nanoseconds;
@@ -126,6 +182,17 @@ module gnmi-collector-metadata {
         "latestTimestamp is the latest timestamp in nanoseconds since Epoch time
         of the latest update received from the target. This value is updated
         periodically so it may lag behind the actual target updates.";
+    }
+  }
+
+  grouping meta-latency-window-state {
+    description
+      "Parameters relating to a latency time window.";
+
+    leaf size {
+      type string;
+      description
+        "A unique string identifying the time window size (e.g. 2s, 5m).";
     }
   }
 }

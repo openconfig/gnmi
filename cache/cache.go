@@ -104,6 +104,11 @@ func New(targets []string, opts ...Option) *Cache {
 	return c
 }
 
+// LatencyWindows returns the latency windows supported by the cache.
+func (c *Cache) LatencyWindows() []time.Duration {
+	return c.opts.latencyWindows
+}
+
 // SetClient registers a callback function to receive calls for each update
 // accepted by the cache. This call should be made prior to sending any updates
 // into the cache, just after initialization.

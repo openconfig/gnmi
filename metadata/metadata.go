@@ -52,15 +52,6 @@ const (
 	// SuppressedCount is the total number of leaf updates that were suppressed
 	// because the update had the same value as already cached.
 	SuppressedCount = "targetLeavesSuppressed"
-	// LatencyAvg is the average latency between target timestamp and cache
-	// reception.
-	LatencyAvg = "latencyAvg"
-	// LatencyMax is the maximum latency between target timestamp and cache
-	// reception.
-	LatencyMax = "latencyMax"
-	// LatencyMin is the minimum latency between target timestamp and cache
-	// reception.
-	LatencyMin = "latencyMin"
 	// Size is the total number of bytes used to store all values.  This count
 	// excludes all indexing overhead.
 	Size = "targetSize"
@@ -102,9 +93,6 @@ var (
 		UpdateCount:     {[]string{Root, UpdateCount}, true},
 		StaleCount:      {[]string{Root, StaleCount}, true},
 		SuppressedCount: {[]string{Root, SuppressedCount}, true},
-		LatencyAvg:      {[]string{Root, LatencyAvg}, true},
-		LatencyMax:      {[]string{Root, LatencyMax}, true},
-		LatencyMin:      {[]string{Root, LatencyMin}, true},
 		Size:            {[]string{Root, Size}, true},
 		LatestTimestamp: {[]string{Root, LatestTimestamp}, true},
 	}

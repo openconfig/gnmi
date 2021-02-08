@@ -37,7 +37,8 @@ const (
 	// ElemMax is the maximum latency during a time window.
 	ElemMax = "max"
 	// ElemMin is the minimum latency during a time window.
-	ElemMin = "min"
+	ElemMin  = "min"
+	metaName = "LatencyWindow"
 )
 
 var now = time.Now
@@ -75,7 +76,7 @@ type stat struct {
 
 // metaName returns the metadata name of the stat s.
 func (s stat) metaName() string {
-	return fmt.Sprintf("%slatencyWindow%s", s.typ, s.window)
+	return fmt.Sprintf("%s%s%s", s.typ, metaName, s.window)
 }
 
 // metaPath returns the metadata path corresponding to the Stat s.
@@ -87,6 +88,12 @@ func (s stat) metaPath() []string {
 // and type typ.
 func Path(w time.Duration, typ StatType) []string {
 	return stat{window: w, typ: typ}.metaPath()
+}
+
+// MetadataName returns the metadata name for the latency statistics
+// of window w and type typ.
+func MetadataName(w time.Duration, typ StatType) string {
+	return stat{window: w, typ: typ}.metaName()
 }
 
 type slot struct {
@@ -265,10 +272,6 @@ func (l *Latency) UpdateReset(m *metadata.Metadata) {
 	if l.count == 0 {
 		return
 	}
-	// TODO(wyao): Delete the three metadata once their uses are migrated.
-	m.SetInt(metadata.LatencyAvg, (l.totalDiff / time.Duration(l.count)).Nanoseconds())
-	m.SetInt(metadata.LatencyMax, l.max.Nanoseconds())
-	m.SetInt(metadata.LatencyMin, l.min.Nanoseconds())
 	s := &slot{
 		total: l.totalDiff,
 		count: l.count,

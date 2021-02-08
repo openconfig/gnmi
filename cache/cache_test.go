@@ -33,6 +33,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/errdiff"
+	"github.com/openconfig/gnmi/latency"
 	"github.com/openconfig/gnmi/metadata"
 	"github.com/openconfig/gnmi/value"
 
@@ -205,18 +206,16 @@ func TestMetadataSuppressed(t *testing.T) {
 }
 
 func TestMetadataLatency(t *testing.T) {
-	c := New([]string{"dev1"})
-
+	window := 2 * time.Second
+	opt, _ := WithLatencyWindows([]string{"2s"}, 2*time.Second)
+	c := New([]string{"dev1"}, opt)
 	for _, path := range [][]string{
-		metadata.Path(metadata.LatencyAvg),
-		metadata.Path(metadata.LatencyMax),
-		metadata.Path(metadata.LatencyMin),
+		latency.Path(window, latency.Avg),
+		latency.Path(window, latency.Max),
+		latency.Path(window, latency.Min),
 	} {
 		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
-			if l := v.(*pb.Notification).Update[0].Val.GetIntVal(); l != 0 {
-				t.Errorf("%s exists with value %d when device not in sync",
-					strings.Join(path, "/"), l)
-			}
+			t.Errorf("%s exists when device not in sync", strings.Join(path, "/"))
 			return nil
 		})
 	}
@@ -225,9 +224,9 @@ func TestMetadataLatency(t *testing.T) {
 	c.GnmiUpdate(gnmiNotification("dev1", nil, []string{"a", "1"}, timestamp, "b", false))
 	c.GetTarget("dev1").updateMeta(nil)
 	for _, path := range [][]string{
-		metadata.Path(metadata.LatencyAvg),
-		metadata.Path(metadata.LatencyMax),
-		metadata.Path(metadata.LatencyMin),
+		latency.Path(window, latency.Avg),
+		latency.Path(window, latency.Max),
+		latency.Path(window, latency.Min),
 	} {
 		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			l := v.(*pb.Notification).Update[0].Val.GetIntVal()
@@ -256,9 +255,6 @@ func TestUpdateMetadata(t *testing.T) {
 		{metadata.Root, metadata.ConnectedAddr},
 		{metadata.Root, metadata.Sync},
 		{metadata.Root, metadata.Size},
-		{metadata.Root, metadata.LatencyAvg},
-		{metadata.Root, metadata.LatencyMin},
-		{metadata.Root, metadata.LatencyMax},
 	}
 	var got [][]string
 	c.Query("dev1", []string{metadata.Root}, func(path []string, _ *ctree.Leaf, _ interface{}) error {
@@ -658,19 +654,7 @@ func TestGNMIUpdateMeta(t *testing.T) {
 			return nil
 		})
 	}
-	for _, path := range [][]string{
-		metadata.Path(metadata.LatencyAvg),
-		metadata.Path(metadata.LatencyMax),
-		metadata.Path(metadata.LatencyMin),
-	} {
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
-			if l := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal; l != 0 {
-				t.Errorf("%s exists with value %d when device not in sync",
-					strings.Join(path, "/"), l)
-			}
-			return nil
-		})
-	}
+
 	pathGen := func(ph []string) *pb.Path {
 		pe := make([]*pb.PathElem, 0, len(ph))
 		for _, p := range ph {
@@ -694,20 +678,6 @@ func TestGNMIUpdateMeta(t *testing.T) {
 			},
 		})
 	c.GetTarget("dev1").updateMeta(nil)
-	for _, path := range [][]string{
-		metadata.Path(metadata.LatencyAvg),
-		metadata.Path(metadata.LatencyMax),
-		metadata.Path(metadata.LatencyMin),
-	} {
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
-			l := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
-			if want := time.Minute.Nanoseconds(); l < want {
-				t.Errorf("%s got value %d, want greater than %d",
-					strings.Join(path, "/"), l, want)
-			}
-			return nil
-		})
-	}
 }
 
 func TestGNMIQueryWithPathElem(t *testing.T) {
