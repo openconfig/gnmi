@@ -69,6 +69,9 @@ type Option func(*options)
 // metaUpdatePeriod is the period for updating target metadata. The latency
 // windows need to be multiples of this period.
 func WithLatencyWindows(ws []string, metaUpdatePeriod time.Duration) (Option, error) {
+	if metaUpdatePeriod.Nanoseconds() == 0 {
+		return nil, nil // disable latency stats if updatePeriod is 0
+	}
 	windows, err := latency.ParseWindows(ws, metaUpdatePeriod)
 	if err != nil {
 		return nil, err
@@ -94,7 +97,9 @@ func New(targets []string, opts ...Option) *Cache {
 		client:  func(*ctree.Leaf) {},
 	}
 	for _, opt := range opts {
-		opt(&c.opts)
+		if opt != nil {
+			opt(&c.opts)
+		}
 	}
 	latency.RegisterMetadata(c.opts.latencyWindows)
 
