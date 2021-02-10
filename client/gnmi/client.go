@@ -64,7 +64,6 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		return nil, fmt.Errorf("d.Addrs must only contain one entry: %v", d.Addrs)
 	}
 	opts := []grpc.DialOption{
-		grpc.WithTimeout(d.Timeout),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),
 	}
