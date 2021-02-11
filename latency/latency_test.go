@@ -218,3 +218,51 @@ func TestParseWindows(t *testing.T) {
 		})
 	}
 }
+
+func TestCompactDurationString(t *testing.T) {
+	tests := []struct {
+		desc string
+		in   string
+		out  string
+	}{{
+		desc: "remove ending 0m0s from 24h0m0s",
+		in:   "24h",
+		out:  "24h",
+	}, {
+		desc: "remove ending 0m0s from 1h0m0s",
+		in:   "1h",
+		out:  "1h",
+	}, {
+		desc: "remove ending 0s from 10m0s",
+		in:   "10m",
+		out:  "10m",
+	}, {
+		desc: "remove ending 0s from 1h10m0s",
+		in:   "1h10m",
+		out:  "1h10m",
+	}, {
+		desc: "normal duration with hour, minute and second",
+		in:   "1h10m30s",
+		out:  "1h10m30s",
+	}, {
+		desc: "normal duration with minute and second",
+		in:   "10m30s",
+		out:  "10m30s",
+	}, {
+		desc: "normal duration with seconds",
+		in:   "30s",
+		out:  "30s",
+	}}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			d, err := time.ParseDuration(tt.in)
+			if err != nil {
+				t.Fatalf("error parsing input duration %s: %v", tt.in, err)
+			}
+			s := CompactDurationString(d)
+			if s != tt.out {
+				t.Errorf("durationString(%s): got %q, want %q", tt.in, s, tt.out)
+			}
+		})
+	}
+}

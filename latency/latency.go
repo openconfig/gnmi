@@ -55,6 +55,20 @@ const (
 	Min
 )
 
+// CompactDurationString returns a compact string for a time window d. It
+// removes unnecessary suffixes like "0m0s" and "0s" from the Golang
+// fmt.Sprint generated string of a time.Duration.
+func CompactDurationString(d time.Duration) string {
+	s := fmt.Sprint(d)
+	switch n := len(s); {
+	case n >= 6 && s[n-5:] == "h0m0s":
+		return s[:n-4]
+	case n >= 4 && s[n-3:] == "m0s":
+		return s[:n-2]
+	}
+	return s
+}
+
 // String returns the string representation of the StatType.
 func (st StatType) String() string {
 	switch st {
@@ -76,12 +90,12 @@ type stat struct {
 
 // metaName returns the metadata name of the stat s.
 func (s stat) metaName() string {
-	return fmt.Sprintf("%s%s%s", s.typ, metaName, s.window)
+	return fmt.Sprintf("%s%s%s", s.typ, metaName, CompactDurationString(s.window))
 }
 
 // metaPath returns the metadata path corresponding to the Stat s.
 func (s stat) metaPath() []string {
-	return []string{metadata.Root, ElemLatency, ElemWindow, fmt.Sprint(s.window), s.typ.String()}
+	return []string{metadata.Root, ElemLatency, ElemWindow, CompactDurationString(s.window), s.typ.String()}
 }
 
 // Path returns the metadata path for the latency statistics of window w
