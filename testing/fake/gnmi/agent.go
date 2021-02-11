@@ -80,10 +80,10 @@ func NewFromServer(s *grpc.Server, config *fpb.Config) (*Agent, error) {
 	}
 
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", a.config.Port))
-	a.lis = append(a.lis, lis)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open listener port %d: %v", a.config.Port, err)
 	}
+	a.lis = append(a.lis, lis)
 
 	if config.TunnelAddr != "" {
 		targets := map[tunnel.Target]struct{}{tunnel.Target{ID: config.Target, Type: tunnelpb.TargetType_GNMI_GNOI.String()}: struct{}{}}
@@ -105,24 +105,28 @@ func (a *Agent) serve() error {
 	a.mu.Lock()
 	a.state = fpb.State_RUNNING
 	s := a.s
+	lis := a.lis
 	a.mu.Unlock()
-	if s == nil {
+	if s == nil || lis == nil {
 		return fmt.Errorf("Serve() failed: not initialized")
 	}
 
-	chErr := make(chan error, len(a.lis))
-	for _, l := range a.lis {
+	chErr := make(chan error, len(lis))
+	for _, l := range lis {
 		go func(l net.Listener) {
 			log.Infof("listening: %s", l.Addr())
-			err := a.s.Serve(l)
-			if err != nil {
-				chErr <- err
-			}
+			chErr <- s.Serve(l)
 		}(l)
 	}
-	err := <-chErr
-	log.Infof("received error serving: %v", err)
-	return <-chErr
+
+	for range lis {
+		if err := <-chErr; err != nil {
+			log.Infof("received error serving: %v", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Target returns the target name the agent is faking.
