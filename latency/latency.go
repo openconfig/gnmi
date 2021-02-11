@@ -123,15 +123,17 @@ type window struct {
 	stats   map[string]func(string, *metadata.Metadata)
 	size    time.Duration // window size
 	total   time.Duration // cumulative latency of this time window
+	sf      int64         // scaling factor of total
 	count   int64         // number of updates
 	slots   []*slot       // time slots of latencies
 	covered bool          // have received latencies covering a full window
 }
 
-func newWindow(size time.Duration) *window {
+func newWindow(size time.Duration, sf int64) *window {
 	w := &window{
 		stats: map[string]func(string, *metadata.Metadata){},
 		size:  size,
+		sf:    sf,
 	}
 	for st, f := range map[StatType]func(string, *metadata.Metadata){
 		Avg: w.setAvg,
@@ -158,7 +160,7 @@ func (w *window) setAvg(name string, m *metadata.Metadata) {
 	}
 	avg := w.total / time.Duration(w.count)
 	if n := avg.Nanoseconds(); n != 0 {
-		m.SetInt(name, n)
+		m.SetInt(name, n*w.sf)
 	}
 }
 
@@ -229,23 +231,40 @@ func (w *window) updateMeta(m *metadata.Metadata, ts time.Time) {
 // Latency supports calculating and exporting latency stats for a specified
 // set of time windows.
 type Latency struct {
-	mu        sync.Mutex
-	start     time.Time     // start time of the current batch of cumulated latency stats
-	totalDiff time.Duration // cumulative difference in timestamps from device
-	count     int64         // number of updates in latency count
-	min       time.Duration // minimum latency
-	max       time.Duration // maximum latency
-	windows   []*window
+	mu          sync.Mutex
+	start       time.Time     // start time of the current batch of cumulated latency stats
+	scaleFactor time.Duration // scaling factor of totalDiff
+	totalDiff   time.Duration // cumulative difference in timestamps from device
+	count       int64         // number of updates in latency count
+	min         time.Duration // minimum latency
+	max         time.Duration // maximum latency
+	windows     []*window
+}
+
+// Options contains the options for creating a Latency.
+type Options struct {
+	// Precision for the avg stats. If unspecified, the precision is nanoseconds.
+	// The exported latency stats are always in nanoseconds no matter what
+	// precision is set here. Setting precision at a more coarse time duration
+	// than nanosecond is to avoid overflowing of int64 for the accumulated time
+	// durations needed to calculate averages. The precision of the Max and Min
+	// stats are not affected by this setting.
+	AvgPrecision time.Duration
 }
 
 // New returns a Latency object supporting latency stats for time windows
 // specified in windowSizes.
-func New(windowSizes []time.Duration) *Latency {
+func New(windowSizes []time.Duration, opts *Options) *Latency {
+	precision := time.Nanosecond
+	if opts != nil && opts.AvgPrecision.Nanoseconds() != 0 {
+		precision = opts.AvgPrecision
+	}
+	sf := precision / time.Nanosecond
 	var windows []*window
 	for _, size := range windowSizes {
-		windows = append(windows, newWindow(size))
+		windows = append(windows, newWindow(size, sf.Nanoseconds()))
 	}
-	return &Latency{windows: windows}
+	return &Latency{windows: windows, scaleFactor: sf}
 }
 
 // Compute calculates the time difference between now and ts (the timestamp
@@ -255,7 +274,7 @@ func (l *Latency) Compute(ts time.Time) {
 	defer l.mu.Unlock()
 	nowTime := now()
 	lat := nowTime.Sub(ts)
-	l.totalDiff += lat
+	l.totalDiff += lat / l.scaleFactor
 	l.count++
 	if lat > l.max {
 		l.max = lat

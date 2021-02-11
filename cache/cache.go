@@ -56,9 +56,10 @@ type Target struct {
 
 // options contains options for creating a Cache.
 type options struct {
-	// LatencyWindows is a list of time windows for which latency stats will be
+	// latencyWindows is a list of time windows for which latency stats will be
 	// calculated and exported as metadata.
-	latencyWindows []time.Duration
+	latencyWindows      []time.Duration
+	avgLatencyPrecision time.Duration
 }
 
 // Option defines the function prototype to set options for creating a Cache.
@@ -79,6 +80,14 @@ func WithLatencyWindows(ws []string, metaUpdatePeriod time.Duration) (Option, er
 	return func(o *options) {
 		o.latencyWindows = windows
 	}, nil
+}
+
+// WithAvgLatencyPrecision returns an Option to set the precision of average
+// latency stats calculated in Cache.
+func WithAvgLatencyPrecision(avgLatencyPrecision time.Duration) Option {
+	return func(o *options) {
+		o.avgLatencyPrecision = avgLatencyPrecision
+	}
 }
 
 // Cache is a structure holding state information for multiple targets.
@@ -200,7 +209,17 @@ func (c *Cache) Query(target string, query []string, fn ctree.VisitFunc) error {
 func (c *Cache) Add(target string) *Target {
 	defer c.mu.Unlock()
 	c.mu.Lock()
-	t := &Target{t: &ctree.Tree{}, name: target, meta: metadata.New(), client: c.client, lat: latency.New(c.opts.latencyWindows)}
+	var latOpts *latency.Options
+	if c.opts.avgLatencyPrecision.Nanoseconds() != 0 {
+		latOpts = &latency.Options{AvgPrecision: c.opts.avgLatencyPrecision}
+	}
+	t := &Target{
+		t:      &ctree.Tree{},
+		name:   target,
+		meta:   metadata.New(),
+		client: c.client,
+		lat:    latency.New(c.opts.latencyWindows, latOpts),
+	}
 	c.targets[target] = t
 	return t
 }
