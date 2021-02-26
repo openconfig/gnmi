@@ -40,7 +40,6 @@ import (
 	coll "github.com/openconfig/gnmi/collector"
 	"github.com/openconfig/gnmi/subscribe"
 	"github.com/openconfig/gnmi/target"
-	tw "github.com/openconfig/gnmi/tunnel"
 
 	tunnelpb "github.com/openconfig/grpctunnel/proto/tunnel"
 	cpb "github.com/openconfig/gnmi/proto/collector"
@@ -107,7 +106,7 @@ func runCollector(ctx context.Context) error {
 
 	c := collector{config: &tpb.Configuration{},
 		cancelFuncs:    map[string]func(){},
-		tConn:          map[string]*tw.Conn{},
+		tConn:          map[string]*tunnel.Conn{},
 		tRequest:       *tunnelRequest,
 		chDeleteTarget: make(chan tunnel.Target, 1),
 		chAddTarget:    make(chan tunnel.Target, 1),
@@ -227,7 +226,7 @@ type collector struct {
 	mu             sync.Mutex
 	cancelFuncs    map[string]func()
 	addr           string
-	tConn          map[string]*tw.Conn
+	tConn          map[string]*tunnel.Conn
 	tServer        *tunnel.Server
 	tRequest       string
 	chAddTarget    chan tunnel.Target
@@ -252,7 +251,7 @@ func (c *collector) reconnect(target string) error {
 	return nil
 }
 
-func (c *collector) runSingleTarget(ctx context.Context, targetID string, tc *tw.Conn) {
+func (c *collector) runSingleTarget(ctx context.Context, targetID string, tc *tunnel.Conn) {
 	target, ok := c.config.Target[targetID]
 	if !ok {
 		log.Errorf("Unknown target %q", targetID)
@@ -331,7 +330,7 @@ func (c *collector) start(ctx context.Context) {
 				ctx, cancel := context.WithCancel(ctx)
 				c.addCancel(target.ID, cancel)
 
-				tc, err := tw.ServerConn(ctx, c.tServer, c.addr, &target)
+				tc, err := tunnel.ServerConn(ctx, c.tServer, c.addr, &target)
 				if err != nil {
 					log.Errorf("failed to get new tunnel session for target %v:%v", target.ID, err)
 					continue

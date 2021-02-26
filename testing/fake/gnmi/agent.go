@@ -32,7 +32,6 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 	"github.com/openconfig/grpctunnel/tunnel"
-	tw "github.com/openconfig/gnmi/tunnel"
 
 	tunnelpb "github.com/openconfig/grpctunnel/proto/tunnel"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -87,7 +86,7 @@ func NewFromServer(s *grpc.Server, config *fpb.Config) (*Agent, error) {
 
 	if config.TunnelAddr != "" {
 		targets := map[tunnel.Target]struct{}{tunnel.Target{ID: config.Target, Type: tunnelpb.TargetType_GNMI_GNOI.String()}: struct{}{}}
-		lis, err = tw.Listen(context.Background(), config.TunnelAddr, config.TunnelCrt, targets)
+		lis, err = tunnel.Listen(context.Background(), config.TunnelAddr, config.TunnelCrt, targets)
 		if err != nil {
 			return nil, fmt.Errorf("failed to open listener port %d: %v", a.config.Port, err)
 		}
@@ -145,7 +144,7 @@ func (a *Agent) Address() string {
 	for _, l := range a.lis {
 		// Skip tunnel listeners.
 		// We assume there is at most one non-tunnel listener.
-		if _, ok := l.(*tw.Listener); !ok {
+		if _, ok := l.(*tunnel.Listener); !ok {
 			addr = strings.Replace(l.Addr().String(), "[::]", "localhost", 1)
 			break
 		}
