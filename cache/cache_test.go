@@ -284,6 +284,21 @@ func TestUpdateSize(t *testing.T) {
 	}
 }
 
+func TestConnectError(t *testing.T) {
+	want := "test error"
+	c := New([]string{"dev1"})
+	c.ConnectError("dev1", fmt.Errorf(want))
+	c.UpdateMetadata()
+	var got string
+	c.Query("dev1", []string{metadata.Root, metadata.ConnectError}, func(_ []string, _ *ctree.Leaf, v interface{}) error {
+		got = v.(*pb.Notification).Update[0].Val.GetStringVal()
+		return nil
+	})
+	if got != want {
+		t.Errorf("got connect error %q; want %q", got, want)
+	}
+}
+
 type updateQueryData struct {
 	targets []string
 	paths   [][]string
@@ -926,12 +941,15 @@ func TestGNMISyncConnectUpdates(t *testing.T) {
 	}{
 		{metadata: metadata.Sync, helper: c.Sync, want: []*pb.Notification{metaNotiBool("dev1", metadata.Sync, true)}},
 		{metadata: metadata.Connected, helper: c.Connect, want: []*pb.Notification{metaNotiBool("dev1", metadata.Connected, true)}},
+		{metadata: metadata.ConnectError, helper: func(t string) { c.ConnectError(t, fmt.Errorf("testErr")); c.Connect(t) },
+			want: []*pb.Notification{metaNotiStr("dev1", metadata.ConnectError, "testErr"),
+				gnmiNotification("dev1", []string{}, metadata.Path(metadata.ConnectError), 1, "", true)}},
 	}
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("Test %v", tt.metadata), func(t *testing.T) {
 			tt.helper("dev1")
-			if len(got) < len(tt.want) {
+			if len(got) != len(tt.want) {
 				t.Fatalf("got %d updates, want %d. got %v, want %v", len(got), len(tt.want), got, tt.want)
 			}
 			for i := 0; i < len(tt.want); i++ {

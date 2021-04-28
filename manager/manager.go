@@ -73,6 +73,8 @@ type Config struct {
 	Update func(*gpb.Notification)
 	// ConnectionManager is used to create gRPC connections.
 	ConnectionManager ConnectionManager
+	// ConnectError record error from subcribe connections.
+	ConnectError func(string, error)
 }
 
 type target struct {
@@ -90,6 +92,7 @@ type target struct {
 type Manager struct {
 	backoff           *backoff.ExponentialBackOff
 	connect           func(string)
+	connectError      func(string, error)
 	connectionManager ConnectionManager
 	cred              CredentialsClient
 	reset             func(string)
@@ -123,6 +126,7 @@ func NewManager(cfg Config) (*Manager, error) {
 	return &Manager{
 		backoff:           e,
 		connect:           cfg.Connect,
+		connectError:      cfg.ConnectError,
 		connectionManager: cfg.ConnectionManager,
 		cred:              cfg.Credentials,
 		reset:             cfg.Reset,
@@ -291,7 +295,13 @@ func (m *Manager) retryMonitor(ctx context.Context, ta *target) {
 	}
 }
 
-func (m *Manager) monitor(ctx context.Context, ta *target) error {
+func (m *Manager) monitor(ctx context.Context, ta *target) (err error) {
+	defer func() {
+		if err != nil && m.connectError != nil {
+			m.connectError(ta.name, err)
+		}
+	}()
+
 	meta, err := gRPCMeta(ctx, ta.name, ta.t, m.cred)
 	if err != nil {
 		return fmt.Errorf("error creating gRPC metadata for %q: %v", ta.name, err)
@@ -300,10 +310,11 @@ func (m *Manager) monitor(ctx context.Context, ta *target) error {
 	log.Infof("Attempting to connect %q", ta.name)
 	conn, done, err := m.createConn(sCtx, ta.name, ta.t)
 	if err != nil {
-		return fmt.Errorf("could not connect to %q: %v", ta.name, err)
+		return
 	}
 	defer done()
 	return m.subscribe(sCtx, ta.name, conn, ta.sr)
+
 }
 
 // Add adds the target to Manager and starts a streaming subscription that

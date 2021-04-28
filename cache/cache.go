@@ -152,6 +152,20 @@ func (c *Cache) UpdateMetadata() {
 	c.updateCache((*Target).updateMeta)
 }
 
+// ConnectError updates the target's metadata with the provided error.
+func (c *Cache) ConnectError(name string, err error) {
+	if target := c.GetTarget(name); target != nil {
+		target.connectError(err)
+	}
+}
+
+// connectError updates the ConnectError in the cached metadata.
+func (t *Target) connectError(err error) {
+	if err := t.GnmiUpdate(metaNotiStr(t.name, metadata.ConnectError, err.Error())); err != nil {
+		log.Errorf("target %q got error during meta connect error update, %v", t.name, err)
+	}
+}
+
 // UpdateSize computes the size of each target cache and updates the size
 // metadata reported within the each target cache.
 func (c *Cache) UpdateSize() {
@@ -268,10 +282,14 @@ func (c *Cache) Connect(name string) {
 }
 
 // Connect creates an internal gnmi.Notification for metadata/connected path
-// to set the state to true for the specified target.
+// to set the state to true for the specified target, and clear connectErr.
 func (t *Target) Connect() {
 	if err := t.GnmiUpdate(metaNotiBool(t.name, metadata.Connected, true)); err != nil {
 		log.Errorf("target %q got error during meta connected update, %v", t.name, err)
+	}
+
+	if err := t.GnmiUpdate(deleteNoti(t.name, "", metadata.Path(metadata.ConnectError))); err != nil {
+		log.Errorf("target %q got error during meta connectError update, %v", t.name, err)
 	}
 }
 
@@ -417,12 +435,12 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 				return nil, fmt.Errorf("%v : has value %v of type %T, expected boolean", metadata.Path(metadata.Connected), u.Val, u.Val)
 			}
 			t.meta.SetBool(metadata.Connected, tv.BoolVal)
-		case metadata.ConnectedAddr:
+		case metadata.ConnectedAddr, metadata.ConnectError:
 			tv, ok := u.Val.Value.(*pb.TypedValue_StringVal)
 			if !ok {
-				return nil, fmt.Errorf("%v : has value %v of type %T, expected string", metadata.Path(metadata.ConnectedAddr), u.Val, u.Val)
+				return nil, fmt.Errorf("%v : has value %v of type %T, expected string", metadata.Path(path[1]), u.Val, u.Val)
 			}
-			t.meta.SetStr(metadata.ConnectedAddr, tv.StringVal)
+			t.meta.SetStr(path[1], tv.StringVal)
 		}
 	}
 	// Update an existing leaf.
@@ -469,6 +487,9 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 
 func (t *Target) gnmiRemove(n *pb.Notification) []*ctree.Leaf {
 	path := joinPrefixAndPath(n.Prefix, n.Delete[0])
+	if path[0] == metadata.Root {
+		t.meta.ResetEntry(path[1])
+	}
 	leaves := t.t.DeleteConditional(path, func(v interface{}) bool { return v.(*pb.Notification).GetTimestamp() < n.GetTimestamp() })
 	if len(leaves) == 0 {
 		return nil

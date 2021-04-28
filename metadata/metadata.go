@@ -19,6 +19,7 @@ package metadata
 
 import (
 	"errors"
+	"fmt"
 	"sync"
 )
 
@@ -58,6 +59,8 @@ const (
 	// LatestTimestamp is the latest timestamp for any update received for the
 	// target.
 	LatestTimestamp = "latestTimestamp"
+	// ConnectError is the error related to connection failure.
+	ConnectError = "connectError"
 )
 
 // IntValue contains the path and other options for an int64 metadata.
@@ -75,6 +78,12 @@ func RegisterIntValue(name string, val *IntValue) {
 // UnregisterIntValue unregisters an int64 type metadata name.
 func UnregisterIntValue(name string) {
 	delete(TargetIntValues, name)
+}
+
+// StrValue contains the valid and the option to reset to emptry string.
+type StrValue struct {
+	Valid        bool
+	InitEmptyStr bool // Whether to initiate to "".
 }
 
 var (
@@ -98,8 +107,9 @@ var (
 	}
 
 	// TargetStrValues is the list of all string metadata fields.
-	TargetStrValues = map[string]bool{
-		ConnectedAddr: true,
+	TargetStrValues = map[string]*StrValue{
+		ConnectedAddr: {Valid: true, InitEmptyStr: true},
+		ConnectError:  {Valid: true, InitEmptyStr: false},
 	}
 )
 
@@ -116,9 +126,13 @@ type Metadata struct {
 // TargetBoolValues, TargetIntValues, and TargetStrValues will return a path.
 // An invalid metadata value will return nil.
 func Path(value string) []string {
-	if TargetBoolValues[value] || TargetStrValues[value] {
+	if TargetBoolValues[value] {
 		return []string{Root, value}
 	}
+	if val, ok := TargetStrValues[value]; ok && val.Valid {
+		return []string{Root, value}
+	}
+
 	if val := TargetIntValues[value]; val != nil {
 		return val.Path
 	}
@@ -157,28 +171,57 @@ func validBool(value string) error {
 }
 
 func validStr(value string) error {
-	if valid := TargetStrValues[value]; !valid {
+	if valid, ok := TargetStrValues[value]; !ok || !valid.Valid {
 		return ErrInvalidValue
 	}
 	return nil
 }
 
-// Clear sets all metadata values to zero values.
-func (m *Metadata) Clear() {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	for k := range TargetBoolValues {
-		m.valuesBool[k] = false
+// ResetEntry resets metadata entry to zero value. It will be deleted
+// if it is Int with InitZero as false, or Str with InitEmptyStr as false.
+func (m *Metadata) ResetEntry(entry string) error {
+	if validBool(entry) == nil {
+		m.SetBool(entry, false)
+		return nil
 	}
-	for k, val := range TargetIntValues {
+
+	if validInt(entry) == nil {
+		val := TargetIntValues[entry]
 		if val.InitZero {
-			m.valuesInt[k] = 0
+			m.SetInt(entry, 0)
 		} else {
-			delete(m.valuesInt, k)
+			m.mu.Lock()
+			delete(m.valuesInt, entry)
+			m.mu.Unlock()
 		}
+		return nil
+	}
+
+	if validStr(entry) == nil {
+		val := TargetStrValues[entry]
+		if val.InitEmptyStr {
+			m.SetStr(entry, "")
+		} else {
+			m.mu.Lock()
+			delete(m.valuesStr, entry)
+			m.mu.Unlock()
+		}
+		return nil
+	}
+
+	return fmt.Errorf("unsupported entry %q", entry)
+}
+
+// Clear sets all metadata values to zero values, except that ConnectError is set to EmptyError.
+func (m *Metadata) Clear() {
+	for k := range TargetBoolValues {
+		m.ResetEntry(k)
+	}
+	for k := range TargetIntValues {
+		m.ResetEntry(k)
 	}
 	for k := range TargetStrValues {
-		m.valuesStr[k] = ""
+		m.ResetEntry(k)
 	}
 }
 

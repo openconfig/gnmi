@@ -183,6 +183,13 @@ module gnmi-collector-metadata {
         of the latest update received from the target. This value is updated
         periodically so it may lag behind the actual target updates.";
     }
+
+     leaf connectError {
+      type string;
+      description
+        "connectError is the error related to connection failure.";
+    }
+
   }
 
   grouping meta-latency-window-state {
