@@ -28,6 +28,7 @@ cc_proto_library(
 cc_grpc_library(
     name = "gnmi_grpc_proto",
     srcs = [":gnmi_proto"],
+    generate_mocks = True,
     deps = [":gnmi_cc_proto"],
     grpc_only = True,
 )
