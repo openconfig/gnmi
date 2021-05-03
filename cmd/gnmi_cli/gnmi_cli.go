@@ -304,6 +304,7 @@ func readCredentials() (*client.Credentials, error) {
 		return nil, err
 	}
 	c.Password = string(pass)
+	fmt.Print("\n")
 
 	return c, nil
 }
