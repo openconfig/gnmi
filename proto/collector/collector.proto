@@ -18,6 +18,9 @@ syntax = "proto3";
 package gnmi;
 
 option go_package = "github.com/openconfig/gnmi/proto/collector;gnmi";
+option java_multiple_files = true;
+option java_outer_classname = "CollectorProto";
+option java_package = "com.github.openconfig.gnmi.proto.collector";
 
 service Collector {
   // Reconnect requests that the existing connections for one or more specified
