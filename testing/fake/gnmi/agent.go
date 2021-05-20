@@ -21,6 +21,7 @@ limitations under the License.
 package gnmi
 
 import (
+	"golang.org/x/net/context"
 	"errors"
 	"fmt"
 	"net"
@@ -30,7 +31,9 @@ import (
 	log "github.com/golang/glog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
+	"github.com/openconfig/grpctunnel/tunnel"
 
+	tunnelpb "github.com/openconfig/grpctunnel/proto/tunnel"
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )
@@ -42,7 +45,7 @@ type Agent struct {
 	gnmipb.UnimplementedGNMIServer
 	mu     sync.Mutex
 	s      *grpc.Server
-	lis    net.Listener
+	lis    []net.Listener
 	target string
 	state  fpb.State
 	config *fpb.Config
@@ -74,10 +77,22 @@ func NewFromServer(s *grpc.Server, config *fpb.Config) (*Agent, error) {
 	if a.config.Port < 0 {
 		a.config.Port = 0
 	}
-	a.lis, err = net.Listen("tcp", fmt.Sprintf(":%d", a.config.Port))
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", a.config.Port))
 	if err != nil {
 		return nil, fmt.Errorf("failed to open listener port %d: %v", a.config.Port, err)
 	}
+	a.lis = append(a.lis, lis)
+
+	if config.TunnelAddr != "" {
+		targets := map[tunnel.Target]struct{}{tunnel.Target{ID: config.Target, Type: tunnelpb.TargetType_GNMI_GNOI.String()}: struct{}{}}
+		lis, err = tunnel.Listen(context.Background(), config.TunnelAddr, config.TunnelCrt, targets)
+		if err != nil {
+			return nil, fmt.Errorf("failed to open listener port %d: %v", a.config.Port, err)
+		}
+		a.lis = append(a.lis, lis)
+	}
+
 	gnmipb.RegisterGNMIServer(a.s, a)
 	log.V(1).Infof("Created Agent: %s on %s", a.target, a.Address())
 	go a.serve()
@@ -89,11 +104,28 @@ func (a *Agent) serve() error {
 	a.mu.Lock()
 	a.state = fpb.State_RUNNING
 	s := a.s
+	lis := a.lis
 	a.mu.Unlock()
-	if s == nil {
+	if s == nil || lis == nil {
 		return fmt.Errorf("Serve() failed: not initialized")
 	}
-	return a.s.Serve(a.lis)
+
+	chErr := make(chan error, len(lis))
+	for _, l := range lis {
+		go func(l net.Listener) {
+			log.Infof("listening: %s", l.Addr())
+			chErr <- s.Serve(l)
+		}(l)
+	}
+
+	for range lis {
+		if err := <-chErr; err != nil {
+			log.Infof("received error serving: %v", err)
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Target returns the target name the agent is faking.
@@ -108,8 +140,16 @@ func (a *Agent) Type() string {
 
 // Address returns the port the agent is listening to.
 func (a *Agent) Address() string {
-	addr := a.lis.Addr().String()
-	return strings.Replace(addr, "[::]", "localhost", 1)
+	var addr string
+	for _, l := range a.lis {
+		// Skip tunnel listeners.
+		// We assume there is at most one non-tunnel listener.
+		if _, ok := l.(*tunnel.Listener); !ok {
+			addr = strings.Replace(l.Addr().String(), "[::]", "localhost", 1)
+			break
+		}
+	}
+	return addr
 }
 
 // State returns the current state of the agent.
@@ -128,7 +168,9 @@ func (a *Agent) Close() {
 		return
 	}
 	a.s.Stop()
-	a.lis.Close()
+	for _, l := range a.lis {
+		l.Close()
+	}
 	a.s = nil
 	a.lis = nil
 }

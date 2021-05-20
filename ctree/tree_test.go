@@ -391,7 +391,7 @@ func generatePaths(count int) [][]string {
 	for c := 0; c < count; c++ {
 		p := []string{}
 		for d := 3; d < 16; d++ {
-			p = append(p, string(c%d+65))
+			p = append(p, string(rune(c%d+65)))
 		}
 		paths = append(paths, p)
 	}

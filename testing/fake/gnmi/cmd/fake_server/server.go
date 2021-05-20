@@ -39,11 +39,14 @@ var (
 	configFile = flag.String("config", "", "configuration file to load")
 	text       = flag.Bool("text", false, "use text configuration file")
 	port       = flag.Int("port", -1, "port to listen on")
-	// Certificate files.
+
 	caCert            = flag.String("ca_crt", "", "CA certificate for client certificate validation. Optional.")
 	serverCert        = flag.String("server_crt", "", "TLS server certificate")
 	serverKey         = flag.String("server_key", "", "TLS server private key")
 	allowNoClientCert = flag.Bool("allow_no_client_auth", false, "When set, fake_server will request but not require a client certificate.")
+
+	tunnelAddr = flag.String("tunnel_addr", "", "tunnel server address")
+	tunnelCrt  = flag.String("tunnel_crt", "", "tunnel server cert file")
 )
 
 func loadConfig(fileName string) (*fpb.Config, error) {
@@ -109,6 +112,8 @@ func main() {
 
 	opts := []grpc.ServerOption{grpc.Creds(credentials.NewTLS(tlsCfg))}
 	cfg.Port = int32(*port)
+	cfg.TunnelAddr = *tunnelAddr
+	cfg.TunnelCrt = *tunnelCrt
 	a, err := gnmi.New(cfg, opts)
 	if err != nil {
 		log.Errorf("Failed to create gNMI server: %v", err)

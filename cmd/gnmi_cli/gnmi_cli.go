@@ -299,6 +299,7 @@ func readCredentials() (*client.Credentials, error) {
 
 	fmt.Print("password: ")
 	pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	fmt.Print("\n") // Echo 'Enter' key.
 	if err != nil {
 		return nil, err
 	}

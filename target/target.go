@@ -61,6 +61,20 @@ func NewConfig(h Handler) *Config {
 	}
 }
 
+// NewConfigWithBase creates a new Config that can process configuration
+// changes. An optional configuration is used as the initial state.
+func NewConfigWithBase(h Handler, config *pb.Configuration) (*Config, error) {
+	if config != nil {
+		if err := Validate(config); err != nil {
+			return nil, fmt.Errorf("invalid configuration: %v", err)
+		}
+	}
+	return &Config{
+		configuration: config,
+		h:             h,
+	}, nil
+}
+
 // Current returns a copy of the current configuration.
 func (c *Config) Current() *pb.Configuration {
 	c.mu.Lock()

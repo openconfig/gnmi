@@ -40,6 +40,9 @@ extend google.protobuf.FileOptions {
 option (gnmi_service) = "0.7.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
+option java_multiple_files = true;
+option java_outer_classname = "GnmiProto";
+option java_package = "com.github.gnmi.proto";
 
 service gNMI {
   // Capabilities allows the client to retrieve the set of capabilities that

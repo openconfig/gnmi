@@ -26,6 +26,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"math"
+	"net"
 	"strings"
 	"time"
 
@@ -63,7 +64,6 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		return nil, fmt.Errorf("d.Addrs must only contain one entry: %v", d.Addrs)
 	}
 	opts := []grpc.DialOption{
-		grpc.WithTimeout(d.Timeout),
 		grpc.WithBlock(),
 		grpc.WithDefaultCallOptions(grpc.MaxCallRecvMsgSize(math.MaxInt32)),
 	}
@@ -79,7 +79,18 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, true)
 		opts = append(opts, grpc.WithPerRPCCredentials(pc))
 	}
-	conn, err := grpc.DialContext(ctx, d.Addrs[0], opts...)
+
+	gCtx, cancel := context.WithTimeout(ctx, d.Timeout)
+	defer cancel()
+
+	if d.TunnelConn != nil {
+		withContextDialer := grpc.WithContextDialer(func(context.Context, string) (net.Conn, error) {
+			return d.TunnelConn, nil
+		})
+		opts = append(opts, withContextDialer)
+	}
+
+	conn, err := grpc.DialContext(gCtx, d.Addrs[0], opts...)
 	if err != nil {
 		return nil, fmt.Errorf("Dialer(%s, %v): %v", d.Addrs[0], d.Timeout, err)
 	}

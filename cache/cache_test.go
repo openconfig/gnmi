@@ -33,6 +33,7 @@ import (
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/errdiff"
+	"github.com/openconfig/gnmi/latency"
 	"github.com/openconfig/gnmi/metadata"
 	"github.com/openconfig/gnmi/value"
 
@@ -205,18 +206,16 @@ func TestMetadataSuppressed(t *testing.T) {
 }
 
 func TestMetadataLatency(t *testing.T) {
-	c := New([]string{"dev1"})
-
+	window := 2 * time.Second
+	opt, _ := WithLatencyWindows([]string{"2s"}, 2*time.Second)
+	c := New([]string{"dev1"}, opt)
 	for _, path := range [][]string{
-		metadata.Path(metadata.LatencyAvg),
-		metadata.Path(metadata.LatencyMax),
-		metadata.Path(metadata.LatencyMin),
+		latency.Path(window, latency.Avg),
+		latency.Path(window, latency.Max),
+		latency.Path(window, latency.Min),
 	} {
 		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
-			if l := v.(*pb.Notification).Update[0].Val.GetIntVal(); l != 0 {
-				t.Errorf("%s exists with value %d when device not in sync",
-					strings.Join(path, "/"), l)
-			}
+			t.Errorf("%s exists when device not in sync", strings.Join(path, "/"))
 			return nil
 		})
 	}
@@ -225,9 +224,9 @@ func TestMetadataLatency(t *testing.T) {
 	c.GnmiUpdate(gnmiNotification("dev1", nil, []string{"a", "1"}, timestamp, "b", false))
 	c.GetTarget("dev1").updateMeta(nil)
 	for _, path := range [][]string{
-		metadata.Path(metadata.LatencyAvg),
-		metadata.Path(metadata.LatencyMax),
-		metadata.Path(metadata.LatencyMin),
+		latency.Path(window, latency.Avg),
+		latency.Path(window, latency.Max),
+		latency.Path(window, latency.Min),
 	} {
 		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			l := v.(*pb.Notification).Update[0].Val.GetIntVal()
@@ -249,14 +248,13 @@ func TestUpdateMetadata(t *testing.T) {
 		{metadata.Root, metadata.AddCount},
 		{metadata.Root, metadata.UpdateCount},
 		{metadata.Root, metadata.DelCount},
+		{metadata.Root, metadata.EmptyCount},
 		{metadata.Root, metadata.StaleCount},
 		{metadata.Root, metadata.SuppressedCount},
 		{metadata.Root, metadata.Connected},
+		{metadata.Root, metadata.ConnectedAddr},
 		{metadata.Root, metadata.Sync},
 		{metadata.Root, metadata.Size},
-		{metadata.Root, metadata.LatencyAvg},
-		{metadata.Root, metadata.LatencyMin},
-		{metadata.Root, metadata.LatencyMax},
 	}
 	var got [][]string
 	c.Query("dev1", []string{metadata.Root}, func(path []string, _ *ctree.Leaf, _ interface{}) error {
@@ -283,6 +281,21 @@ func TestUpdateSize(t *testing.T) {
 	})
 	if val <= 1000 {
 		t.Errorf("got size of %d want > 1000", val)
+	}
+}
+
+func TestConnectError(t *testing.T) {
+	want := "test error"
+	c := New([]string{"dev1"})
+	c.ConnectError("dev1", fmt.Errorf(want))
+	c.UpdateMetadata()
+	var got string
+	c.Query("dev1", []string{metadata.Root, metadata.ConnectError}, func(_ []string, _ *ctree.Leaf, v interface{}) error {
+		got = v.(*pb.Notification).Update[0].Val.GetStringVal()
+		return nil
+	})
+	if got != want {
+		t.Errorf("got connect error %q; want %q", got, want)
 	}
 }
 
@@ -656,19 +669,7 @@ func TestGNMIUpdateMeta(t *testing.T) {
 			return nil
 		})
 	}
-	for _, path := range [][]string{
-		metadata.Path(metadata.LatencyAvg),
-		metadata.Path(metadata.LatencyMax),
-		metadata.Path(metadata.LatencyMin),
-	} {
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
-			if l := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal; l != 0 {
-				t.Errorf("%s exists with value %d when device not in sync",
-					strings.Join(path, "/"), l)
-			}
-			return nil
-		})
-	}
+
 	pathGen := func(ph []string) *pb.Path {
 		pe := make([]*pb.PathElem, 0, len(ph))
 		for _, p := range ph {
@@ -687,25 +688,11 @@ func TestGNMIUpdateMeta(t *testing.T) {
 			Update: []*pb.Update{
 				&pb.Update{
 					Path: pathGen([]string{"a", "1"}),
-					Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{"b"}},
+					Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{"c"}},
 				},
 			},
 		})
 	c.GetTarget("dev1").updateMeta(nil)
-	for _, path := range [][]string{
-		metadata.Path(metadata.LatencyAvg),
-		metadata.Path(metadata.LatencyMax),
-		metadata.Path(metadata.LatencyMin),
-	} {
-		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
-			l := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
-			if want := time.Minute.Nanoseconds(); l < want {
-				t.Errorf("%s got value %d, want greater than %d",
-					strings.Join(path, "/"), l, want)
-			}
-			return nil
-		})
-	}
 }
 
 func TestGNMIQueryWithPathElem(t *testing.T) {
@@ -954,12 +941,15 @@ func TestGNMISyncConnectUpdates(t *testing.T) {
 	}{
 		{metadata: metadata.Sync, helper: c.Sync, want: []*pb.Notification{metaNotiBool("dev1", metadata.Sync, true)}},
 		{metadata: metadata.Connected, helper: c.Connect, want: []*pb.Notification{metaNotiBool("dev1", metadata.Connected, true)}},
+		{metadata: metadata.ConnectError, helper: func(t string) { c.ConnectError(t, fmt.Errorf("testErr")); c.Connect(t) },
+			want: []*pb.Notification{metaNotiStr("dev1", metadata.ConnectError, "testErr"),
+				gnmiNotification("dev1", []string{}, metadata.Path(metadata.ConnectError), 1, "", true)}},
 	}
 
 	for _, tt := range tests {
 		t.Run(fmt.Sprintf("Test %v", tt.metadata), func(t *testing.T) {
 			tt.helper("dev1")
-			if len(got) < len(tt.want) {
+			if len(got) != len(tt.want) {
 				t.Fatalf("got %d updates, want %d. got %v, want %v", len(got), len(tt.want), got, tt.want)
 			}
 			for i := 0; i < len(tt.want); i++ {
@@ -988,14 +978,15 @@ func TestGNMIUpdate(t *testing.T) {
 	path2 := []string{"path2"}
 	path3 := []string{"path3"}
 	tests := []struct {
-		desc           string
-		initial        *pb.Notification
-		notification   *pb.Notification
-		want           []state
-		wantUpdates    int
-		wantSuppressed int
-		wantStale      int
-		wantErr        bool
+		desc              string
+		initial           *pb.Notification
+		notification      *pb.Notification
+		want              []state
+		wantConnectedAddr string
+		wantUpdates       int
+		wantSuppressed    int
+		wantStale         int
+		wantErr           bool
 	}{
 		{
 			desc: "duplicate update",
@@ -1171,12 +1162,35 @@ func TestGNMIUpdate(t *testing.T) {
 			},
 			wantStale: 2,
 			wantErr:   true,
+		}, {
+			desc: "meta connectedAddress reset",
+			initial: notificationBundle(dev, nil, 0, []update{
+				{
+					path: []string{metadata.Root, metadata.ConnectedAddr},
+					val:  "127.1.1.1:8080",
+				},
+			}),
+			notification:      notificationBundle(dev, prefix, 1, []update{}),
+			want:              []state{},
+			wantConnectedAddr: "", // Value is cleared and copied to the cache.
+		}, {
+			desc:    "meta connectedAddress update",
+			initial: notificationBundle(dev, prefix, 0, []update{}),
+			notification: notificationBundle(dev, nil, 1, []update{
+				{
+					path: []string{metadata.Root, metadata.ConnectedAddr},
+					val:  "127.1.1.1:8080",
+				},
+			}),
+			wantConnectedAddr: "127.1.1.1:8080",
+			wantUpdates:       1,
 		},
 	}
 
 	suppressedPath := metadata.Path(metadata.SuppressedCount)
 	updatePath := metadata.Path(metadata.UpdateCount)
 	stalePath := metadata.Path(metadata.StaleCount)
+	connectedAddrPath := metadata.Path(metadata.ConnectedAddr)
 
 	for _, tt := range tests {
 		c := New([]string{dev})
@@ -1197,11 +1211,21 @@ func TestGNMIUpdate(t *testing.T) {
 			continue
 		}
 
-		checkMeta := func(desc string, path []string, want int) {
+		checkMetaInt := func(desc string, path []string, want int) {
 			c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 				got := v.(*pb.Notification).Update[0].Val.GetIntVal()
 				if got != int64(want) {
 					t.Errorf("%v: got %v = %d, want %d", desc, path, got, want)
+				}
+				return nil
+			})
+		}
+
+		checkMetaString := func(desc string, path []string, want string) {
+			c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
+				got := v.(*pb.Notification).Update[0].Val.GetStringVal()
+				if got != string(want) {
+					t.Errorf("%v: got %v = %v, want %v", desc, path, got, want)
 				}
 				return nil
 			})
@@ -1224,9 +1248,10 @@ func TestGNMIUpdate(t *testing.T) {
 		}
 
 		checkState(tt.desc, tt.want)
-		checkMeta(tt.desc, suppressedPath, tt.wantSuppressed)
-		checkMeta(tt.desc, updatePath, tt.wantUpdates)
-		checkMeta(tt.desc, stalePath, tt.wantStale)
+		checkMetaInt(tt.desc, suppressedPath, tt.wantSuppressed)
+		checkMetaInt(tt.desc, updatePath, tt.wantUpdates)
+		checkMetaInt(tt.desc, stalePath, tt.wantStale)
+		checkMetaString(tt.desc, connectedAddrPath, tt.wantConnectedAddr)
 	}
 }
 
