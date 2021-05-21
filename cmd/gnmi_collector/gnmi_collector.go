@@ -319,11 +319,11 @@ func (c *collector) start(ctx context.Context) {
 			select {
 			case target := <-c.chAddTarget:
 				if target.Type != tunnelpb.TargetType_GNMI_GNOI.String() {
-					log.Infof("recived unsupported type type: %s from target:%s, skipping", target.Type, target.ID)
+					log.Infof("received unsupported type type: %s from target:%s, skipping", target.Type, target.ID)
 					continue
 				}
 				if _, ok := c.tConn[target.ID]; ok {
-					log.Infof("recived target %s, which is already registered. skipping", target.ID)
+					log.Infof("received target %s, which is already registered. skipping", target.ID)
 					continue
 				}
 
@@ -345,11 +345,11 @@ func (c *collector) start(ctx context.Context) {
 
 			case target := <-c.chDeleteTarget:
 				if target.Type != tunnelpb.TargetType_GNMI_GNOI.String() {
-					log.Infof("recived unsupported type type: %s from target:%s, skipping", target.Type, target.ID)
+					log.Infof("received unsupported type type: %s from target:%s, skipping", target.Type, target.ID)
 					continue
 				}
 				if _, ok := c.tConn[target.ID]; !ok {
-					log.Infof("recived target %s, which is not registered. skipping", target.ID)
+					log.Infof("received target %s, which is not registered. skipping", target.ID)
 					continue
 				}
 				c.removeTarget(target.ID)
