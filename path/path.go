@@ -35,10 +35,15 @@ import (
 // gnmi.Path.Element field is deprecated, but being gracefully handled by this function
 // in the absence of gnmi.Path.Elem.
 func ToStrings(p *gpb.Path, prefix bool) []string {
-	is := []string{}
 	if p == nil {
-		return is
+		return []string{}
 	}
+	// maxPathLen is chosen to be larger than the longest path in OpenConfig
+	// modeled data. Correctness is achieved regardless of this value but
+	// there is a performance benefit of not resizing allocations on the slice
+	// during the appends in this function.
+	const maxPathLen = 20
+	is := make([]string, 0, maxPathLen)
 	if prefix {
 		// add target to the list of index strings
 		if t := p.GetTarget(); t != "" {
@@ -49,29 +54,31 @@ func ToStrings(p *gpb.Path, prefix bool) []string {
 			is = append(is, o)
 		}
 	}
-	pe := []string{}
-	for _, e := range p.GetElem() {
-		pe = append(pe, e.GetName())
-		pe = append(pe, sortedVals(e.GetKey())...)
+	if len(p.GetElem()) == 0 {
+  	// gnmi.Path.Element is deprecated, but being gracefully handled
+	  // when gnmi.PathElem doesn't exist
+		return append(is, p.GetElement()...)
 	}
-	// gnmi.Path.Element is deprecated, but being gracefully handled
-	// when gnmi.PathElem doesn't exist
-	if len(pe) > 0 {
-		is = append(is, pe...)
-	} else {
-		is = append(is, p.GetElement()...)
+	for _, e := range p.GetElem() {
+		is = append(is, e.GetName())
+		keys := e.GetKey()
+		switch len(keys) {
+		case 0:
+			// No keys, don't do anything.
+		case 1:
+			// Special case single key lists, append the only value.
+			for _, v := range keys {
+				is = append(is, v)
+			}
+		default:
+			is = append(is, sortedVals(keys)...)
+		}
 	}
 	return is
 }
 
 func sortedVals(m map[string]string) []string {
-	// Special case single key lists.
-	if len(m) == 1 {
-		for _, v := range m {
-			return []string{v}
-		}
-	}
-	// Return deterministic ordering of multi-key lists.
+	// Return deterministic ordering of values from multi-key lists.
 	ks := make([]string, 0, len(m))
 	for k := range m {
 		ks = append(ks, k)

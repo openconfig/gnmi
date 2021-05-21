@@ -308,6 +308,31 @@ func (v *value) updateStringValue() error {
 	return nil
 }
 
+func (v *value) updateStringListValue() error {
+	val := v.v.GetStringListValue()
+	if val == nil {
+		return fmt.Errorf("invalid StringListValue for %q", v.v)
+	}
+	newval := val.Value
+	switch val.Distribution.(type) {
+	case *fpb.StringListValue_List:
+		list := val.GetList()
+		options := list.Options
+		if len(options) == 0 {
+			return fmt.Errorf("missing options on StringListValue_List for %q", v.v)
+		}
+		if list.Random {
+			v.r.Shuffle(len(options), func(i, j int) { options[i], options[j] = options[j], options[i] })
+			newval = options[:v.r.Intn(len(options))]
+		} else {
+			list.Options = append(options[1:], options[0])
+			newval = list.Options
+		}
+	}
+	val.Value = newval
+	return nil
+}
+
 func (v *value) updateBoolValue() error {
 	val := v.v.GetBoolValue()
 	if val == nil {
@@ -410,6 +435,8 @@ func (v *value) nextValue() error {
 		return v.updateDoubleValue()
 	case *fpb.Value_StringValue:
 		return v.updateStringValue()
+	case *fpb.Value_StringListValue:
+		return v.updateStringListValue()
 	case *fpb.Value_BoolValue:
 		return v.updateBoolValue()
 	case *fpb.Value_UintValue:
@@ -432,6 +459,8 @@ func ValueOf(v *fpb.Value) interface{} {
 		return val.DoubleValue.Value
 	case *fpb.Value_StringValue:
 		return val.StringValue.Value
+	case *fpb.Value_StringListValue:
+		return val.StringListValue.Value
 	case *fpb.Value_BoolValue:
 		return val.BoolValue.Value
 	case *fpb.Value_UintValue:
@@ -456,6 +485,12 @@ func TypedValueOf(v *fpb.Value) *gpb.TypedValue {
 		tv.Value = &gpb.TypedValue_FloatVal{float32(val.DoubleValue.Value)}
 	case *fpb.Value_StringValue:
 		tv.Value = &gpb.TypedValue_StringVal{val.StringValue.Value}
+	case *fpb.Value_StringListValue:
+		leaflist := &gpb.ScalarArray{}
+		for _, s := range val.StringListValue.Value {
+			leaflist.Element = append(leaflist.Element, &gpb.TypedValue{Value: &gpb.TypedValue_StringVal{s}})
+		}
+		tv.Value = &gpb.TypedValue_LeaflistVal{leaflist}
 	case *fpb.Value_BoolValue:
 		tv.Value = &gpb.TypedValue_BoolVal{val.BoolValue.Value}
 	case *fpb.Value_UintValue:

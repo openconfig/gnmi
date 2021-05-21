@@ -103,13 +103,31 @@ func (b *branch) removeQuery(query []string, client Client) (empty bool) {
 func (m *Match) Update(n interface{}, p []string) {
 	defer m.mu.RUnlock()
 	m.mu.RLock()
-	m.tree.update(n, p)
+	m.tree.update(n, p, nil)
 }
 
-func (b *branch) update(n interface{}, path []string) {
+// UpdateOnce invokes the callback of each client whose query matches the
+// supplied node and if the client hasn't been updated (in which case it
+// is not in the updated). If the callback of a client has been invoked in
+// this call, the client will be added to updated if updated is not nil.
+// Therefore, in order to track updated clients, updated must not be nil.
+func (m *Match) UpdateOnce(n interface{}, p []string, updated map[Client]struct{}) {
+	defer m.mu.RUnlock()
+	m.mu.RLock()
+	m.tree.update(n, p, updated)
+}
+
+func (b *branch) update(n interface{}, path []string, updated map[Client]struct{}) {
 	// Update all clients at this level.
 	for client := range b.clients {
-		client.Update(n)
+		if updated == nil {
+			client.Update(n)
+			continue
+		}
+		if _, ok := updated[client]; !ok {
+			client.Update(n)
+			updated[client] = struct{}{}
+		}
 	}
 	// Terminate recursion.
 	if len(b.children) == 0 {
@@ -118,7 +136,7 @@ func (b *branch) update(n interface{}, path []string) {
 	// Implicit recursion for intermediate deletes.
 	if len(path) == 0 {
 		for _, c := range b.children {
-			c.update(n, nil)
+			c.update(n, nil, updated)
 		}
 		return
 	}
@@ -128,16 +146,16 @@ func (b *branch) update(n interface{}, path []string) {
 	// so it will not satisfy this case.
 	if path[0] == Glob {
 		for _, c := range b.children {
-			c.update(n, path[1:])
+			c.update(n, path[1:], updated)
 		}
 	} else {
 		// Update all glob clients.
 		if sb, ok := b.children[Glob]; ok {
-			sb.update(n, path[1:])
+			sb.update(n, path[1:], updated)
 		}
 		// Update all explicit clients.
 		if sb, ok := b.children[path[0]]; ok {
-			sb.update(n, path[1:])
+			sb.update(n, path[1:], updated)
 		}
 	}
 }

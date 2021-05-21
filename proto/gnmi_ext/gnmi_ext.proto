@@ -29,6 +29,7 @@ message Extension {
     RegisteredExtension registered_ext = 1;    // A registered extension.
     // Well known extensions.
     MasterArbitration master_arbitration = 2;  // Master arbitration extension.
+    History history = 3;                       // History extension.
   }
 }
 
@@ -72,4 +73,19 @@ message Role {
   string id = 1;
   // More fields can be added if needed, for example, to specify what paths the
   // role can read/write.
+}
+
+// The History extension allows clients to request historical data. Its
+// spec can be found at
+// https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-history.md
+message History {
+  oneof request {
+    int64 snapshot_time = 1; // Nanoseconds since the epoch
+    TimeRange range = 2;
+  }
+}
+
+message TimeRange {
+  int64 start = 1; // Nanoseconds since the epoch
+  int64 end = 2;   // Nanoseconds since the epoch
 }

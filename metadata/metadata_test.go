@@ -32,6 +32,11 @@ func TestPath(t *testing.T) {
 			t.Errorf("Path(%q) returned nil for valid value.", value)
 		}
 	}
+	for value := range TargetStrValues {
+		if path := Path(value); path == nil {
+			t.Errorf("Path(%q) returned nil for valid value.", value)
+		}
+	}
 }
 
 func TestGetInt(t *testing.T) {
@@ -56,6 +61,22 @@ func TestGetBool(t *testing.T) {
 			t.Errorf("GetBool(%q) got error: %q, want nil", value, err)
 		case v != false:
 			t.Errorf("GetBool(%q) got %t for uninitialized value, want false", value, v)
+		}
+	}
+}
+
+func TestGetStr(t *testing.T) {
+	m := New()
+	for k, val := range TargetStrValues {
+		if !val.InitEmptyStr {
+			m.SetStr(k, "")
+		}
+		v, err := m.GetStr(k)
+		switch {
+		case err != nil:
+			t.Errorf("GetStr(%q) got error: %q, want nil", k, err)
+		case v != "":
+			t.Errorf("GetStr(%q) got %q for uninitialized value, want empty string", k, v)
 		}
 	}
 }
@@ -131,5 +152,138 @@ func TestSetGetBool(t *testing.T) {
 	}
 	if _, err := m.GetBool("invalid"); err != ErrInvalidValue {
 		t.Error("GetBool accepted invalid metadata value.")
+	}
+}
+
+func TestSetGetStr(t *testing.T) {
+	m := New()
+	if err := m.SetStr("invalid", "invalidValue"); err != ErrInvalidValue {
+		t.Error("SetStr accepted invalid metadata value.")
+	}
+	for _, want := range []string{"value1", "value2", "value3", "value4"} {
+		for value := range TargetStrValues {
+			if err := m.SetStr(value, want); err != nil {
+				t.Errorf("SetStr(%q, %q) returned error: %v", value, want, err)
+			}
+			got, err := m.GetStr(value)
+			if err != nil {
+				t.Errorf("GetStr(%q) returned error: %v", value, err)
+			}
+			if got != want {
+				t.Errorf("GetStr(%q): got %q, want %q", value, got, want)
+			}
+		}
+	}
+	if _, err := m.GetStr("invalid"); err != ErrInvalidValue {
+		t.Error("GetStr accepted invalid metadata value.")
+	}
+}
+
+func TestResetEntry(t *testing.T) {
+	m := New()
+
+	for k := range TargetBoolValues {
+		m.SetBool(k, true)
+		m.ResetEntry(k)
+		v, err := m.GetBool(k)
+		if err != nil {
+			t.Errorf("ResetEntry for %q failed with error: %v", k, err)
+		}
+		if v != false {
+			t.Errorf("ResetEntry for %q failed. got %t, want %t", k, false, v)
+		}
+	}
+
+	for k, val := range TargetIntValues {
+		m.SetInt(k, 1)
+		m.ResetEntry(k)
+		v, err := m.GetInt(k)
+
+		if !val.InitZero {
+			if err == nil {
+				t.Errorf("ResetEntry for %q failed. Expect not exist, but found.", k)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("ResetEntry for %q failed with error: %v", k, err)
+			}
+			if v != 0 {
+				t.Errorf("ResetEntry for %q failed. got %q, want %q", k, 0, v)
+			}
+		}
+
+	}
+
+	for k, val := range TargetStrValues {
+		m.SetStr(k, "xx")
+		m.ResetEntry(k)
+		v, err := m.GetStr(k)
+
+		if !val.InitEmptyStr {
+			if err == nil {
+				t.Errorf("ResetEntry for %q failed. Expect not exist, but found.", k)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("ResetEntry for %q failed with error: %v", k, err)
+			}
+			if v != "" {
+				t.Errorf("ResetEntry for %q failed. got %q, want %q", k, "", v)
+			}
+		}
+
+	}
+
+	if err := m.ResetEntry("unsupported"); err == nil {
+		t.Errorf("ResetEntry expected error, but got nil")
+	}
+}
+
+func TestClear(t *testing.T) {
+	m := New()
+	m.Clear()
+
+	for k := range TargetBoolValues {
+		v, err := m.GetBool(k)
+		if err != nil {
+			t.Errorf("ResetEntry for %q failed with error %t", k, err)
+		}
+		if v {
+			t.Errorf("ResetEntry for %q failed. got %t, want %t", k, false, v)
+		}
+	}
+
+	for k, val := range TargetIntValues {
+		v, err := m.GetInt(k)
+		if !val.InitZero {
+			if err == nil {
+				t.Errorf("ResetEntry for %q failed. Expect not exist, but found.", k)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("ResetEntry for %q failed with error: %v", k, err)
+			}
+			if v != 0 {
+				t.Errorf("ResetEntry for %q failed. got %q, want %q", k, 0, v)
+			}
+		}
+
+	}
+
+	for k, val := range TargetStrValues {
+		v, err := m.GetStr(k)
+		if !val.InitEmptyStr {
+			if err == nil {
+				t.Errorf("ResetEntry for %q failed. Expect not exist, but found.", k)
+			}
+		} else {
+			if err != nil {
+				t.Errorf("ResetEntry for %q failed with error: %v", k, err)
+			}
+			if v != "" {
+				t.Errorf("ResetEntry for %q failed. got %q, want %q", k, "", v)
+			}
+		}
+
 	}
 }

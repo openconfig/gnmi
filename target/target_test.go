@@ -22,7 +22,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
+
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	pb "github.com/openconfig/gnmi/proto/target"
 )
@@ -283,7 +284,7 @@ func TestLoad(t *testing.T) {
 		err := c.Load(tt.toLoad)
 		switch {
 		case err == nil && !tt.err:
-			if diff := cmp.Diff(tt.toLoad, c.Current(), cmp.Comparer(proto.Equal)); diff != "" {
+			if diff := cmp.Diff(tt.toLoad, c.Current(), protocmp.Transform()); diff != "" {
 				t.Errorf("%v: wrong state: (-want +got)\n%s", tt.desc, diff)
 			}
 			updates := func(want []string, c *pb.Configuration) []Update {
@@ -427,6 +428,69 @@ func TestValidate(t *testing.T) {
 				t.Errorf("got error %v, want nil for configuration: %s", err, test.config.String())
 			case !test.valid && err == nil:
 				t.Errorf("got nit, want error for configuration: %s", test.config.String())
+			}
+		})
+	}
+}
+
+func TestNewConfigWithBase(t *testing.T) {
+	tests := []struct {
+		desc    string
+		initial *pb.Configuration
+		wantErr bool
+	}{
+		{
+			desc: "valid",
+			initial: &pb.Configuration{
+				Request: map[string]*gpb.SubscribeRequest{
+					"sub1": &gpb.SubscribeRequest{
+						Request: &gpb.SubscribeRequest_Subscribe{},
+					},
+				},
+				Target: map[string]*pb.Target{
+					"dev1": {
+						Request:   "sub1",
+						Addresses: []string{"11.111.111.11:11111"},
+					},
+					"dev2": {
+						Request:   "sub1",
+						Addresses: []string{"11.111.111.11:11111"},
+					},
+				},
+				Revision: 1,
+			},
+		}, {
+			desc: "invalid",
+			initial: &pb.Configuration{
+				// Missing Request mapping.
+				Target: map[string]*pb.Target{
+					"dev1": {
+						Request:   "sub1",
+						Addresses: []string{"11.111.111.11:11111"},
+					},
+				},
+				Revision: 1,
+			},
+			wantErr: true,
+		}, {
+			desc: "nil diffbase",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			c, err := NewConfigWithBase(Handler{}, tt.initial)
+			switch {
+			case tt.wantErr && err != nil:
+				// Expected.
+			case !tt.wantErr && err != nil:
+				t.Fatalf("NewConfig got error %v, want no error", err)
+			case tt.wantErr && err == nil:
+				t.Fatalf("NewConfig got no error, want error")
+			default:
+				if diff := cmp.Diff(tt.initial, c.Current(), protocmp.Transform()); diff != "" {
+					t.Errorf("Current() got diff (-want +got):\n%s", diff)
+				}
 			}
 		})
 	}

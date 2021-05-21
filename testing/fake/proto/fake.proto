@@ -80,6 +80,10 @@ message Config {
     RandomGenerator random = 101;
     FixedGenerator fixed = 102;
   }
+  // tunnel_addr is the address of the tunnel server.
+  string tunnel_addr = 11;
+  // tunnel_crt is the certificate file for the tunnel conection.
+  string tunnel_crt = 12;
 }
 
 message FixedGenerator {
@@ -120,6 +124,7 @@ message Value {
     DeleteValue delete = 104;
     BoolValue bool_value = 105;
     UintValue uint_value = 106;
+    StringListValue string_list_value = 107;
   }
 }
 
@@ -222,6 +227,17 @@ message StringList {
   // Set to true to randomize selection of value from options. If false, the
   // values are cycled in order, starting at index 0.
   bool random = 2;
+}
+
+message StringListValue {
+  // If distribution is StringList, value is used to hold the value as it
+  // mutates.
+  // If no distribution is set, value is used as it mutates, i.e. constant
+  // update.
+  repeated string value = 1;
+  oneof distribution {
+    StringList list = 2;
+  }
 }
 
 message BoolValue {
