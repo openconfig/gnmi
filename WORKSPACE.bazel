@@ -1,5 +1,5 @@
-# Copyright 2020 Google LLC
-# 
+# Copyright 2021 Google LLC
+#
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
 # You may obtain a copy of the License at
@@ -11,28 +11,20 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-#
-# Supporting infrastructure for implementing and testing PINS.
-#
-package(
-    default_visibility = ["//visibility:public"],
-    licenses = ["notice"],
-)
 
-filegroup(
-    name = "gnmi_ext_proto_srcs",
-    srcs = glob(["**/*.proto"]),
-    visibility = ["//third_party/pins_infra/thinkit:__pkg__"],
-)
+workspace(name = "gnmi")
 
-proto_library(
-    name = "gnmi_ext_proto",
-    srcs = ["gnmi_ext.proto"],
-)
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
-cc_proto_library(
-    name = "gnmi_ext_cc_proto",
-    deps = [":gnmi_ext_proto"],
-)
+# -- Load Dependencies ---------------------------------------------------------
+load("gnmi_deps.bzl", "gnmi_deps")
 
+gnmi_deps()
 
+load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
+
+grpc_deps()
+
+load("@com_github_grpc_grpc//bazel:grpc_extra_deps.bzl", "grpc_extra_deps")
+
+grpc_extra_deps()
