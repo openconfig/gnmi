@@ -780,7 +780,7 @@ func TestGNMIDeletedTargetMessage(t *testing.T) {
 
 func TestGNMICoalescedDupCount(t *testing.T) {
 	// Inject a simulated flow control to block sends and induce coalescing.
-	flowControlTest = func() { time.Sleep(10 * time.Millisecond) }
+	flowControlTest = func() { time.Sleep(5 * time.Second) }
 	addr, cache, teardown, err := startServer([]string{"dev1"})
 	if err != nil {
 		t.Fatal(err)
