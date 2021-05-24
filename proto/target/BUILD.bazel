@@ -25,6 +25,9 @@ package(
 proto_library(
     name = "target_proto",
     srcs = ["target.proto"],
+    deps = [
+        "//proto/gnmi:gnmi_proto",
+    ],
 )
 
 cc_proto_library(

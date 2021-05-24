@@ -25,6 +25,7 @@ package(
 proto_library(
     name = "gnmi_proto",
     srcs = ["gnmi.proto"],
+    import_prefix = "github.com/openconfig/gnmi",
     deps = [
         "//proto/gnmi_ext:gnmi_ext_proto",
         "@com_google_protobuf//:any_proto",
@@ -38,7 +39,7 @@ cc_proto_library(
 )
 
 cc_grpc_library(
-    name = "gnmi_grpc_proto",
+    name = "gnmi_cc_grpc_proto",
     srcs = [":gnmi_proto"],
     generate_mocks = True,
     grpc_only = True,
