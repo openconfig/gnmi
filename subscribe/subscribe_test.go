@@ -23,6 +23,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"os"
 	"strings"
 	"sync"
 	"testing"
@@ -779,8 +780,12 @@ func TestGNMIDeletedTargetMessage(t *testing.T) {
 }
 
 func TestGNMICoalescedDupCount(t *testing.T) {
+	flowControlDuration := 10 * time.Millisecond
+	if _, ok := os.LookupEnv("CI"); ok {
+		flowControlDuration = 15 * time.Second
+	}
 	// Inject a simulated flow control to block sends and induce coalescing.
-	flowControlTest = func() { time.Sleep(5 * time.Second) }
+	flowControlTest = func() { time.Sleep(flowControlDuration) }
 	addr, cache, teardown, err := startServer([]string{"dev1"})
 	if err != nil {
 		t.Fatal(err)

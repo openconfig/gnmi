@@ -693,6 +693,7 @@ func TestGNMIUpdateMeta(t *testing.T) {
 
 	var lastSize, lastCount, lastAdds, lastUpds int64
 	for i := 0; i < 10; i++ {
+		time.Sleep(100 * time.Millisecond)
 		err := c.GnmiUpdate(gnmiNotification("dev1", []string{}, []string{"a", fmt.Sprint(i)}, int64(i), "b", false))
 		if err != nil {
 			t.Fatal(err)
@@ -705,6 +706,9 @@ func TestGNMIUpdateMeta(t *testing.T) {
 		path = metadata.Path(metadata.Size)
 		err = c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			newSize := v.(*pb.Notification).Update[0].Val.Value.(*pb.TypedValue_IntVal).IntVal
+			if len(v.(*pb.Notification).Update) != 1 {
+				t.Errorf("expected only one update. found: %v", v.(*pb.Notification).Update)
+			}
 			if newSize <= lastSize {
 				t.Errorf("%s didn't increase after adding leaf #%d",
 					strings.Join(path, "/"), i+1)
@@ -1060,8 +1064,15 @@ func TestGNMISyncConnectUpdates(t *testing.T) {
 	}{
 		{metadata: metadata.Sync, helper: c.Sync, want: []*pb.Notification{metaNotiBool("dev1", metadata.Sync, true)}},
 		{metadata: metadata.Connected, helper: c.Connect, want: []*pb.Notification{metaNotiBool("dev1", metadata.Connected, true)}},
-		{metadata: metadata.ConnectError, helper: func(t string) { c.ConnectError(t, fmt.Errorf("testErr")); c.Connect(t) },
-			want: []*pb.Notification{metaNotiStr("dev1", metadata.ConnectError, "testErr"),
+		// gnmiRemove check messages using GetTimestamp() < n.GetTimestamp(). Windows platform has rarely updated clock
+		// so this condition is likely to fail. Wait before creating metaNotiBool in c.Connect().
+		{metadata: metadata.ConnectError, helper: func(t string) {
+			c.ConnectError(t, fmt.Errorf("testErr"))
+			time.Sleep(100 * time.Millisecond)
+			c.Connect(t)
+		},
+			want: []*pb.Notification{
+				metaNotiStr("dev1", metadata.ConnectError, "testErr"),
 				gnmiNotification("dev1", []string{}, metadata.Path(metadata.ConnectError), 1, "", true)}},
 	}
 
