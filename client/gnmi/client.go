@@ -76,7 +76,11 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 	}
 
 	if d.Credentials != nil {
-		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, true)
+		secure := true
+		if d.TLS == nil {
+			secure = false
+		}
+		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, secure)
 		opts = append(opts, grpc.WithPerRPCCredentials(pc))
 	}
 

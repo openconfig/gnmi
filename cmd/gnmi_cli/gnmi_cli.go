@@ -70,12 +70,14 @@ var (
 	getFlag          = flag.Bool("get", false, `When set, CLI will perform a Get request. Usage: gnmi_cli -get -proto <gnmi.GetRequest> -address <address> [other flags ...]`)
 	setFlag          = flag.Bool("set", false, `When set, CLI will perform a Set request. Usage: gnmi_cli -set -proto <gnmi.SetRequest> -address <address> [other flags ...]`)
 
-	withUserPass = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
+	withUserPass   = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
+	withPerRPCAuth = flag.Bool("with_per_rpc_auth", false, "Use per RPC auth.")
 
 	// Certificate files.
-	caCert     = flag.String("ca_crt", "", "CA certificate file. Used to verify server TLS certificate.")
-	clientCert = flag.String("client_crt", "", "Client certificate file. Used for client certificate-based authentication.")
-	clientKey  = flag.String("client_key", "", "Client private key file. Used for client certificate-based authentication.")
+	insecureFlag = flag.Bool("insecure", false, "use insecure GRPC connection.")
+	caCert       = flag.String("ca_crt", "", "CA certificate file. Used to verify server TLS certificate.")
+	clientCert   = flag.String("client_crt", "", "Client certificate file. Used for client certificate-based authentication.")
+	clientKey    = flag.String("client_key", "", "Client private key file. Used for client certificate-based authentication.")
 )
 
 func init() {
@@ -98,7 +100,7 @@ func init() {
 	flag.BoolVar(&cfg.DisplaySize, "display_size", false, "Display the total size of query response.")
 	flag.BoolVar(&cfg.Latency, "latency", false, "Display the latency for receiving each update (Now - update timestamp).")
 	flag.StringVar(&q.TLS.ServerName, "server_name", "", "When set, CLI will use this hostname to verify server certificate during TLS handshake.")
-	flag.BoolVar(&q.TLS.InsecureSkipVerify, "insecure", false, "When set, CLI will not verify the server certificate during TLS handshake.")
+	flag.BoolVar(&q.TLS.InsecureSkipVerify, "tls_skip_verify", false, "When set, CLI will not verify the server certificate during TLS handshake.")
 
 	// Shortcut flags that can be used in place of the longform flags above.
 	flag.Var(queryAddr, "a", "Short for address.")
@@ -163,6 +165,10 @@ func main() {
 		}
 
 		q.TLS.Certificates = []tls.Certificate{certificate}
+	}
+
+	if *insecureFlag {
+		q.TLS = nil
 	}
 
 	var err error
@@ -290,7 +296,13 @@ func executeSubscribe(ctx context.Context) error {
 
 func readCredentials() (*client.Credentials, error) {
 	c := &client.Credentials{}
-
+	user := os.Getenv("GNMI_USER")
+	pass := os.Getenv("GNMI_PASS")
+	if user != "" && pass != "" {
+		c.Username = user
+		c.Password = pass
+		return c, nil
+	}
 	fmt.Print("username: ")
 	_, err := fmt.Scan(&c.Username)
 	if err != nil {
@@ -298,12 +310,12 @@ func readCredentials() (*client.Credentials, error) {
 	}
 
 	fmt.Print("password: ")
-	pass, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	pb, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	fmt.Print("\n") // Echo 'Enter' key.
 	if err != nil {
 		return nil, err
 	}
-	c.Password = string(pass)
+	c.Password = string(pb)
 
 	return c, nil
 }
