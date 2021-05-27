@@ -28,6 +28,7 @@ import (
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
+	"github.com/openconfig/gnmi/value"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
@@ -445,11 +446,14 @@ func TestNoti(t *testing.T) {
 			u:        &gpb.Update{Val: &gpb.TypedValue{Value: &gpb.TypedValue_IntVal{5}}},
 			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: 5},
 		}, {
-			desc:    "update with non-scalar TypedValue",
-			path:    stringToPath("dev/a"),
-			ts:      time.Unix(0, 100),
-			u:       &gpb.Update{Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte("5")}}},
-			wantErr: true,
+			desc: "update with non-scalar TypedValue",
+			path: stringToPath("dev/a"),
+			ts:   time.Unix(0, 100),
+			u:    &gpb.Update{Val: &gpb.TypedValue{Value: &gpb.TypedValue_JsonVal{[]byte("5")}}},
+			wantNoti: client.Update{Path: []string{"dev", "a"}, TS: time.Unix(0, 100), Val: value.DeprecatedScalar{
+				Message: "Deprecated TypedValue_JsonVal",
+				Value:   5,
+			}},
 		}, {
 			desc:     "update with JSON value",
 			path:     stringToPath("dev/a"),

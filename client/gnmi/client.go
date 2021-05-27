@@ -291,7 +291,7 @@ func noti(prefix []string, pp *gpb.Path, ts time.Time, u *gpb.Update) (client.No
 	if u.Val != nil {
 		val, err := value.ToScalar(u.Val)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode %s: %v", p, err)
 		}
 		return client.Update{Path: p, TS: ts, Val: val, Dups: u.Duplicates}, nil
 	}
