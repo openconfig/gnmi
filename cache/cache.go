@@ -325,7 +325,10 @@ func (t *Target) GnmiUpdate(n *pb.Notification) error {
 		}
 		l := len(n.GetUpdate())
 		if l == 0 {
-			t.meta.AddInt(metadata.EmptyCount, 1)
+			err := t.meta.AddInt(metadata.EmptyCount, 1)
+			if err != nil {
+				return err
+			}
 			return nil
 		}
 		nd, err := t.gnmiUpdate(n)
@@ -333,7 +336,10 @@ func (t *Target) GnmiUpdate(n *pb.Notification) error {
 			return err
 		}
 		if nd != nil {
-			t.meta.AddInt(metadata.UpdateCount, int64(l))
+			err := t.meta.AddInt(metadata.UpdateCount, int64(l))
+			if err != nil {
+				return err
+			}
 			t.client(nd)
 		}
 
@@ -357,7 +363,10 @@ func (t *Target) GnmiUpdate(n *pb.Notification) error {
 				continue
 			}
 			if nd != nil {
-				t.meta.AddInt(metadata.UpdateCount, 1)
+				err := t.meta.AddInt(metadata.UpdateCount, 1)
+				if err != nil {
+					return err
+				}
 				t.client(nd)
 			}
 		}
@@ -365,7 +374,10 @@ func (t *Target) GnmiUpdate(n *pb.Notification) error {
 		for _, d := range deletes {
 			noti := proto.Clone(n).(*pb.Notification)
 			noti.Delete = []*pb.Path{d}
-			t.meta.AddInt(metadata.UpdateCount, 1)
+			err := t.meta.AddInt(metadata.UpdateCount, 1)
+			if err != nil {
+				return err
+			}
 			for _, nd := range t.gnmiRemove(noti) {
 				t.client(nd)
 			}
@@ -380,20 +392,29 @@ func (t *Target) GnmiUpdate(n *pb.Notification) error {
 			return err
 		}
 		if nd != nil {
-			t.meta.AddInt(metadata.UpdateCount, 1)
+			err := t.meta.AddInt(metadata.UpdateCount, 1)
+			if err != nil {
+				return err
+			}
 			t.client(nd)
 		}
 
 	// Single delete notification also avoids proto.Clone above.
 	case len(n.GetDelete()) == 1:
-		t.meta.AddInt(metadata.UpdateCount, 1)
+		err := t.meta.AddInt(metadata.UpdateCount, 1)
+		if err != nil {
+			return err
+		}
 		for _, nd := range t.gnmiRemove(n) {
 			t.client(nd)
 		}
 
 	// Empty notification.
 	default:
-		t.meta.AddInt(metadata.EmptyCount, 1)
+		err := t.meta.AddInt(metadata.EmptyCount, 1)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -428,19 +449,28 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 				return nil, fmt.Errorf("%v : has value %v of type %T, expected boolean", metadata.Path(metadata.Sync), u.Val, u.Val)
 			}
 			t.sync = tv.BoolVal
-			t.meta.SetBool(metadata.Sync, t.sync)
+			err := t.meta.SetBool(metadata.Sync, t.sync)
+			if err != nil {
+				return nil, err
+			}
 		case metadata.Connected:
 			tv, ok := u.Val.Value.(*pb.TypedValue_BoolVal)
 			if !ok {
 				return nil, fmt.Errorf("%v : has value %v of type %T, expected boolean", metadata.Path(metadata.Connected), u.Val, u.Val)
 			}
-			t.meta.SetBool(metadata.Connected, tv.BoolVal)
+			err := t.meta.SetBool(metadata.Connected, tv.BoolVal)
+			if err != nil {
+				return nil, err
+			}
 		case metadata.ConnectedAddr, metadata.ConnectError:
 			tv, ok := u.Val.Value.(*pb.TypedValue_StringVal)
 			if !ok {
 				return nil, fmt.Errorf("%v : has value %v of type %T, expected string", metadata.Path(path[1]), u.Val, u.Val)
 			}
-			t.meta.SetStr(path[1], tv.StringVal)
+			err := t.meta.SetStr(path[1], tv.StringVal)
+			if err != nil {
+				return nil, err
+			}
 		}
 	}
 	// Update an existing leaf.
@@ -453,13 +483,19 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 		}
 		if !T(old.GetTimestamp()).Before(T(n.GetTimestamp())) {
 			// Update rejected. Timestamp <= previous recorded timestamp.
-			t.meta.AddInt(metadata.StaleCount, 1)
+			err := t.meta.AddInt(metadata.StaleCount, 1)
+			if err != nil {
+				return nil, err
+			}
 			return nil, errors.New("update is stale")
 		}
 		oldval.Update(n)
 		// Simulate event-driven for all non-atomic updates.
 		if !n.Atomic && value.Equal(old.Update[0].Val, n.Update[0].Val) {
-			t.meta.AddInt(metadata.SuppressedCount, 1)
+			err := t.meta.AddInt(metadata.SuppressedCount, 1)
+			if err != nil {
+				return nil, err
+			}
 			return nil, nil
 		}
 		// Compute latency for updated leaves.
@@ -474,8 +510,14 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 		return nil, err
 	}
 	if realData {
-		t.meta.AddInt(metadata.LeafCount, 1)
-		t.meta.AddInt(metadata.AddCount, 1)
+		err := t.meta.AddInt(metadata.LeafCount, 1)
+		if err != nil {
+			return nil, err
+		}
+		err = t.meta.AddInt(metadata.AddCount, 1)
+		if err != nil {
+			return nil, err
+		}
 		// Compute latency for new leaves.
 		if t.sync {
 			// Record latency for post-sync target updates.  Exclude metadata updates.
