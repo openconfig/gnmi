@@ -19,10 +19,12 @@ limitations under the License.
 package value
 
 import (
+	"encoding/json"
 	"fmt"
 	"math"
 	"unicode/utf8"
 
+	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
@@ -87,6 +89,13 @@ func FromScalar(i interface{}) (*pb.TypedValue, error) {
 	return tv, nil
 }
 
+// DeprecatedScalar is a scalar wrapper for communicating our desire to remove
+// this encoding from gNMI support.
+type DeprecatedScalar struct {
+	Message string
+	Value   interface{}
+}
+
 // ToScalar will convert TypedValue scalar types to a Go native type. It will
 // return an error if the TypedValue does not contain a scalar type.
 func ToScalar(tv *pb.TypedValue) (interface{}, error) {
@@ -117,6 +126,26 @@ func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 		i = ss
 	case *pb.TypedValue_BytesVal:
 		i = tv.GetBytesVal()
+	case *gpb.TypedValue_JsonVal:
+		v := tv.GetJsonVal()
+		if err := json.Unmarshal(v, &i); err != nil {
+			return nil, err
+		}
+		uVal := DeprecatedScalar{
+			Message: "Deprecated TypedValue_JsonVal",
+			Value:   i,
+		}
+		return uVal, nil
+	case *gpb.TypedValue_JsonIetfVal:
+		v := tv.GetJsonIetfVal()
+		if err := json.Unmarshal(v, &i); err != nil {
+			return nil, err
+		}
+		uVal := DeprecatedScalar{
+			Message: "Deprecated TypedValue_JsonIetfVal",
+			Value:   i,
+		}
+		return uVal, nil
 	default:
 		return nil, fmt.Errorf("non-scalar type %+v", tv.Value)
 	}

@@ -21,16 +21,16 @@ def gnmi_deps():
     if not native.existing_rule("com_github_grpc_grpc"):
         http_archive(
             name = "com_github_grpc_grpc",
-            url = "https://github.com/grpc/grpc/archive/refs/tags/v1.37.1.tar.gz",
-            strip_prefix = "grpc-1.37.1",
-            sha256 = "acf247ec3a52edaee5dee28644a4e485c5e5badf46bdb24a80ca1d76cb8f1174",
+            url = "https://github.com/grpc/grpc/archive/refs/tags/v1.38.0.tar.gz",
+            strip_prefix = "grpc-1.38.0",
+            sha256 = "abd9e52c69000f2c051761cfa1f12d52d8b7647b6c66828a91d462e796f2aede",
         )
     if not native.existing_rule("com_google_protobuf"):
         http_archive(
             name = "com_google_protobuf",
-            url = "https://github.com/protocolbuffers/protobuf/releases/download/v3.16.0/protobuf-all-3.16.0.tar.gz",
-            strip_prefix = "protobuf-3.16.0",
-            sha256 = "d7371dc2d46fddac1af8cb27c0394554b068768fc79ecaf5be1a1863e8ff3392",
+            url = "https://github.com/protocolbuffers/protobuf/releases/download/v3.17.1/protobuf-all-3.17.1.tar.gz",
+            strip_prefix = "protobuf-3.17.1",
+            sha256 = "7dd46c0fef046c056adc7a1bf7dfd063f19cbcb206133441ca315ab73572d8a8",
         )
     if not native.existing_rule("com_google_googleapis"):
         http_archive(

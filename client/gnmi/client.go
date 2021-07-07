@@ -76,7 +76,11 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 	}
 
 	if d.Credentials != nil {
-		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, true)
+		secure := true
+		if d.TLS == nil {
+			secure = false
+		}
+		pc := newPassCred(d.Credentials.Username, d.Credentials.Password, secure)
 		opts = append(opts, grpc.WithPerRPCCredentials(pc))
 	}
 
@@ -287,7 +291,7 @@ func noti(prefix []string, pp *gpb.Path, ts time.Time, u *gpb.Update) (client.No
 	if u.Val != nil {
 		val, err := value.ToScalar(u.Val)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to decode %s: %v", p, err)
 		}
 		return client.Update{Path: p, TS: ts, Val: val, Dups: u.Duplicates}, nil
 	}

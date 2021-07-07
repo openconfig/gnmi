@@ -174,6 +174,24 @@ func TestToScalar(t *testing.T) {
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_AnyVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_JsonVal{}}, err: true},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_JsonIetfVal{}}, err: true},
+		{
+			msg: &pb.TypedValue{Value: &pb.TypedValue_JsonVal{
+				JsonVal: []byte(`{"a":1,"b":"foo"}`)},
+			},
+			intf: DeprecatedScalar{
+				Message: "Deprecated TypedValue_JsonVal",
+				Value:   map[string]interface{}{"a": float64(1), "b": "foo"},
+			},
+		},
+		{
+			msg: &pb.TypedValue{Value: &pb.TypedValue_JsonIetfVal{
+				JsonIetfVal: []byte(`{"a":1,"b":"foo"}`)},
+			},
+			intf: DeprecatedScalar{
+				Message: "Deprecated TypedValue_JsonIetfVal",
+				Value:   map[string]interface{}{"a": float64(1), "b": "foo"},
+			},
+		},
 		{msg: &pb.TypedValue{Value: &pb.TypedValue_AsciiVal{}}, err: true},
 	}
 	for _, tt := range tests {
