@@ -325,6 +325,11 @@ func TestEqual(t *testing.T) {
 		},
 		// Equality is not checked, expect false.
 		{
+			name: "Nil values not compared",
+			a:    nil,
+			b:    nil,
+		},
+		{
 			name: "Empty values not compared",
 			a:    &pb.TypedValue{},
 			b:    &pb.TypedValue{},
