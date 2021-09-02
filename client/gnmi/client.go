@@ -43,6 +43,10 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
+// ToSubscribeRequest is the function used to convert a client.Query into
+// a *gpb.SubscribeRequest. It can be stubbed for unit test.
+var ToSubscribeRequest = subscribe
+
 // Type defines the name resolution for this client type.
 const Type = "gnmi"
 
@@ -130,7 +134,7 @@ func (c *Client) Subscribe(ctx context.Context, q client.Query) error {
 
 	sr := q.SubReq
 	if sr == nil {
-		sr, err = subscribe(q)
+		sr, err = ToSubscribeRequest(q)
 		if err != nil {
 			return fmt.Errorf("generating SubscribeRequest proto: %v", err)
 		}

@@ -238,14 +238,15 @@ type VisitFunc func(path []string, l *Leaf, val interface{}) error
 
 func (t *Tree) enumerateChildren(prefix, path []string, f VisitFunc) error {
 	// Caller should hold a read lock on t.
-	if len(path) == 0 {
+	if n := len(path); n == 0 || (n == 1 && path[0] == "*") {
 		switch b := t.leafBranch.(type) {
 		case branch:
 			for k, br := range b {
-				if err := br.queryInternal(append(prefix, k), path, f); err != nil {
+				if err := br.queryInternal(append(prefix, k), nil, f); err != nil {
 					return err
 				}
 			}
+		case nil: // do nothing
 		default:
 			return f(prefix, (*Leaf)(t), t.leafBranch)
 		}

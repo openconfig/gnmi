@@ -109,7 +109,7 @@ type Manager struct {
 // a done function that will be called when the returned connection handle is
 // unused.
 type ConnectionManager interface {
-	Connection(ctx context.Context, addr string) (conn *grpc.ClientConn, done func(), err error)
+	Connection(ctx context.Context, addr, dialer string) (conn *grpc.ClientConn, done func(), err error)
 }
 
 // NewManager returns a new target Manager.
@@ -187,7 +187,7 @@ func (m *Manager) createConn(ctx context.Context, name string, t *tpb.Target) (c
 			connCtx = c
 			defer cancel()
 		}
-		return m.connectionManager.Connection(connCtx, nh)
+		return m.connectionManager.Connection(connCtx, nh, t.Meta["dialer"])
 	}
 }
 

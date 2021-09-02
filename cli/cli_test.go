@@ -97,8 +97,9 @@ func TestSendQueryAndDisplay(t *testing.T) {
 			DisplayIndent: "  ",
 			DisplayType:   "single",
 			Timestamp:     "2006-01-02-15:04:05",
+			Location:      time.UTC, // make tests deterministic across different local time zones
 		},
-		want: `dev1/a/b, 5, 1969-12-31-16:00:00
+		want: `dev1/a/b, 5, 1970-01-01-00:00:00
 `,
 	}, {
 		desc: "single target single output with timestamp on",
@@ -119,8 +120,9 @@ func TestSendQueryAndDisplay(t *testing.T) {
 			DisplayIndent: "  ",
 			DisplayType:   "single",
 			Timestamp:     "on",
+			Location:      time.UTC, // make tests deterministic across different local time zones
 		},
-		want: `dev1/a/b, 5, 1969-12-31-16:00:00.000000100
+		want: `dev1/a/b, 5, 1970-01-01-00:00:00.000000100
 `,
 	}, {
 		desc: "single target single output",
@@ -392,12 +394,13 @@ update: <
 			DisplayIndent: "  ",
 			DisplayType:   "group",
 			Timestamp:     "on",
+			Location:      time.UTC, // make tests deterministic across different local time zones
 		},
 		want: `{
   "dev1": {
     "a": {
       "b": {
-        "timestamp": "2015-08-28-17:13:32.000000000",
+        "timestamp": "2015-08-29-00:13:32.000000000",
         "value": 5
       }
     }
@@ -756,10 +759,11 @@ func TestGNMIClient(t *testing.T) {
 			DisplayIndent: "  ",
 			DisplayType:   "single",
 			Timestamp:     "2006-01-02-15:04:05",
+			Location:      time.UTC, // make tests deterministic across different local time zones
 		},
-		want: `dev/a, 5, 1969-12-31-16:00:00
-dev/a/b, 5, 1969-12-31-16:00:00
-dev/a/b, <nil>, 1969-12-31-16:00:00
+		want: `dev/a, 5, 1970-01-01-00:00:00
+dev/a/b, 5, 1970-01-01-00:00:00
+dev/a/b, <nil>, 1970-01-01-00:00:00
 `,
 	}, {
 		desc: "single target group output with provided layout",
@@ -797,11 +801,12 @@ dev/a/b, <nil>, 1969-12-31-16:00:00
 			DisplayIndent: "  ",
 			DisplayType:   "group",
 			Timestamp:     "2006-01-02-15:04:05",
+			Location:      time.UTC, // make tests deterministic across different local time zones
 		},
 		want: `{
   "dev": {
     "a": {
-      "timestamp": "1969-12-31-16:00:00",
+      "timestamp": "1970-01-01-00:00:00",
       "value": 5
     }
   }

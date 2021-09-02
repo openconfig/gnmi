@@ -52,7 +52,7 @@ func TestCtxCanceled(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to initialize Manager: %v", err)
 	}
-	if _, _, err := m.Connection(ctx, addr); err == nil {
+	if _, _, err := m.Connection(ctx, addr, DEFAULT); err == nil {
 		t.Error("Connection returned no error, want error")
 	}
 }
@@ -89,7 +89,7 @@ func TestConcurrentConnection(t *testing.T) {
 
 	for i := 0; i < lim; i++ {
 		go func() {
-			conn, _, err := m.Connection(ctx, addr)
+			conn, _, err := m.Connection(ctx, addr, DEFAULT)
 			switch {
 			case err != nil:
 				t.Errorf("got error creating connection: %v, want no error", err)
@@ -114,14 +114,14 @@ func TestDone(t *testing.T) {
 		t.Fatalf("Failed to initialize Manager: %v", err)
 	}
 
-	_, done1, err := m.Connection(ctx, addr)
+	_, done1, err := m.Connection(ctx, addr, DEFAULT)
 	if err != nil {
 		t.Fatalf("got error creating connection: %v, want no error", err)
 	}
 	assertConns(t, m, 1)
 	assertRefs(t, m, addr, 1)
 
-	_, done2, err := m.Connection(ctx, addr)
+	_, done2, err := m.Connection(ctx, addr, DEFAULT)
 	if err != nil {
 		t.Fatalf("got error creating connection: %v, want no error", err)
 	}
@@ -173,7 +173,7 @@ func TestConnectionDone(t *testing.T) {
 		for i := 0; i < c.connections; i++ {
 			d := i
 			go func() {
-				conn, done, err := m.Connection(ctx, c.connectionID)
+				conn, done, err := m.Connection(ctx, c.connectionID, DEFAULT)
 				wg.Done()
 				if conn == nil {
 					t.Error("got nil connection")
@@ -228,7 +228,7 @@ func errDialWait(d time.Duration) func(_ context.Context, _ string, _ ...grpc.Di
 
 func TestConcurrentDialErr(t *testing.T) {
 	ctx := context.Background()
-	m, err := NewManagerCustom(errDialWait(time.Second), grpc.WithBlock(), grpc.WithInsecure())
+	m, err := NewManagerCustom(map[string]Dial{DEFAULT: errDialWait(time.Second)}, grpc.WithBlock(), grpc.WithInsecure())
 	if err != nil {
 		t.Fatalf("Failed to initialize Manager: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestConcurrentDialErr(t *testing.T) {
 		go func() {
 			wg.Done()
 			<-start
-			_, _, err := m.Connection(ctx, "")
+			_, _, err := m.Connection(ctx, "", DEFAULT)
 			errs <- err
 		}()
 	}
@@ -288,7 +288,7 @@ func TestNewManagerCustom(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		_, err := NewManagerCustom(tt.d, tt.opts...)
+		_, err := NewManagerCustom(map[string]Dial{DEFAULT: tt.d}, tt.opts...)
 		switch {
 		case err == nil && !tt.wantErr:
 		case err == nil && tt.wantErr:

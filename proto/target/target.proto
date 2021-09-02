@@ -26,7 +26,7 @@ option go_package = "github.com/openconfig/gnmi/proto/target";
 // Configuration holds all information necessary for a caching gNMI collector
 // to establish subscriptions to a list of gNMI targets.
 message Configuration {
-  // Request is a keyed list of all SubscriptionRequests that can be sent to
+  // Request is a keyed list of all SubscriptionRequests that can be sent
   // to targets in the Configuration.
   // The request must have at minimum a SubscriptionList with a prefix
   // containing origin and one or more Subscriptions.  Only the STREAM mode is
@@ -34,8 +34,8 @@ message Configuration {
   map<string, gnmi.SubscribeRequest> request = 1;
   // Target is the full list of targets connected to by a caching gNMI
   // collector.  The key of the map is a unique name to identify a target and
-  // is set in the prefix.target of a SubscriptionRequest message when connecting
-  // to each respective target.
+  // is set in the prefix.target of a SubscriptionRequest message when
+  // connecting to each respective target.
   map<string, Target> target = 2;
   // Identifier for the caching collector.
   string instance_id = 3;
