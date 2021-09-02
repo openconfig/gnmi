@@ -537,6 +537,10 @@ func TestGNMIStreamAtomic(t *testing.T) {
 }
 
 func TestGNMIStreamNewUpdates(t *testing.T) {
+	defaultToSubscribeRequest := gnmiclient.ToSubscribeRequest
+	defer func() {
+		gnmiclient.ToSubscribeRequest = defaultToSubscribeRequest
+	}()
 	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
@@ -545,57 +549,101 @@ func TestGNMIStreamNewUpdates(t *testing.T) {
 
 	paths := []client.Path{
 		{"dev1", "e", "f"},
-		{"dev2", "a", "b"},
+		{"dev2", "a", "b", "c"},
 	}
-	var timestamp time.Time
-	sendUpdates(t, cache, paths, &timestamp)
-
 	newpaths := []client.Path{
 		{"dev1", "b", "d"},
-		{"dev2", "a", "x"},
-		{"dev1", "a", "x"}, // The update we want to see.
+		{"dev2", "a", "b", "x"},
+		{"dev1", "a", "b", "x"}, // The update we want to see.
 	}
 
-	sync := false
-	c := client.BaseClient{}
-	q := client.Query{
-		Addrs:   []string{addr},
-		Target:  "dev1",
-		Queries: []client.Path{{"a"}},
-		Type:    client.Stream,
-		ProtoHandler: func(msg proto.Message) error {
-			resp, ok := msg.(*pb.SubscribeResponse)
-			if !ok {
-				return fmt.Errorf("failed to type assert message %#v", msg)
-			}
-			switch r := resp.Response.(type) {
-			case *pb.SubscribeResponse_Update:
-				v, want := strings.Join(path.ToStrings(r.Update.Update[0].Path, false), "/"), "a/x"
-				if v != want {
-					t.Fatalf("got update %q, want only %q", v, want)
-				}
-				c.Close()
-			case *pb.SubscribeResponse_SyncResponse:
-				if sync {
-					t.Fatal("received more than one sync message")
-				}
-				sync = true
-				// Stream new updates only after sync which should have had 0
-				// updates.
-				sendUpdates(t, cache, newpaths, &timestamp)
-			default:
-				return fmt.Errorf("unknown response %T: %s", r, r)
-			}
-			return nil
+	tests := []struct {
+		desc  string
+		toSub func(q client.Query) (*pb.SubscribeRequest, error)
+	}{{
+		desc:  "default - no origin in request",
+		toSub: defaultToSubscribeRequest,
+	}, {
+		desc: "origin in prefix",
+		toSub: func(q client.Query) (*pb.SubscribeRequest, error) {
+			return &pb.SubscribeRequest{
+				Request: &pb.SubscribeRequest_Subscribe{
+					Subscribe: &pb.SubscriptionList{
+						Prefix: &pb.Path{Target: q.Target, Origin: "a"},
+						Subscription: []*pb.Subscription{{
+							Path: &pb.Path{Elem: []*pb.PathElem{{Name: "b"}}},
+						}},
+					},
+				},
+			}, nil
 		},
-		TLS: &tls.Config{InsecureSkipVerify: true},
-	}
-	err = c.Subscribe(context.Background(), q, gnmiclient.Type)
-	if err != nil {
-		t.Error(err)
-	}
-	if !sync {
-		t.Error("streaming query did not send sync message")
+	}, {
+		desc: "origin in subscription path",
+		toSub: func(q client.Query) (*pb.SubscribeRequest, error) {
+			return &pb.SubscribeRequest{
+				Request: &pb.SubscribeRequest_Subscribe{
+					Subscribe: &pb.SubscriptionList{
+						Prefix: &pb.Path{Target: q.Target},
+						Subscription: []*pb.Subscription{{
+							Path: &pb.Path{
+								Origin: "a",
+								Elem:   []*pb.PathElem{{Name: "b"}},
+							},
+						}},
+					},
+				},
+			}, nil
+		},
+	}}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			cache.Reset("dev1")
+			cache.Reset("dev2")
+			var timestamp time.Time
+			sendUpdates(t, cache, paths, &timestamp)
+			gnmiclient.ToSubscribeRequest = tt.toSub
+			sync := false
+			c := client.BaseClient{}
+			q := client.Query{
+				Addrs:   []string{addr},
+				Target:  "dev1",
+				Queries: []client.Path{{"a", "b"}},
+				Type:    client.Stream,
+				ProtoHandler: func(msg proto.Message) error {
+					resp, ok := msg.(*pb.SubscribeResponse)
+					if !ok {
+						return fmt.Errorf("failed to type assert message %#v", msg)
+					}
+					switch r := resp.Response.(type) {
+					case *pb.SubscribeResponse_Update:
+						v, want := strings.Join(path.ToStrings(r.Update.Update[0].Path, false), "/"), "a/b/x"
+						if v != want {
+							t.Fatalf("got update %q, want only %q", v, want)
+						}
+						c.Close()
+					case *pb.SubscribeResponse_SyncResponse:
+						if sync {
+							t.Fatal("received more than one sync message")
+						}
+						sync = true
+						// Stream new updates only after sync which should have had 0
+						// updates.
+						sendUpdates(t, cache, newpaths, &timestamp)
+					default:
+						return fmt.Errorf("unknown response %T: %s", r, r)
+					}
+					return nil
+				},
+				TLS: &tls.Config{InsecureSkipVerify: true},
+			}
+			err = c.Subscribe(context.Background(), q, gnmiclient.Type)
+			if err != nil {
+				t.Error(err)
+			}
+			if !sync {
+				t.Error("streaming query did not send sync message")
+			}
+		})
 	}
 }
 

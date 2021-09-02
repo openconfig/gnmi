@@ -30,7 +30,8 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/latency"
@@ -60,9 +61,17 @@ func TestHasTarget(t *testing.T) {
 
 func TestAdd(t *testing.T) {
 	c := New(nil)
-	c.Add("dev1")
-	if !c.HasTarget("dev1") {
-		t.Error("dev1 not added")
+	const name = "dev1"
+	c.Add(name)
+	if !c.HasTarget(name) {
+		t.Errorf("Add(%q) not added", name)
+	}
+	target := c.GetTarget(name)
+	if target == nil {
+		t.Fatalf("GetTarget(%q): target not found", name)
+	}
+	if got := target.Name(); got != name {
+		t.Errorf("Name() got %q, want %q", got, name)
 	}
 }
 
@@ -275,7 +284,6 @@ func TestUpdateSize(t *testing.T) {
 	c.UpdateMetadata()
 	var val int64
 	c.Query("dev1", []string{metadata.Root, metadata.Size}, func(_ []string, _ *ctree.Leaf, v interface{}) error {
-		t.Logf("%v", v)
 		val = v.(*pb.Notification).Update[0].Val.GetIntVal()
 		return nil
 	})
@@ -599,7 +607,7 @@ func TestGNMIAtomic(t *testing.T) {
 					t.Errorf("Query(%p): got notification %v, want none", q.path, val)
 				} else {
 					if v, ok := val.(*pb.Notification); !ok || !proto.Equal(v, tt.noti) {
-						t.Errorf("got:\n%s want\n%s", proto.MarshalTextString(v), proto.MarshalTextString(tt.noti))
+						t.Errorf("got:\n%s want\n%s", prototext.Format(v), prototext.Format(tt.noti))
 					}
 				}
 				return nil
@@ -967,6 +975,7 @@ func TestGNMISyncConnectUpdates(t *testing.T) {
 func TestGNMIUpdate(t *testing.T) {
 	type state struct {
 		deleted   bool
+		prefix    []string
 		path      []string
 		timestamp int
 		val       string
@@ -1010,10 +1019,12 @@ func TestGNMIUpdate(t *testing.T) {
 			}),
 			want: []state{
 				{
+					prefix:    prefix,
 					path:      path1,
 					val:       "11",
 					timestamp: 1,
 				}, {
+					prefix:    prefix,
 					path:      path2,
 					val:       "2",
 					timestamp: 1,
@@ -1044,10 +1055,12 @@ func TestGNMIUpdate(t *testing.T) {
 			}),
 			want: []state{
 				{
+					prefix:    prefix,
 					path:      path1,
 					val:       "11",
 					timestamp: 1,
 				}, {
+					prefix:    prefix,
 					path:      path2,
 					val:       "22",
 					timestamp: 1,
@@ -1082,13 +1095,16 @@ func TestGNMIUpdate(t *testing.T) {
 			}),
 			want: []state{
 				{
+					prefix:    prefix,
 					path:      path1,
 					val:       "1",
 					timestamp: 1,
 				}, {
+					prefix:  prefix,
 					path:    path2,
 					deleted: true,
 				}, {
+					prefix:  prefix,
 					path:    path3,
 					deleted: true,
 				},
@@ -1113,15 +1129,17 @@ func TestGNMIUpdate(t *testing.T) {
 					val:  "1",
 				}, {
 					path: path2,
-					val:  "22",
+					val:  "2",
 				},
 			}),
 			want: []state{
 				{
+					prefix:    prefix,
 					path:      path1,
 					val:       "1",
 					timestamp: 0,
 				}, {
+					prefix:    prefix,
 					path:      path2,
 					val:       "2",
 					timestamp: 0,
@@ -1129,6 +1147,78 @@ func TestGNMIUpdate(t *testing.T) {
 			},
 			wantStale: 2,
 			wantErr:   true,
+		}, {
+			desc: "error updates - same timestamp",
+			initial: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "22",
+				},
+			}),
+			want: []state{
+				{
+					prefix:    prefix,
+					path:      path1,
+					val:       "1",
+					timestamp: 0,
+				}, {
+					prefix:    prefix,
+					path:      path2,
+					val:       "22",
+					timestamp: 0,
+				},
+			},
+			wantUpdates: 1,
+			wantStale:   1,
+			wantErr:     true,
+		}, {
+			desc: "error updates - same timestamp - different order",
+			initial: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, 0, []update{
+				{
+					path: path2,
+					val:  "22",
+				}, {
+					path: path1,
+					val:  "1",
+				},
+			}),
+			want: []state{
+				{
+					prefix:    prefix,
+					path:      path1,
+					val:       "1",
+					timestamp: 0,
+				}, {
+					prefix:    prefix,
+					path:      path2,
+					val:       "22",
+					timestamp: 0,
+				},
+			},
+			wantUpdates: 1,
+			wantStale:   1,
+			wantErr:     true,
 		}, {
 			desc: "stale updates - later timestamp",
 			initial: notificationBundle(dev, prefix, 1, []update{
@@ -1151,10 +1241,12 @@ func TestGNMIUpdate(t *testing.T) {
 			}),
 			want: []state{
 				{
+					prefix:    prefix,
 					path:      path1,
 					val:       "1",
 					timestamp: 1,
 				}, {
+					prefix:    prefix,
 					path:      path2,
 					val:       "2",
 					timestamp: 1,
@@ -1233,17 +1325,24 @@ func TestGNMIUpdate(t *testing.T) {
 
 		checkState := func(desc string, states []state) {
 			for _, s := range states {
-				c.Query(dev, s.path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
+				found := false
+				path := s.prefix
+				path = append(path, s.path...)
+				c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 					if s.deleted {
 						t.Errorf("%v: Query(%p): got %v, want none", desc, s.path, v)
 					} else {
 						want := gnmiNotification(dev, prefix, s.path, int64(s.timestamp), s.val, false)
 						if got, ok := v.(*pb.Notification); !ok || !proto.Equal(got, want) {
-							t.Errorf("%v: got:\n%s want\n%s", desc, proto.MarshalTextString(got), proto.MarshalTextString(want))
+							t.Errorf("%v: got:\n%s want\n%s", desc, prototext.Format(got), prototext.Format(want))
 						}
 					}
+					found = true
 					return nil
 				})
+				if !found && !s.deleted {
+					t.Errorf("Query returned no matching state for %v", s)
+				}
 			}
 		}
 

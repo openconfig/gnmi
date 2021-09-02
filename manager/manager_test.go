@@ -412,12 +412,12 @@ func (f *fakeConnection) stageErr() {
 	f.failNext = true
 }
 
-func (f *fakeConnection) Connection(ctx context.Context, addr string) (conn *grpc.ClientConn, done func(), err error) {
+func (f *fakeConnection) Connection(ctx context.Context, addr, dialer string) (conn *grpc.ClientConn, done func(), err error) {
 	if f.failNext {
 		f.failNext = false
 		return nil, func() {}, errors.New("could not connect")
 	}
-	return f.m.Connection(ctx, addr)
+	return f.m.Connection(ctx, addr, dialer)
 }
 
 func newFakeConnection(t *testing.T) *fakeConnection {
@@ -625,7 +625,7 @@ func TestCancelSubscribe(t *testing.T) {
 
 	cCtx, cancel := context.WithCancel(context.Background())
 	cancel()
-	conn, done, err := m.connectionManager.Connection(context.Background(), addr)
+	conn, done, err := m.connectionManager.Connection(context.Background(), addr, "")
 	if err != nil {
 		t.Fatalf("error creating connection: %v", err)
 	}

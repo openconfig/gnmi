@@ -139,7 +139,7 @@ func TestQuery(t *testing.T) {
 
 	tr.Query([]string{"*"}, appendResults)
 	if len(results) > 0 {
-		t.Errorf("tr.Query: got %d results, expected 0", len(results))
+		t.Errorf("tr.Query: got %d results (%v), expected 0", len(results), results)
 	}
 
 	buildTree(tr)
@@ -148,6 +148,7 @@ func TestQuery(t *testing.T) {
 		{[]string{"a", "d"}, map[string]interface{}{"a/d": "a/d"}},
 		{[]string{"a"}, map[string]interface{}{"a/d": "a/d", "a/b/c": "a/b/c"}},
 		// A trailing glob is equivalent to a query without it, as above.
+		{[]string{"a", "d", "*"}, map[string]interface{}{"a/d": "a/d"}},
 		{[]string{"a", "*"}, map[string]interface{}{"a/d": "a/d", "a/b/c": "a/b/c"}},
 		{[]string{"*"}, map[string]interface{}{"a/d": "a/d", "a/b/c": "a/b/c", "b/c/d": "b/c/d", "b/a/d": "b/a/d", "c/d/e/f/g/h/i": "c/d/e/f/g/h/i", "d": "d"}},
 		{[]string{"*", "*", "d"}, map[string]interface{}{"b/c/d": "b/c/d", "b/a/d": "b/a/d"}},

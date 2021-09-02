@@ -27,7 +27,8 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/errlist"
 	"github.com/openconfig/gnmi/latency"
@@ -52,6 +53,11 @@ type Target struct {
 	lat    *latency.Latency   // latency measurements
 	tsmu   sync.Mutex         // protects latest timestamp
 	ts     time.Time          // latest timestamp for an update
+}
+
+// Name returns the name of the target.
+func (t *Target) Name() string {
+	return t.name
 }
 
 // options contains options for creating a Cache.
@@ -451,10 +457,21 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 		if !ok {
 			return nil, fmt.Errorf("corrupt schema with collision for path %q, got %T", path, oldval.Value())
 		}
-		if !T(old.GetTimestamp()).Before(T(n.GetTimestamp())) {
-			// Update rejected. Timestamp <= previous recorded timestamp.
+		switch {
+		case n.GetTimestamp() < old.GetTimestamp():
+			// Update rejected. Timestamp < previous recorded timestamp.
 			t.meta.AddInt(metadata.StaleCount, 1)
 			return nil, errors.New("update is stale")
+		case n.GetTimestamp() == old.GetTimestamp():
+			if !proto.Equal(old, n) {
+				if log.V(1) {
+					log.Warningf("received different value at same timestamp\nfirst: %s\nsecond: %s", prototext.Format(old), prototext.Format(n))
+				}
+				// Allow to continue to update the cache taking the last supplied value for this timestamp.
+			} else {
+				t.meta.AddInt(metadata.StaleCount, 1)
+				return nil, errors.New("update is stale")
+			}
 		}
 		oldval.Update(n)
 		// Simulate event-driven for all non-atomic updates.

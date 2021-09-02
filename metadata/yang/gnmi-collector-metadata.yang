@@ -18,7 +18,7 @@ module gnmi-collector-metadata {
     leaf connected {
       type boolean;
       description
-        "connected reports whether the target has an active gRPC session with
+        "connected reports whether the client has an active gRPC session with
         the target device; it requires at least 1 update delivered over the
         connection before being set to true.";
     }

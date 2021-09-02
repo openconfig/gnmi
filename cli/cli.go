@@ -20,6 +20,7 @@ package cli
 import (
 	"bytes"
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -31,8 +32,6 @@ import (
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
-
-const layout = "2006-01-02-15:04:05.000000000"
 
 var (
 	queryTypeMap = map[string]client.Type{
@@ -67,8 +66,9 @@ type Config struct {
 	// <FORMAT> - human readable timestamp according to <FORMAT>
 	Timestamp   string // Formatting of timestamp in result output.
 	DisplaySize bool
-	Latency     bool     // Show latency to client
-	ClientTypes []string // List of client types to try.
+	Latency     bool           // Show latency to client
+	ClientTypes []string       // List of client types to try.
+	Location    *time.Location // Location that time formatting uses in lieu of the local time zone.
 }
 
 // QueryType returns a client query type for t after trying aliases for the
@@ -147,16 +147,7 @@ func genHandler(cfg *Config) client.NotificationHandler {
 		buf.Reset()
 		buf.WriteString(strings.Join(p, cfg.Delimiter))
 		buf.WriteString(fmt.Sprintf(", %v", v))
-		var t interface{}
-		switch cfg.Timestamp {
-		default: // Assume user has passed a valid layout for time.Format
-			t = ts.Format(cfg.Timestamp)
-		case "": // Timestamp disabled.
-		case "on":
-			t = ts.Format(layout)
-		case "raw":
-			t = ts.UnixNano()
-		}
+		t := formatTime(ts, cfg)
 		if t != nil {
 			buf.WriteString(fmt.Sprintf(", %v", t))
 		}
@@ -314,6 +305,9 @@ func displayStreamingResults(ctx context.Context, query client.Query, cfg *Confi
 		case client.Error:
 			cfg.Display([]byte(fmt.Sprintf("Error: %v", v)))
 		}
+		if countComplete(cfg) {
+			return errors.New("requested update count reached")
+		}
 		return nil
 	}
 	return c.Subscribe(ctx, query, cfg.ClientTypes...)
@@ -321,41 +315,17 @@ func displayStreamingResults(ctx context.Context, query client.Query, cfg *Confi
 
 func displayWalk(target string, c *client.CacheClient, cfg *Config) {
 	b := make(pathmap)
-	var addFunc func(path []string, v client.TreeVal)
-	switch cfg.Timestamp {
-	default:
-		addFunc = func(path []string, v client.TreeVal) {
-			b.add(path, pathmap{
-				"value":     v.Val,
-				"timestamp": v.TS.Format(cfg.Timestamp),
-			})
-		}
-	case "on":
-		addFunc = func(path []string, v client.TreeVal) {
-			b.add(path, pathmap{
-				"value":     v.Val,
-				"timestamp": v.TS.Format(layout),
-			})
-		}
-	case "raw":
-		addFunc = func(path []string, v client.TreeVal) {
-			b.add(path, pathmap{
-				"value":     v.Val,
-				"timestamp": v.TS.UnixNano(),
-			})
-		}
-	case "off", "":
-		addFunc = func(path []string, v client.TreeVal) {
-			b.add(path, v.Val)
-		}
-	}
 	c.WalkSorted(func(path []string, _ *ctree.Leaf, value interface{}) error {
 		switch v := value.(type) {
 		default:
 			b.add(path, fmt.Sprintf("INVALID NODE %#v", value))
 		case *ctree.Tree:
 		case client.TreeVal:
-			addFunc(path, v)
+			var val interface{} = v.Val
+			if t := formatTime(v.TS, cfg); t != nil {
+				val = pathmap{"value": v.Val, "timestamp": t}
+			}
+			b.add(path, val)
 		}
 		return nil
 	})
@@ -414,4 +384,21 @@ func (m pathmap) add(path []string, v interface{}) {
 	}
 	mm.(pathmap).add(path[1:], v)
 	m[path[0]] = mm
+}
+
+func formatTime(ts time.Time, cfg *Config) interface{} {
+	const layout = "2006-01-02-15:04:05.000000000"
+	if cfg.Location != nil {
+		ts = ts.In(cfg.Location)
+	}
+	switch cfg.Timestamp {
+	default: // Assume user has passed a valid layout for time.Format
+		return ts.Format(cfg.Timestamp)
+	case "": // Timestamp disabled.
+	case "on":
+		return ts.Format(layout)
+	case "raw":
+		return ts.UnixNano()
+	}
+	return nil
 }

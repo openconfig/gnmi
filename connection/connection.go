@@ -19,11 +19,16 @@ package connection
 import (
 	"context"
 	"errors"
+	"fmt"
 	"sync"
 
 	log "github.com/golang/glog"
 	"google.golang.org/grpc"
 )
+
+// DEFAULT is the name of the dialer that is used if not explicitly specified in
+// Connection.
+const DEFAULT = ""
 
 type connection struct {
 	id    string
@@ -36,7 +41,7 @@ type connection struct {
 // Manager provides functionality for creating cached client gRPC connections.
 type Manager struct {
 	opts []grpc.DialOption
-	d    Dial
+	d    map[string]Dial
 
 	mu    sync.Mutex
 	conns map[string]*connection
@@ -45,7 +50,7 @@ type Manager struct {
 // NewManager creates a new Manager. The opts arguments are used
 // to dial new gRPC targets, with the same semantics as grpc.DialContext.
 func NewManager(opts ...grpc.DialOption) (*Manager, error) {
-	return NewManagerCustom(grpc.DialContext, opts...)
+	return NewManagerCustom(map[string]Dial{DEFAULT: grpc.DialContext}, opts...)
 }
 
 // Dial defines a function to dial the gRPC connection.
@@ -53,9 +58,14 @@ type Dial func(ctx context.Context, target string, opts ...grpc.DialOption) (con
 
 // NewManagerCustom creates a new Manager. The opts arguments are used
 // to dial new gRPC targets, using the provided Dial function.
-func NewManagerCustom(d Dial, opts ...grpc.DialOption) (*Manager, error) {
-	if d == nil {
-		return nil, errors.New("nil Dial provided")
+func NewManagerCustom(d map[string]Dial, opts ...grpc.DialOption) (*Manager, error) {
+	if len(d) == 0 {
+		return nil, errors.New("no Dial provided")
+	}
+	for name, dialer := range d {
+		if dialer == nil {
+			return nil, fmt.Errorf("dialer %q is nil", name)
+		}
 	}
 	m := &Manager{}
 	m.conns = map[string]*connection{}
@@ -78,9 +88,17 @@ func (m *Manager) remove(addr string) {
 	}
 }
 
-func (m *Manager) dial(ctx context.Context, addr string, c *connection) {
+func (m *Manager) dial(ctx context.Context, addr, dialer string, c *connection) {
 	defer close(c.ready)
-	cc, err := m.d(ctx, addr, m.opts...)
+	d, ok := m.d[dialer]
+	var err error
+	if !ok {
+		err = fmt.Errorf("no such dialer: %v", dialer)
+	}
+	var cc *grpc.ClientConn
+	if err == nil {
+		cc, err = d(ctx, addr, m.opts...)
+	}
 	if err != nil {
 		log.Infof("Error creating gRPC connection to %q: %v", addr, err)
 		m.mu.Lock()
@@ -133,7 +151,7 @@ func newConnection(addr string) *connection {
 // Connection blocks until that attempt finishes and returns a shared result.
 // Note that canceling the context of a pending attempt early would propagate
 // an error to blocked callers.
-func (m *Manager) Connection(ctx context.Context, addr string) (conn *grpc.ClientConn, done func(), err error) {
+func (m *Manager) Connection(ctx context.Context, addr, dialer string) (conn *grpc.ClientConn, done func(), err error) {
 	select {
 	case <-ctx.Done():
 		return nil, func() {}, ctx.Err()
@@ -143,7 +161,7 @@ func (m *Manager) Connection(ctx context.Context, addr string) (conn *grpc.Clien
 		if !ok {
 			c = newConnection(addr)
 			m.conns[addr] = c
-			go m.dial(ctx, addr, c)
+			go m.dial(ctx, addr, dialer, c)
 		}
 		c.ref++
 		m.mu.Unlock()

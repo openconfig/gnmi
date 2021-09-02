@@ -105,7 +105,7 @@ func (s *Server) SetACL(a ACL) {
 // on the caller.
 func UpdateNotification(m *match.Match, v interface{}, n *pb.Notification, prefix []string) {
 	var updated map[match.Client]struct{}
-	if len(n.Update) + len(n.Delete) > 1 {
+	if len(n.Update)+len(n.Delete) > 1 {
 		updated = make(map[match.Client]struct{})
 	}
 	for _, u := range n.Update {
@@ -130,13 +130,17 @@ func (s *Server) Update(n *ctree.Leaf) {
 func addSubscription(m *match.Match, s *pb.SubscriptionList, c *matchClient) (remove func()) {
 	var removes []func()
 	prefix := path.ToStrings(s.Prefix, true)
-	for _, p := range s.Subscription {
-		if p.Path == nil {
+	for _, sub := range s.Subscription {
+		p := sub.GetPath()
+		if p == nil {
 			continue
 		}
-		// TODO(yusufsn) : Origin field in the Path may need to be included
-		path := append(prefix, path.ToStrings(p.Path, false)...)
-		removes = append(removes, m.AddQuery(path, c))
+		query := prefix
+		if origin := p.GetOrigin(); s.Prefix.GetOrigin() == "" && origin != "" {
+			query = append(prefix, origin)
+		}
+		query = append(query, path.ToStrings(p, false)...)
+		removes = append(removes, m.AddQuery(query, c))
 	}
 	return func() {
 		for _, remove := range removes {
