@@ -80,11 +80,16 @@ func TestErrorsRunCollector(t *testing.T) {
 		config: "good.cfg",
 		cert:   "good.crt",
 		desc:   "missing key",
+	}, {
+		desc:   "tunnel test",
+		config: "good_tunnel.cfg",
+		cert:   "good.crt",
+		key:    "good.key",
+		valid:  true,
 	}}
 	for _, test := range tests {
 		t.Run(test.desc, func(t *testing.T) {
 			*port = 0
-			*tunnelRequest = ""
 			if test.config != "" {
 				*configFile = filepath.Join("testdata", test.config)
 				defer func() { *configFile = "" }()

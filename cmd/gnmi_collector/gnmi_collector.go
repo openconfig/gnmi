@@ -55,7 +55,6 @@ var (
 	dialTimeout          = flag.Duration("dial_timeout", time.Minute, "Timeout for dialing a connection to a target.")
 	metadataUpdatePeriod = flag.Duration("metadata_update_period", 0, "Period for target metadata update. 0 disables updates.")
 	sizeUpdatePeriod     = flag.Duration("size_update_period", 0, "Period for updating the target size in metadata. 0 disables updates.")
-	tunnelRequest        = flag.String("tunnel_request", "", "request to be performed via tunnel") // non-tunnel request will be contained in the config file.
 )
 
 func periodic(period time.Duration, fn func()) {
@@ -73,7 +72,7 @@ func (c *collector) addTargetHandler(t tunnel.Target) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if _, ok := c.config.Target[t.ID]; ok {
+	if _, ok := c.tActive[t.ID]; ok {
 		return fmt.Errorf("trying to add target %s, but already in config", t.ID)
 	}
 	c.chAddTarget <- t
@@ -84,7 +83,7 @@ func (c *collector) deleteTargetHandler(t tunnel.Target) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if _, ok := c.config.Target[t.ID]; !ok {
+	if _, ok := c.tActive[t.ID]; !ok {
 		return fmt.Errorf("trying to delete target %s, but not found in config", t.ID)
 	}
 	c.chDeleteTarget <- t
@@ -106,8 +105,7 @@ func runCollector(ctx context.Context) error {
 
 	c := collector{config: &tpb.Configuration{},
 		cancelFuncs:    map[string]func(){},
-		tConn:          map[string]*tunnel.Conn{},
-		tRequest:       *tunnelRequest,
+		tActive:        map[string]*tunnTarget{},
 		chDeleteTarget: make(chan tunnel.Target, 1),
 		chAddTarget:    make(chan tunnel.Target, 1),
 		addr:           fmt.Sprintf("localhost:%d", *port)}
@@ -220,6 +218,12 @@ func (s *state) handleUpdate(msg proto.Message) error {
 	return nil
 }
 
+// Struct for managing the dynamic creation of tunnel targets.
+type tunnTarget struct {
+	conf *tpb.Target
+	conn *tunnel.Conn
+}
+
 type collector struct {
 	cache          *cache.Cache
 	config         *tpb.Configuration
@@ -227,6 +231,7 @@ type collector struct {
 	cancelFuncs    map[string]func()
 	addr           string
 	tConn          map[string]*tunnel.Conn
+	tActive        map[string]*tunnTarget
 	tServer        *tunnel.Server
 	tRequest       string
 	chAddTarget    chan tunnel.Target
@@ -252,26 +257,26 @@ func (c *collector) reconnect(target string) error {
 }
 
 func (c *collector) runSingleTarget(ctx context.Context, targetID string, tc *tunnel.Conn) {
-	target, ok := c.config.Target[targetID]
+	target, ok := c.tActive[targetID]
 	if !ok {
 		log.Errorf("Unknown target %q", targetID)
 		return
 	}
 
-	go func(name string, target *tpb.Target) {
+	go func(name string, target *tunnTarget) {
 		s := &state{name: name, target: c.cache.Add(name)}
-		qr := c.config.Request[target.Request]
+		qr := c.config.Request[target.conf.GetRequest()]
 		q, err := client.NewQuery(qr)
 		if err != nil {
 			log.Errorf("NewQuery(%s): %v", qr.String(), err)
 			return
 		}
-		q.Addrs = target.Addresses
+		q.Addrs = target.conf.GetAddresses()
 
-		if target.Credentials != nil {
+		if target.conf.Credentials != nil {
 			q.Credentials = &client.Credentials{
-				Username: target.Credentials.Username,
-				Password: target.Credentials.Password,
+				Username: target.conf.Credentials.Username,
+				Password: target.conf.Credentials.Password,
 			}
 		}
 
@@ -284,12 +289,12 @@ func (c *collector) runSingleTarget(ctx context.Context, targetID string, tc *tu
 		q.Target = name
 		q.Timeout = *dialTimeout
 		q.ProtoHandler = s.handleUpdate
+		q.TunnelConn = target.conn
 		if err := q.Validate(); err != nil {
 			log.Errorf("query.Validate(): %v", err)
 			return
 		}
 
-		q.TunnelConn = c.tConn[name]
 		select {
 		case <-ctx.Done():
 			return
@@ -306,23 +311,32 @@ func (c *collector) runSingleTarget(ctx context.Context, targetID string, tc *tu
 
 func (c *collector) start(ctx context.Context) {
 	// First, run for non-tunnel targets.
-	for id := range c.config.Target {
+	useTunnel := false
+	for id, t := range c.config.Target {
+		if t.Dialer == "tunnel" {
+			useTunnel = true
+			continue
+		}
 		c.runSingleTarget(ctx, id, nil)
 	}
 
-	if c.tRequest == "" {
+	// If no tunnels are configured then return.
+	if !useTunnel {
 		return
 	}
+
 	// Monitor targets from the tunnel.
 	go func() {
+		log.Info("watching for tunnel connections")
 		for {
 			select {
 			case target := <-c.chAddTarget:
+				log.Infof("adding target: %+v", target)
 				if target.Type != tunnelpb.TargetType_GNMI_GNOI.String() {
 					log.Infof("received unsupported type type: %s from target: %s, skipping", target.Type, target.ID)
 					continue
 				}
-				if _, ok := c.tConn[target.ID]; ok {
+				if _, ok := c.tActive[target.ID]; ok {
 					log.Infof("received target %s, which is already registered. skipping", target.ID)
 					continue
 				}
@@ -335,20 +349,26 @@ func (c *collector) start(ctx context.Context) {
 					log.Errorf("failed to get new tunnel session for target %v:%v", target.ID, err)
 					continue
 				}
-				c.tConn[target.ID] = tc
-				c.addTarget(ctx, target.ID, &tpb.Target{
-					Addresses: []string{c.addr},
-					Request:   c.tRequest,
-				})
-
-				c.runSingleTarget(ctx, target.ID, c.tConn[target.ID])
+				cfg := c.config.Target[target.ID]
+				if cfg == nil {
+					cfg = &tpb.Target{
+						Request: c.tRequest,
+					}
+				}
+				t := &tunnTarget{
+					conn: tc,
+					conf: cfg,
+				}
+				c.addTarget(ctx, target.ID, t)
+				c.runSingleTarget(ctx, target.ID, tc)
 
 			case target := <-c.chDeleteTarget:
+				log.Infof("deleting target: %+v", target)
 				if target.Type != tunnelpb.TargetType_GNMI_GNOI.String() {
 					log.Infof("received unsupported type type: %s from target: %s, skipping", target.Type, target.ID)
 					continue
 				}
-				if _, ok := c.tConn[target.ID]; !ok {
+				if _, ok := c.tActive[target.ID]; !ok {
 					log.Infof("received target %s, which is not registered. skipping", target.ID)
 					continue
 				}
@@ -361,45 +381,34 @@ func (c *collector) start(ctx context.Context) {
 func (c *collector) removeTarget(target string) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if _, ok := c.config.Target[target]; !ok {
+	t, ok := c.tActive[target]
+	if !ok {
 		log.Infof("trying to remove target %s, but not found in config. do nothing", target)
 		return nil
 	}
-	delete(c.config.Target, target)
-
+	delete(c.tActive, target)
 	cancel, ok := c.cancelFuncs[target]
 	if !ok {
 		return fmt.Errorf("cannot find cancel for target %q", target)
 	}
 	cancel()
 	delete(c.cancelFuncs, target)
-	if conn, ok := c.tConn[target]; ok && conn != nil {
-		conn.Close()
-	}
-	delete(c.tConn, target)
+	t.conn.Close()
 	log.Infof("target %s removed", target)
 	return nil
 }
 
-func (c *collector) addTarget(ctx context.Context, name string, target *tpb.Target) error {
+func (c *collector) addTarget(ctx context.Context, name string, target *tunnTarget) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if _, ok := c.config.Target[name]; ok {
-		log.Infof("trying to add target %s, but already in config. do nothing", target)
+	if _, ok := c.tActive[name]; ok {
+		log.Infof("trying to add target %q:%+v, but already in exists. do nothing", name, target)
 		return nil
 	}
-
-	var targetMap map[string]*tpb.Target
-	if c.config.Target != nil {
-		targetMap = c.config.Target
-	} else {
-		targetMap = make(map[string]*tpb.Target)
-	}
-
-	targetMap[name] = target
-	c.config.Target = targetMap
-
+	target.conf.Addresses = []string{c.addr}
+	c.tActive[name] = target
+	log.Infof("Added target: %q:%+v", name, target)
 	return nil
 }
 

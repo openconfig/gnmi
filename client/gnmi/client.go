@@ -64,8 +64,10 @@ type Client struct {
 // New returns a new initialized client. If error is nil, returned Client has
 // established a connection to d. Close needs to be called for cleanup.
 func New(ctx context.Context, d client.Destination) (client.Impl, error) {
-	if len(d.Addrs) != 1 {
-		return nil, fmt.Errorf("d.Addrs must only contain one entry: %v", d.Addrs)
+	if d.TunnelConn == nil {
+		if len(d.Addrs) != 1 {
+			return nil, fmt.Errorf("d.Addrs must only contain one entry: %v", d.Addrs)
+		}
 	}
 	opts := []grpc.DialOption{
 		grpc.WithBlock(),
@@ -97,10 +99,13 @@ func New(ctx context.Context, d client.Destination) (client.Impl, error) {
 		})
 		opts = append(opts, withContextDialer)
 	}
-
-	conn, err := grpc.DialContext(gCtx, d.Addrs[0], opts...)
+	addr := ""
+	if len(d.Addrs) != 0 {
+		addr = d.Addrs[0]
+	}
+	conn, err := grpc.DialContext(gCtx, addr, opts...)
 	if err != nil {
-		return nil, fmt.Errorf("Dialer(%s, %v): %v", d.Addrs[0], d.Timeout, err)
+		return nil, fmt.Errorf("Dialer(%s, %v): %v", addr, d.Timeout, err)
 	}
 	return NewFromConn(ctx, conn, d)
 }

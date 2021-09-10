@@ -120,8 +120,10 @@ type Destination struct {
 
 // Validate validates the fields of Destination.
 func (d Destination) Validate() error {
-	if len(d.Addrs) == 0 {
-		return errors.New("Destination.Addrs is empty")
+	if d.TunnelConn == nil {
+		if len(d.Addrs) == 0 {
+			return errors.New("Destination.Addrs is empty")
+		}
 	}
 	if d.Credentials != nil {
 		return d.Credentials.validate()

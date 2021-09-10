@@ -20,7 +20,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   syntax='proto3',
   serialized_options=b'Z\'github.com/openconfig/gnmi/proto/target',
   create_key=_descriptor._internal_create_key,
-  serialized_pb=b'\n\x19proto/target/target.proto\x12\x06target\x1a\x30github.com/openconfig/gnmi/proto/gnmi/gnmi.proto\"\xa9\x02\n\rConfiguration\x12\x33\n\x07request\x18\x01 \x03(\x0b\x32\".target.Configuration.RequestEntry\x12\x31\n\x06target\x18\x02 \x03(\x0b\x32!.target.Configuration.TargetEntry\x12\x13\n\x0binstance_id\x18\x03 \x01(\t\x12\x14\n\x08revision\x18\xff\xff\xff\xff\x01 \x01(\x03\x1a\x46\n\x0cRequestEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12%\n\x05value\x18\x02 \x01(\x0b\x32\x16.gnmi.SubscribeRequest:\x02\x38\x01\x1a=\n\x0bTargetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1d\n\x05value\x18\x02 \x01(\x0b\x32\x0e.target.Target:\x02\x38\x01\"\xab\x01\n\x06Target\x12\x11\n\taddresses\x18\x01 \x03(\t\x12(\n\x0b\x63redentials\x18\x02 \x01(\x0b\x32\x13.target.Credentials\x12\x0f\n\x07request\x18\x03 \x01(\t\x12&\n\x04meta\x18\x04 \x03(\x0b\x32\x18.target.Target.MetaEntry\x1a+\n\tMetaEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"F\n\x0b\x43redentials\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x13\n\x0bpassword_id\x18\x03 \x01(\tB)Z\'github.com/openconfig/gnmi/proto/targetb\x06proto3'
+  serialized_pb=b'\n\x19proto/target/target.proto\x12\x06target\x1a\x30github.com/openconfig/gnmi/proto/gnmi/gnmi.proto\"\xa9\x02\n\rConfiguration\x12\x33\n\x07request\x18\x01 \x03(\x0b\x32\".target.Configuration.RequestEntry\x12\x31\n\x06target\x18\x02 \x03(\x0b\x32!.target.Configuration.TargetEntry\x12\x13\n\x0binstance_id\x18\x03 \x01(\t\x12\x14\n\x08revision\x18\xff\xff\xff\xff\x01 \x01(\x03\x1a\x46\n\x0cRequestEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12%\n\x05value\x18\x02 \x01(\x0b\x32\x16.gnmi.SubscribeRequest:\x02\x38\x01\x1a=\n\x0bTargetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1d\n\x05value\x18\x02 \x01(\x0b\x32\x0e.target.Target:\x02\x38\x01\"\xbb\x01\n\x06Target\x12\x11\n\taddresses\x18\x01 \x03(\t\x12(\n\x0b\x63redentials\x18\x02 \x01(\x0b\x32\x13.target.Credentials\x12\x0f\n\x07request\x18\x03 \x01(\t\x12&\n\x04meta\x18\x04 \x03(\x0b\x32\x18.target.Target.MetaEntry\x12\x0e\n\x06\x64ialer\x18\x05 \x01(\t\x1a+\n\tMetaEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"F\n\x0b\x43redentials\x12\x10\n\x08username\x18\x01 \x01(\t\x12\x10\n\x08password\x18\x02 \x01(\t\x12\x13\n\x0bpassword_id\x18\x03 \x01(\tB)Z\'github.com/openconfig/gnmi/proto/targetb\x06proto3'
   ,
   dependencies=[github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi_dot_gnmi__pb2.DESCRIPTOR,])
 
@@ -190,8 +190,8 @@ _TARGET_METAENTRY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=516,
-  serialized_end=559,
+  serialized_start=532,
+  serialized_end=575,
 )
 
 _TARGET = _descriptor.Descriptor(
@@ -230,6 +230,13 @@ _TARGET = _descriptor.Descriptor(
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
+    _descriptor.FieldDescriptor(
+      name='dialer', full_name='target.Target.dialer', index=4,
+      number=5, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR,  create_key=_descriptor._internal_create_key),
   ],
   extensions=[
   ],
@@ -243,7 +250,7 @@ _TARGET = _descriptor.Descriptor(
   oneofs=[
   ],
   serialized_start=388,
-  serialized_end=559,
+  serialized_end=575,
 )
 
 
@@ -288,8 +295,8 @@ _CREDENTIALS = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=561,
-  serialized_end=631,
+  serialized_start=577,
+  serialized_end=647,
 )
 
 _CONFIGURATION_REQUESTENTRY.fields_by_name['value'].message_type = github_dot_com_dot_openconfig_dot_gnmi_dot_proto_dot_gnmi_dot_gnmi__pb2._SUBSCRIBEREQUEST

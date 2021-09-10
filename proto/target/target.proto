@@ -60,6 +60,10 @@ message Target {
   string request = 3;
   // Additional target metadata.
   map<string, string> meta = 4;
+  // How should the target be dialed. This option allows for a custom
+  // implementation for how this target is to be reached. If unset the
+  // collector's default implementation will be used.
+  string dialer = 5;
 }
 
 // Credentials contains the fields necessary for authentication of the client to
