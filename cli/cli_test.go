@@ -455,12 +455,13 @@ update: <
 			DisplayIndent: "  ",
 			DisplayType:   "group",
 			Timestamp:     "Monday",
+			Location:      time.UTC, // make tests deterministic across different local time zones
 		},
 		want: `{
   "dev1": {
     "a": {
       "b": {
-        "timestamp": "Friday",
+        "timestamp": "Saturday",
         "value": 5
       }
     }
