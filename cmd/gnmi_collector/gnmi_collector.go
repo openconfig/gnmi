@@ -68,6 +68,13 @@ func periodic(period time.Duration, fn func()) {
 	}
 }
 
+func (c *collector) isTargetActive(id string) bool {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	_, ok := c.tActive[id]
+	return ok
+}
+
 func (c *collector) addTargetHandler(t tunnel.Target) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
@@ -230,7 +237,6 @@ type collector struct {
 	mu             sync.Mutex
 	cancelFuncs    map[string]func()
 	addr           string
-	tConn          map[string]*tunnel.Conn
 	tActive        map[string]*tunnTarget
 	tServer        *tunnel.Server
 	tRequest       string
@@ -257,9 +263,11 @@ func (c *collector) reconnect(target string) error {
 }
 
 func (c *collector) runSingleTarget(ctx context.Context, targetID string, tc *tunnel.Conn) {
+	c.mu.Lock()
 	target, ok := c.tActive[targetID]
+	c.mu.Unlock()
 	if !ok {
-		log.Errorf("Unknown target %q", targetID)
+		log.Errorf("Unknown tunnel target %q", targetID)
 		return
 	}
 
@@ -313,10 +321,12 @@ func (c *collector) start(ctx context.Context) {
 	// First, run for non-tunnel targets.
 	useTunnel := false
 	for id, t := range c.config.Target {
-		if t.Dialer == "tunnel" {
+		if t.GetDialer() == "tunnel" {
 			useTunnel = true
 			continue
 		}
+		log.Infof("adding non-tunnel target %s", id)
+		c.addTarget(ctx, id, &tunnTarget{conf: t})
 		c.runSingleTarget(ctx, id, nil)
 	}
 
@@ -336,7 +346,7 @@ func (c *collector) start(ctx context.Context) {
 					log.Infof("received unsupported type type: %s from target: %s, skipping", target.Type, target.ID)
 					continue
 				}
-				if _, ok := c.tActive[target.ID]; ok {
+				if c.isTargetActive(target.ID) {
 					log.Infof("received target %s, which is already registered. skipping", target.ID)
 					continue
 				}
@@ -368,7 +378,7 @@ func (c *collector) start(ctx context.Context) {
 					log.Infof("received unsupported type type: %s from target: %s, skipping", target.Type, target.ID)
 					continue
 				}
-				if _, ok := c.tActive[target.ID]; !ok {
+				if !c.isTargetActive(target.ID) {
 					log.Infof("received target %s, which is not registered. skipping", target.ID)
 					continue
 				}
@@ -406,7 +416,12 @@ func (c *collector) addTarget(ctx context.Context, name string, target *tunnTarg
 		log.Infof("trying to add target %q:%+v, but already in exists. do nothing", name, target)
 		return nil
 	}
-	target.conf.Addresses = []string{c.addr}
+
+	// For non-tunnel target, don't modify the addresses.
+	if target.conf.GetDialer() == "tunnel" {
+		target.conf.Addresses = []string{c.addr}
+	}
+
 	c.tActive[name] = target
 	log.Infof("Added target: %q:%+v", name, target)
 	return nil
