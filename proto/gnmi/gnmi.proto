@@ -292,11 +292,11 @@ message Subscription {
   uint64 sample_interval = 3;       // ns between samples in SAMPLE mode.
   // Indicates whether values that have not changed should be sent in a SAMPLE
   // subscription.
-  bool suppress_redundant = 4;
+  bool suppress_redundant = 4 [deprecated=true];
   // Specifies the maximum allowable silent period in nanoseconds when
   // suppress_redundant is in use. The target should send a value at least once
   // in the period specified.
-  uint64 heartbeat_interval = 5;
+  uint64 heartbeat_interval = 5 [deprecated=true];
 }
 
 // SubscriptionMode is the mode of the subscription, specifying how the
