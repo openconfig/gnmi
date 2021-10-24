@@ -76,7 +76,7 @@ func TestRegister(t *testing.T) {
 		clientType: []string{"bar"},
 		nErr:       false,
 	}, {
-		desc: "Unspecified client with prior registeration",
+		desc: "Unspecified client with prior registration",
 		nErr: false,
 	}, {
 		desc:       "Duplicate Registration",
@@ -524,7 +524,7 @@ func ExampleClient_Poll() {
 	for _, v := range c.Leaves() {
 		fmt.Printf("%v: %v\n", v.Path, v.Val)
 	}
-	err = c.Poll() // Poll allows the underyling Query to keep running
+	err = c.Poll() // Poll allows the underlying Query to keep running
 	if err != nil {
 		fmt.Println(err)
 		return

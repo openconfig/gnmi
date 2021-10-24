@@ -69,7 +69,7 @@ type ACL interface {
 	Check(string, string) bool
 }
 
-// Server is the implementation of the gNMI Subcribe API.
+// Server is the implementation of the gNMI Subscribe API.
 type Server struct {
 	pb.UnimplementedGNMIServer // Stub out all RPCs except Subscribe.
 

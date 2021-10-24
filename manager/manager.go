@@ -73,7 +73,7 @@ type Config struct {
 	Update func(*gpb.Notification)
 	// ConnectionManager is used to create gRPC connections.
 	ConnectionManager ConnectionManager
-	// ConnectError record error from subcribe connections.
+	// ConnectError record error from subscribe connections.
 	ConnectError func(string, error)
 }
 

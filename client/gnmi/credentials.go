@@ -31,7 +31,7 @@ type passCred struct {
 
 // GetRequestMetadata returns the current request metadata, including
 // username and password in this case.
-// This implements the required interface fuction of credentials.Credentials.
+// This implements the required interface function of credentials.Credentials.
 func (pc *passCred) GetRequestMetadata(ctx context.Context, uri ...string) (map[string]string, error) {
 	return map[string]string{
 		"username": pc.username,
@@ -40,7 +40,7 @@ func (pc *passCred) GetRequestMetadata(ctx context.Context, uri ...string) (map[
 }
 
 // RequireTransportSecurity indicates whether the credentials requires transport security.
-// This implements the required interface fuction of credentials.Credentials.
+// This implements the required interface function of credentials.Credentials.
 func (pc *passCred) RequireTransportSecurity() bool {
 	return pc.secure
 }

@@ -85,7 +85,7 @@ func (c *Client) Run(stream gpb.GNMI_SubscribeServer) (err error) {
 		return grpc.Errorf(grpc.Code(err), "received error from client")
 	}
 	c.requests = append(c.requests, query)
-	log.V(1).Infof("Client %s recieved initial query: %v", c, query)
+	log.V(1).Infof("Client %s received initial query: %v", c, query)
 
 	c.subscribe = query.GetSubscribe()
 	if c.subscribe == nil {

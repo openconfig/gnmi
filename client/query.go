@@ -147,7 +147,7 @@ type Query struct {
 	// UpdatesOnly will only stream incremental updates rather than providing the
 	// client with an initial snapshot.  This again is implementation specific
 	// if the agent doesn't not accept that query it is up the client library to
-	// decide wheter to return an error or to make a normal subscription then
+	// decide whether to return an error or to make a normal subscription then
 	// ignore the initial sync and only provide increment updates.
 	UpdatesOnly bool
 	// Queries contains the list of Paths to query.
@@ -161,7 +161,7 @@ type Query struct {
 	// If Timeout is not set, default is 1 minute.
 	Timeout time.Duration
 	// NotificationHandler is the per notification callback handed to a vendor
-	// specific implementation. For every notificaiton this call back will be
+	// specific implementation. For every notification this call back will be
 	// called.
 	NotificationHandler NotificationHandler
 	// ProtoHandler, if set, will receive all response protos sent by the
@@ -221,7 +221,7 @@ func (c Credentials) validate() error {
 // NewQuery returns a populated Query from given gnmi SubscribeRequest.
 // Query fields that are not part of SubscribeRequest must be set on
 // the returned object.
-// During transtion to support only gnmi, having Query and SubscribeRequest
+// During transition to support only gnmi, having Query and SubscribeRequest
 // in sync is important. There are two approaches to ensure that; one is
 // validating whether Query and SubscribeRequest are same after they are set, the other is
 // populating the fields of Query from SubscribeRequest and filling out the rest
