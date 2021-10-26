@@ -256,7 +256,8 @@ message SubscriptionList {
   repeated Subscription subscription = 2;   // Set of subscriptions to create.
   // Whether target defined aliases are allowed within the subscription.
   bool use_aliases = 3;
-  QOSMarking qos = 4;                       // DSCP marking to be used.
+  // DSCP marking to be used.
+  QOSMarking qos = 4 [deprected=true];
   // Mode of the subscription.
   enum Mode {
     STREAM = 0; // Values streamed by the target (Sec. 3.5.1.5.2).
