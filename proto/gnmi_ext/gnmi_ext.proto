@@ -47,6 +47,11 @@ enum ExtensionID {
   // MUST link to a reference describing their implementation.
 
   // Juniper Telemetry header
+  // The extension proto file is named as GnmiJuniperTelemetryHeaderExtension.proto
+  // for all Junos releases starting from 21.3
+  // and it is found in each release folders of the following github repo
+  // https://github.com/Juniper/telemetry
+  // Implementation details can be found at https://kb.juniper.net/KB36506
   EID_JUNIPER_TELEMETRY_HEADER = 1;
 
   // An experimental extension that may be used during prototyping of a new
