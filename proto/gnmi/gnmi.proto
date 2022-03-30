@@ -37,7 +37,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.7.0";
+option (gnmi_service) = "0.8.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
@@ -100,6 +100,7 @@ message Update {
   Value value = 2 [deprecated=true];  // The value (value) for the update.
   TypedValue val = 3;                 // The explicitly typed update value.
   uint32 duplicates = 4;              // Number of coalesced duplicates.
+  int64 timestamp = 5;                // Timestamp in nanoseconds since Epoch.
 }
 
 // TypedValue is used to encode a value being sent between the client and
