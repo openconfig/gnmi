@@ -39,6 +39,8 @@ message Configuration {
   map<string, Target> target = 2;
   // Identifier for the caching collector.
   string instance_id = 3;
+  // Additional config metadata.
+  map<string, string> meta = 4;
   // Revision for this Configuration. Systems that non-atomically write
   // configuration should populate and require revision, leveraging canonical
   // protobuf serialization of fields in order. Presence of this field makes no

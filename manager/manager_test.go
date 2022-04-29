@@ -475,7 +475,7 @@ func TestRetrySubscribe(t *testing.T) {
 		Reset: func(s string) {
 			r.resets = append(r.resets, s)
 		},
-		Update: func(g *gpb.Notification) {
+		Update: func(_ string, g *gpb.Notification) {
 			r.updates = append(r.updates, g)
 		},
 	})

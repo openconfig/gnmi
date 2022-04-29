@@ -160,7 +160,7 @@ func TestCompletePath(t *testing.T) {
 		wantErrSubstr string
 	}{
 		{
-			desc:      "origin is just set in prefix",
+			desc:      "origin is just set in prefix with empty path",
 			inPrefix:  &gpb.Path{Target: "t", Origin: "o"},
 			wantSlice: []string{"o"},
 		},
@@ -181,6 +181,18 @@ func TestCompletePath(t *testing.T) {
 			inPrefix:  &gpb.Path{Target: "t"},
 			inPath:    &gpb.Path{Origin: "o", Elem: []*gpb.PathElem{{Name: "e"}}},
 			wantSlice: []string{"o", "e"},
+		},
+		{
+			desc:     "origin is just set in prefix",
+			inPrefix: &gpb.Path{Target: "t", Origin: "o"},
+			inPath: &gpb.Path{
+				Elem: []*gpb.PathElem{
+					&gpb.PathElem{Name: "a"},
+					&gpb.PathElem{Name: "b", Key: map[string]string{"n": "c"}},
+					&gpb.PathElem{Name: "d"},
+				},
+			},
+			wantSlice: []string{"o", "a", "b", "c", "d"},
 		},
 	}
 

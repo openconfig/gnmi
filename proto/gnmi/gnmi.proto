@@ -37,12 +37,13 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.7.0";
+option (gnmi_service) = "0.8.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
 option java_outer_classname = "GnmiProto";
 option java_package = "com.github.gnmi.proto";
+option use_java_stubby_library = true;
 
 service gNMI {
   // Capabilities allows the client to retrieve the set of capabilities that
@@ -116,8 +117,9 @@ message TypedValue {
     uint64 uint_val = 3;              // Unsigned integer value.
     bool bool_val = 4;                // Bool value.
     bytes bytes_val = 5;              // Arbitrary byte sequence value.
-    float float_val = 6;              // Floating point value.
-    Decimal64 decimal_val = 7;        // Decimal64 encoded value.
+    float float_val = 6 [deprecated=true]; // Deprecated - use double_val.
+    double double_val = 14;           // Floating point value.
+    Decimal64 decimal_val = 7 [deprecated=true]; // Deprecated - use double_val.
     ScalarArray leaflist_val = 8;     // Mixed type scalar array value.
     google.protobuf.Any any_val = 9;  // protobuf.Any encoded bytes.
     bytes json_val = 10;              // JSON-encoded text.
@@ -126,7 +128,7 @@ message TypedValue {
     // Protobuf binary encoded bytes. The message type is not included.
     // See the specification at
     // github.com/openconfig/reference/blob/master/rpc/gnmi/protobuf-vals.md
-    // for a complete specification.
+    // for a complete specification. [Experimental]
     bytes proto_bytes = 13;
   }
 }
@@ -170,7 +172,7 @@ message Value {
 enum Encoding {
   JSON = 0;           // JSON encoded text.
   BYTES = 1;          // Arbitrarily encoded bytes.
-  PROTO = 2;          // Encoded according to out-of-band agreed Protobuf.
+  PROTO = 2;          // Encoded according to scalar values of TypedValue.
   ASCII = 3;          // ASCII text of an out-of-band agreed format.
   JSON_IETF = 4;      // JSON encoded text as per RFC7951.
 }

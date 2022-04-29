@@ -96,8 +96,10 @@ func (c *Client) Recv() error {
 	if c.Context == nil {
 		c.Context = context.Background()
 	}
-	if !c.connected && c.Handler != nil {
-		c.Handler(client.Connected{})
+	if !c.connected {
+		if c.Handler != nil {
+			c.Handler(client.Connected{})
+		}
 		c.connected = true
 	}
 

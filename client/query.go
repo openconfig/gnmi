@@ -272,8 +272,8 @@ func (q Query) Validate() error {
 	switch {
 	case q.Type == Unknown:
 		return errors.New("Query type cannot be Unknown")
-	case len(q.Queries) == 0:
-		return errors.New("Query.Queries not set")
+	case len(q.Queries) == 0 && q.SubReq == nil:
+		return errors.New("Neither Query.Queries or Query.SubReq is set")
 	case q.NotificationHandler != nil && q.ProtoHandler != nil:
 		return errors.New("only one of Notification or ProtoHandler must be set")
 	case q.NotificationHandler == nil && q.ProtoHandler == nil:

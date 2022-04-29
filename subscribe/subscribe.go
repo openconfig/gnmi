@@ -20,7 +20,10 @@ package subscribe
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
+	"strings"
+	"sync/atomic"
 	"time"
 
 	log "github.com/golang/glog"
@@ -50,6 +53,12 @@ var (
 	SubscriptionLimit = 0
 	// Value overridden in tests to evaluate SubscriptionLimit enforcement.
 	subscriptionLimitTest = func() {}
+	// Values overridden in tests to verify subscription counters.
+	updateSubsCountEnterTest = func() {}
+	updateSubsCountExitTest  = func() {}
+	pendingSubsCountTest     = func(int64) {}
+	// Values overridden in tests to verify subscription client counters.
+	clientStatsTest = func(int64, int64) {}
 )
 
 type aclStub struct{}
@@ -80,16 +89,27 @@ type Server struct {
 	// queries are in flight.
 	subscribeSlots chan struct{}
 	timeout        time.Duration
+	stats          *stats
+}
+
+func newServer(c *cache.Cache, st *stats) (*Server, error) {
+	s := &Server{c: c, m: match.New(), timeout: Timeout, stats: st}
+	if SubscriptionLimit > 0 {
+		s.subscribeSlots = make(chan struct{}, SubscriptionLimit)
+	}
+	return s, nil
 }
 
 // NewServer instantiates server to handle client queries.  The cache should be
 // already instantiated.
 func NewServer(c *cache.Cache) (*Server, error) {
-	s := &Server{c: c, m: match.New(), timeout: Timeout}
-	if SubscriptionLimit > 0 {
-		s.subscribeSlots = make(chan struct{}, SubscriptionLimit)
-	}
-	return s, nil
+	return newServer(c, nil)
+}
+
+// NewServerWithStats instantiates a server with statistics collection enabled
+// to handle client queries. The cache should be already instantiated.
+func NewServerWithStats(c *cache.Cache) (*Server, error) {
+	return newServer(c, newStats())
 }
 
 // SetACL sets server ACL. This method is called before server starts to run.
@@ -123,6 +143,32 @@ func (s *Server) Update(n *ctree.Leaf) {
 		UpdateNotification(s.m, n, v, path.ToStrings(v.Prefix, true))
 	default:
 		log.Errorf("update is not a known type; type is %T", v)
+	}
+}
+
+func (s *Server) updateTargetCounts(target string) func() {
+	if s.stats == nil {
+		return func() {}
+	}
+	st := s.stats.targetStats(target)
+	atomic.AddInt64(&st.ActiveSubscriptionCount, 1)
+	atomic.AddInt64(&st.SubscriptionCount, 1)
+	return func() {
+		atomic.AddInt64(&st.ActiveSubscriptionCount, -1)
+		updateSubsCountExitTest()
+	}
+}
+
+func (s *Server) updateTypeCounts(typ string) func() {
+	if s.stats == nil {
+		return func() {}
+	}
+	st := s.stats.typeStats(typ)
+	atomic.AddInt64(&st.ActiveSubscriptionCount, 1)
+	atomic.AddInt64(&st.SubscriptionCount, 1)
+	updateSubsCountEnterTest()
+	return func() {
+		atomic.AddInt64(&st.ActiveSubscriptionCount, -1)
 	}
 }
 
@@ -181,9 +227,12 @@ func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
 	if !s.c.HasTarget(c.target) {
 		return status.Errorf(codes.NotFound, "no such target: %q", c.target)
 	}
+	defer s.updateTargetCounts(c.target)()
 	peer, _ := peer.FromContext(stream.Context())
 	mode := c.sr.GetSubscribe().Mode
-
+	if m := mode.String(); m != "" {
+		defer s.updateTypeCounts(strings.ToLower(m))()
+	}
 	log.Infof("peer: %v target: %q subscription: %s", peer.Addr, c.target, c.sr)
 	defer log.Infof("peer: %v target %q subscription: end: %q", peer.Addr, c.target, c.sr)
 
@@ -294,6 +343,15 @@ type streamClient struct {
 	errC   chan<- error
 }
 
+func (s *Server) addPendingSubsCount(mode string, inc int64) {
+	if s.stats == nil {
+		return
+	}
+	st := s.stats.typeStats(mode)
+	atomic.AddInt64(&st.PendingSubscriptionCount, inc)
+	pendingSubsCountTest(inc)
+}
+
 // processSubscription walks the cache tree and inserts all of the matching
 // nodes into the coalesce queue followed by a subscriptionSync response.
 func (s *Server) processSubscription(c *streamClient) {
@@ -314,8 +372,11 @@ func (s *Server) processSubscription(c *streamClient) {
 		// are already in flight.
 		case s.subscribeSlots <- struct{}{}:
 		default:
+			mode := strings.ToLower(c.sr.GetSubscribe().Mode.String())
+			s.addPendingSubsCount(mode, 1)
 			log.V(2).Infof("subscription %s delayed waiting for 1 of %d subscription slots.", c.sr, len(s.subscribeSlots))
 			s.subscribeSlots <- struct{}{}
+			s.addPendingSubsCount(mode, -1)
 			log.V(2).Infof("subscription %s resumed", c.sr)
 		}
 		// Remove subscription from the channel upon completion.
@@ -379,11 +440,30 @@ func (s *Server) processPollingSubscription(c *streamClient) {
 	}
 }
 
+func (s *Server) updateClientStats(client, target string, dup, queueSize int64) {
+	if s.stats == nil {
+		return
+	}
+	st := s.stats.clientStats(client, target)
+	atomic.AddInt64(&st.CoalesceCount, dup)
+	atomic.StoreInt64(&st.QueueSize, queueSize)
+	clientStatsTest(dup, queueSize)
+}
+
 // sendStreamingResults forwards all streaming updates to a given streaming
 // Subscription RPC client.
 func (s *Server) sendStreamingResults(c *streamClient) {
 	ctx := c.stream.Context()
 	peer, _ := peer.FromContext(ctx)
+	// The pointer is used only to disambiguate among multiple subscriptions from the
+	// same Peer and has no meaning otherwise.
+	szKey := fmt.Sprintf("%s:%p", peer.Addr, c.sr)
+	defer func() {
+		if s.stats != nil {
+			s.stats.removeClientStats(szKey)
+		}
+	}()
+
 	t := time.NewTimer(s.timeout)
 	// Make sure the timer doesn't expire waiting for a value to send, only
 	// waiting to send.
@@ -410,6 +490,7 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 			c.errC <- err
 			return
 		}
+		s.updateClientStats(szKey, c.target, int64(dup), int64(c.queue.Len()))
 
 		// s.processSubscription will send a sync marker, handle it separately.
 		if _, ok := item.(syncMarker); ok {
@@ -494,4 +575,34 @@ func isTargetDelete(l *ctree.Leaf) bool {
 		}
 	}
 	return false
+}
+
+// TypeStats returns statistics for all types of subscribe queries, e.g.
+// stream, once, or poll. Statistics is available only if the Server is
+// created with NewServerWithStats.
+func (s *Server) TypeStats() map[string]TypeStats {
+	if s.stats == nil {
+		return nil
+	}
+	return s.stats.allTypeStats()
+}
+
+// TargetStats returns statistics of subscribe queries for all targets.
+// Statistics is available only if the Server is created with
+// NewServerWithStats.
+func (s *Server) TargetStats() map[string]TargetStats {
+	if s.stats == nil {
+		return nil
+	}
+	return s.stats.allTargetStats()
+}
+
+// ClientStats returns states of all subscribe clients such as queue size,
+// coalesce count. Statistics is available only if the Server is created
+// with NewServerWithStats.
+func (s *Server) ClientStats() map[string]ClientStats {
+	if s.stats == nil {
+		return nil
+	}
+	return s.stats.allClientStats()
 }

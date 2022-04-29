@@ -70,7 +70,7 @@ type Config struct {
 	// Timeout defines the optional duration to wait for a gRPC dial.
 	Timeout time.Duration
 	// Update will be invoked in response to gNMI updates.
-	Update func(*gpb.Notification)
+	Update func(string, *gpb.Notification)
 	// ConnectionManager is used to create gRPC connections.
 	ConnectionManager ConnectionManager
 	// ConnectError record error from subcribe connections.
@@ -99,7 +99,7 @@ type Manager struct {
 	sync              func(string)
 	testSync          func() // exposed for test synchronization
 	timeout           time.Duration
-	update            func(*gpb.Notification)
+	update            func(string, *gpb.Notification)
 
 	mu      sync.Mutex
 	targets map[string]*target
@@ -148,7 +148,7 @@ func (m *Manager) handleGNMIUpdate(name string, resp *gpb.SubscribeResponse) err
 	switch v := resp.Response.(type) {
 	case *gpb.SubscribeResponse_Update:
 		if m.update != nil {
-			m.update(v.Update)
+			m.update(name, v.Update)
 		}
 	case *gpb.SubscribeResponse_SyncResponse:
 		if m.sync != nil {
@@ -187,7 +187,7 @@ func (m *Manager) createConn(ctx context.Context, name string, t *tpb.Target) (c
 			connCtx = c
 			defer cancel()
 		}
-		return m.connectionManager.Connection(connCtx, nh, t.Meta["dialer"])
+		return m.connectionManager.Connection(connCtx, nh, t.GetDialer())
 	}
 }
 

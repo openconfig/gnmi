@@ -44,27 +44,40 @@ import (
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-func startServer(targets []string) (string, *cache.Cache, func(), error) {
+func startServerWithOpts(targets []string, withStats bool) (string, *Server, *cache.Cache, func(), error) {
 	c := cache.New(targets)
-	p, err := NewServer(c)
+	newServerFunc := NewServer
+	if withStats {
+		newServerFunc = NewServerWithStats
+	}
+	p, err := newServerFunc(c)
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("NewServer: %v", err)
+		return "", nil, nil, nil, fmt.Errorf("NewServer: %v", err)
 	}
 	c.SetClient(p.Update)
 	lis, err := net.Listen("tcp", "")
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("net.Listen: %v", err)
+		return "", nil, nil, nil, fmt.Errorf("net.Listen: %v", err)
 	}
 	opt, err := config.WithSelfTLSCert()
 	if err != nil {
-		return "", nil, nil, fmt.Errorf("config.WithSelfCert: %v", err)
+		return "", nil, nil, nil, fmt.Errorf("config.WithSelfCert: %v", err)
 	}
 	srv := grpc.NewServer(opt)
 	pb.RegisterGNMIServer(srv, p)
 	go srv.Serve(lis)
-	return lis.Addr().String(), p.c, func() {
+	return lis.Addr().String(), p, p.c, func() {
 		lis.Close()
 	}, nil
+}
+
+func startServer(targets []string) (string, *cache.Cache, func(), error) {
+	addr, _, c, teardown, err := startServerWithOpts(targets, false)
+	return addr, c, teardown, err
+}
+
+func startServerWithStats(targets []string) (string, *Server, *cache.Cache, func(), error) {
+	return startServerWithOpts(targets, true)
 }
 
 func TestOriginInSubscribeRequest(t *testing.T) {
@@ -829,7 +842,27 @@ func TestGNMIDeletedTargetMessage(t *testing.T) {
 func TestGNMICoalescedDupCount(t *testing.T) {
 	// Inject a simulated flow control to block sends and induce coalescing.
 	flowControlTest = func() { time.Sleep(10 * time.Millisecond) }
-	addr, cache, teardown, err := startServer([]string{"dev1"})
+	dequeCount := 0
+	qszReady := make(chan struct{})
+	dupReady := make(chan struct{})
+	qszWait := make(chan struct{})
+	dupWait := make(chan struct{})
+	clientStatsTest = func(dup, qsz int64) {
+		dequeCount++
+		if qsz > 0 {
+			close(qszReady)
+			<-qszWait
+		}
+		if dup > 0 {
+			close(dupReady)
+			<-dupWait
+		}
+	}
+	defer func() {
+		flowControlTest = func() {}
+		clientStatsTest = func(int64, int64) {}
+	}()
+	addr, s, cache, teardown, err := startServerWithStats([]string{"dev1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -880,8 +913,23 @@ func TestGNMICoalescedDupCount(t *testing.T) {
 	}
 	var timestamp time.Time
 	sendUpdates(t, cache, paths[0:1], &timestamp)
+	<-qszReady
+	for _, st := range s.ClientStats() {
+		if st.QueueSize != 1 { // Sync is in the queue
+			t.Errorf("QueueSize: got %d, want 1", st.QueueSize)
+		}
+	}
+	close(qszWait)
 	<-stall
+
 	sendUpdates(t, cache, paths, &timestamp)
+	<-dupReady
+	for _, st := range s.ClientStats() {
+		if want := int64(len(paths) - 1); st.CoalesceCount != want {
+			t.Errorf("CoalesceCount: got %d, want %d", st.CoalesceCount, want)
+		}
+	}
+	close(dupWait)
 	<-done
 
 	if want := uint32(len(paths) - 1); coalesced != want {
@@ -933,17 +981,37 @@ func TestGNMISubscribeTimeout(t *testing.T) {
 func TestSubscriptionLimit(t *testing.T) {
 	totalQueries := 20
 	SubscriptionLimit = 7
+	pendingQueries := totalQueries - SubscriptionLimit
 	causeLimit := make(chan struct{})
 	subscriptionLimitTest = func() {
 		<-causeLimit
+	}
+	var pendingSubsMu sync.Mutex
+	pendingSubs := 0
+	pendingSubsReadyCh := make(chan struct{})
+	pendingSubsCh := make(chan struct{})
+	pendingSubsCountTest = func(inc int64) {
+		if inc <= 0 {
+			return
+		}
+		pendingSubsMu.Lock()
+		pendingSubs++
+		if pendingSubs == pendingQueries {
+			close(pendingSubsReadyCh)
+			pendingSubsMu.Unlock()
+			<-pendingSubsCh
+			return
+		}
+		pendingSubsMu.Unlock()
 	}
 	// Clear the global variables so as not to interfere with other tests.
 	defer func() {
 		SubscriptionLimit = 0
 		subscriptionLimitTest = func() {}
+		pendingSubsCountTest = func(int64) {}
 	}()
 
-	addr, _, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, s, _, teardown, err := startServerWithStats([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -985,8 +1053,19 @@ firstQueries:
 	if finished != SubscriptionLimit {
 		t.Fatalf("got %d finished queries, want %d", finished, SubscriptionLimit)
 	}
-
+	<-pendingSubsReadyCh
+	st := s.TypeStats()["once"]
+	if st.ActiveSubscriptionCount != int64(totalQueries) {
+		t.Errorf("ActiveSubscriptionCount: got %d, want %d", st.ActiveSubscriptionCount, totalQueries)
+	}
+	if st.SubscriptionCount != int64(totalQueries) {
+		t.Errorf("SubscriptionCount: got %d, want %d", st.SubscriptionCount, totalQueries)
+	}
+	if st.PendingSubscriptionCount != int64(pendingQueries) {
+		t.Errorf("PendingSubscriptionCount: got %d, want %d", st.PendingSubscriptionCount, pendingQueries)
+	}
 	close(causeLimit)
+	close(pendingSubsCh)
 	timeout = time.After(time.Second)
 remainingQueries:
 	for {
@@ -1079,6 +1158,9 @@ remainingQueries:
 func TestGNMIMultipleSubscriberCoalescion(t *testing.T) {
 	// Inject a simulated flow control to block sends and induce coalescing.
 	flowControlTest = func() { time.Sleep(time.Second) }
+	defer func() {
+		flowControlTest = func() {}
+	}()
 	addr, cache, teardown, err := startServer([]string{"dev1"})
 	if err != nil {
 		t.Fatal(err)
@@ -1133,6 +1215,160 @@ func TestGNMIMultipleSubscriberCoalescion(t *testing.T) {
 		if d != uint32(len(paths)-1) {
 			t.Errorf("#%d got %d, expect %d duplicate count", i, d, uint32(len(paths)-1))
 		}
+	}
+}
+
+func TestGNMIServerStats(t *testing.T) {
+	ready1 := make(chan struct{})
+	ready2 := make(chan struct{})
+	ready3 := make(chan struct{})
+	subsEnterCount := 0
+	updateSubsCountEnterTest = func() {
+		subsEnterCount++
+		switch subsEnterCount {
+		case 1:
+			close(ready1)
+		case 2:
+			close(ready2)
+		case 3:
+			close(ready3)
+		}
+	}
+	wait1 := make(chan struct{})
+	wait2 := make(chan struct{})
+	wait3 := make(chan struct{})
+	subsExitCount := 0
+	updateSubsCountExitTest = func() {
+		subsExitCount++
+		switch subsExitCount {
+		case 1:
+			close(wait1)
+		case 2:
+			close(wait2)
+		case 3:
+			close(wait3)
+		}
+	}
+	defer func() {
+		updateSubsCountEnterTest = func() {}
+		updateSubsCountExitTest = func() {}
+	}()
+	addr, s, cache, teardown, err := startServerWithStats([]string{"dev1", "dev2"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer teardown()
+
+	paths := []client.Path{
+		{"dev1", "a", "b"},
+		{"dev2", "a", "b"},
+	}
+	var timestamp time.Time
+	sendUpdates(t, cache, paths, &timestamp)
+
+	c1 := client.BaseClient{}
+	q := client.Query{
+		Addrs:   []string{addr},
+		Target:  "dev1",
+		Queries: []client.Path{{"a"}},
+		Type:    client.Stream,
+		ProtoHandler: func(proto.Message) error {
+			return nil
+		},
+		TLS: &tls.Config{InsecureSkipVerify: true},
+	}
+	ctx1, cancel1 := context.WithCancel(context.Background())
+	go func() {
+		c1.Subscribe(ctx1, q, gnmiclient.Type)
+	}()
+	<-ready1
+	checkSubsCounts(t, "one stream client to dev1",
+		s.TypeStats(), map[string]TypeStats{"stream": TypeStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1}},
+		s.TargetStats(), map[string]TargetStats{"dev1": TargetStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1}})
+
+	c2 := client.BaseClient{}
+	q.Target = "dev2"
+	ctx2, cancel2 := context.WithCancel(context.Background())
+	go func() {
+		c2.Subscribe(ctx2, q, gnmiclient.Type)
+	}()
+	<-ready2
+	checkSubsCounts(t, "one stream client to dev1 + one stream client to dev2",
+		s.TypeStats(), map[string]TypeStats{"stream": TypeStats{ActiveSubscriptionCount: 2, SubscriptionCount: 2}},
+		s.TargetStats(), map[string]TargetStats{
+			"dev1": TargetStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1},
+			"dev2": TargetStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1},
+		})
+
+	c3 := client.BaseClient{}
+	q.Target = "dev1"
+	q.Type = client.Poll
+	ctx3, cancel3 := context.WithCancel(context.Background())
+	go func() {
+		c3.Subscribe(ctx3, q, gnmiclient.Type)
+	}()
+	<-ready3
+	checkSubsCounts(t, "one stream client to dev1 + one stream client to dev2 + one poll client to dev1",
+		s.TypeStats(), map[string]TypeStats{
+			"stream": TypeStats{ActiveSubscriptionCount: 2, SubscriptionCount: 2},
+			"poll":   TypeStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1},
+		},
+		s.TargetStats(), map[string]TargetStats{
+			"dev1": TargetStats{ActiveSubscriptionCount: 2, SubscriptionCount: 2},
+			"dev2": TargetStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1},
+		})
+
+	cancel1()
+	<-wait1
+	checkSubsCounts(t, "one stream client to dev1 cancelled + one stream client to dev2 + one poll client to dev1",
+		s.TypeStats(), map[string]TypeStats{
+			"stream": TypeStats{ActiveSubscriptionCount: 1, SubscriptionCount: 2},
+			"poll":   TypeStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1},
+		},
+		s.TargetStats(), map[string]TargetStats{
+			"dev1": TargetStats{ActiveSubscriptionCount: 1, SubscriptionCount: 2},
+			"dev2": TargetStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1},
+		})
+
+	cancel2()
+	<-wait2
+	checkSubsCounts(t, "one stream client to dev1 cancelled + one stream client to dev2 cancelled + one poll client to dev1",
+		s.TypeStats(), map[string]TypeStats{
+			"stream": TypeStats{ActiveSubscriptionCount: 0, SubscriptionCount: 2},
+			"poll":   TypeStats{ActiveSubscriptionCount: 1, SubscriptionCount: 1},
+		},
+		s.TargetStats(), map[string]TargetStats{
+			"dev1": TargetStats{ActiveSubscriptionCount: 1, SubscriptionCount: 2},
+			"dev2": TargetStats{ActiveSubscriptionCount: 0, SubscriptionCount: 1},
+		})
+
+	cancel3()
+	<-wait3
+	checkSubsCounts(t, "one stream client to dev1 cancelled + one stream client to dev2 cancelled + one poll client to dev1 cancelled",
+		s.TypeStats(), map[string]TypeStats{
+			"stream": TypeStats{ActiveSubscriptionCount: 0, SubscriptionCount: 2},
+			"poll":   TypeStats{ActiveSubscriptionCount: 0, SubscriptionCount: 1},
+		},
+		s.TargetStats(), map[string]TargetStats{
+			"dev1": TargetStats{ActiveSubscriptionCount: 0, SubscriptionCount: 2},
+			"dev2": TargetStats{ActiveSubscriptionCount: 0, SubscriptionCount: 1},
+		})
+}
+
+func checkSubsCounts(t *testing.T, desc string, gotTypSt, wantTypSt map[string]TypeStats, gotTargetSt, wantTargetSt map[string]TargetStats) {
+	checkSubsTypeCounts(t, desc, gotTypSt, wantTypSt)
+	checkSubsTargetCounts(t, desc, gotTargetSt, wantTargetSt)
+}
+
+func checkSubsTypeCounts(t *testing.T, desc string, got, want map[string]TypeStats) {
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("Case %q got diff in TypeStats (+got -want): %s", desc, diff)
+	}
+}
+
+func checkSubsTargetCounts(t *testing.T, desc string, got, want map[string]TargetStats) {
+	if diff := cmp.Diff(want, got); diff != "" {
+		t.Errorf("Case %q got diff in TargetStats (+got -want): %s", desc, diff)
 	}
 }
 
