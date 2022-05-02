@@ -43,7 +43,7 @@ option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
 option java_outer_classname = "GnmiProto";
 option java_package = "com.github.gnmi.proto";
-option use_java_stubby_library = true;
+
 
 service gNMI {
   // Capabilities allows the client to retrieve the set of capabilities that
