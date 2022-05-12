@@ -279,13 +279,8 @@ type expectedDelete struct {
 	leaves  map[string]bool
 }
 
-func TestDelete(t *testing.T) {
-	tr := &Tree{}
-	deleted := tr.Delete([]string{"a", "b"})
-	if len(deleted) > 0 {
-		t.Errorf("Delete on empty tree should return empty slice.")
-	}
-	for x, tt := range []expectedDelete{
+func expectedDeletes() []expectedDelete {
+	return []expectedDelete{
 		{[]string{"x"}, map[string]bool{}},
 		// root delete with glob appended for a non-existing root
 		{[]string{"x", "*"}, map[string]bool{}},
@@ -303,7 +298,72 @@ func TestDelete(t *testing.T) {
 		{[]string{}, map[string]bool{"a/d": true, "a/b/c": true, "b/a/d": true, "b/c/d": true, "c/d/e/f/g/h/i": true, "d": true}},
 		// just glob in the path to delete all the tree
 		{[]string{"*"}, map[string]bool{"a/d": true, "a/b/c": true, "b/a/d": true, "b/c/d": true, "c/d/e/f/g/h/i": true, "d": true}},
-	} {
+	}
+}
+
+func TestWalkDeleted(t *testing.T) {
+	tr := &Tree{}
+	always := func(interface{}) bool { return true }
+	var ds []string
+	tr.WalkDeleted([]string{"a", "b"}, always, func(v interface{}) { ds = append(ds, v.(string)) })
+	if len(ds) > 0 {
+		t.Errorf("Delete on empty tree should return empty slice.")
+	}
+	for x, tt := range expectedDeletes() {
+		// Rebuild tree for each query.
+		buildTree(tr)
+		var deletes []string
+		tr.WalkDeleted(tt.subpath, always, func(v interface{}) { deletes = append(deletes, v.(string)) })
+		for _, leafPath := range deletes {
+			if _, ok := tt.leaves[leafPath]; !ok {
+				t.Errorf("#%d: unexpected deleted leaf %v", x, leafPath)
+			}
+			delete(tt.leaves, leafPath)
+		}
+		if len(tt.leaves) > 0 {
+			t.Errorf("#%d: expected leaves missing from return: %v", x, tt.leaves)
+		}
+	}
+	if tr.leafBranch != nil {
+		t.Errorf("tree should be empty, but root still has branches %#v", tr.leafBranch)
+	}
+}
+
+func TestWalkDeletedWithCondition(t *testing.T) {
+	never := func(interface{}) bool { return false }
+	tr := &Tree{}
+	buildTree(tr)
+	var leaves []string
+	tr.WalkDeleted([]string{}, never, func(v interface{}) { leaves = append(leaves, v.(string)) })
+	if len(leaves) > 0 {
+		t.Errorf("Leaves deleted for false condition: %v", leaves)
+	}
+	always := func(interface{}) bool { return true }
+	// This is the same test as the last case for TestWalkDeleted.
+	leaves = nil
+	tr.WalkDeleted([]string{}, always, func(v interface{}) { leaves = append(leaves, v.(string)) })
+	if len(leaves) != 6 {
+		t.Errorf("Not all leaves deleted: %v", leaves)
+	}
+	valEqualsD := func(v interface{}) bool { return v == "d" }
+	buildTree(tr)
+	leaves = nil
+	tr.WalkDeleted([]string{}, valEqualsD, func(v interface{}) { leaves = append(leaves, v.(string)) })
+	if expected := []string{"d"}; !reflect.DeepEqual(expected, leaves) {
+		t.Errorf("got %v, expected %v", leaves, expected)
+	}
+	if v := tr.GetLeafValue([]string{"d"}); nil != v {
+		t.Errorf("got %v, expected %v", v, nil)
+	}
+}
+
+func TestDelete(t *testing.T) {
+	tr := &Tree{}
+	deleted := tr.Delete([]string{"a", "b"})
+	if len(deleted) > 0 {
+		t.Errorf("Delete on empty tree should return empty slice.")
+	}
+	for x, tt := range expectedDeletes() {
 		// Rebuild tree for each query.
 		buildTree(tr)
 		for _, leaf := range tr.Delete(tt.subpath) {
