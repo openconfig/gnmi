@@ -32,6 +32,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/latency"
@@ -317,11 +318,12 @@ func sendUpdates(u updateQueryData, c *Cache, n int, wg *sync.WaitGroup) {
 	r := rand.New(rand.NewSource(5))
 	for i := 0; i < n; i++ {
 		target := u.targets[r.Intn(len(u.targets))]
-		path := append([]string{target}, u.paths[r.Intn(len(u.paths))]...)
+		path := u.paths[r.Intn(len(u.paths))]
 		val, _ := value.FromScalar(u.values[r.Intn(len(u.values))])
 		c.GnmiUpdate(&pb.Notification{
+			Prefix: &pb.Path{Target: target},
 			Update: []*pb.Update{{
-				Path: &pb.Path{Element: path},
+				Path: &pb.Path{Elem: toPathElem(path)},
 				Val:  val,
 			}},
 			Timestamp: int64(n),
@@ -393,14 +395,26 @@ type update struct {
 	val    interface{}
 }
 
+func toPathElem(path []string) []*pb.PathElem {
+	n := len(path)
+	if n == 0 {
+		return nil
+	}
+	pes := make([]*pb.PathElem, 0, n)
+	for _, pe := range path {
+		pes = append(pes, &pb.PathElem{Name: pe})
+	}
+	return pes
+}
+
 func notificationBundle(dev string, prefix []string, ts int64, updates []update) *pb.Notification {
 	n := &pb.Notification{
-		Prefix:    &pb.Path{Element: prefix, Target: dev},
+		Prefix:    &pb.Path{Elem: toPathElem(prefix), Target: dev},
 		Timestamp: ts,
 	}
 	for _, u := range updates {
 		if u.delete {
-			n.Delete = append(n.Delete, &pb.Path{Element: u.path})
+			n.Delete = append(n.Delete, &pb.Path{Elem: toPathElem(u.path)})
 		} else {
 			val, err := value.FromScalar(u.val)
 			if err != nil {
@@ -408,7 +422,7 @@ func notificationBundle(dev string, prefix []string, ts int64, updates []update)
 			}
 			n.Update = append(n.Update, &pb.Update{
 				Path: &pb.Path{
-					Element: u.path,
+					Elem: toPathElem(u.path),
 				},
 				Val: val,
 			})
@@ -1364,4 +1378,216 @@ func less(p, p2 []string) bool {
 		}
 	}
 	return len(p) < len(p2)
+}
+
+func TestGNMIUpdateForDelete(t *testing.T) {
+	dev := "dev1"
+	origin := "openconfig"
+	timestamp1 := int64(1234567890000000)
+	timestamp2 := int64(1234567890100000)
+	initial := []*pb.Notification{{
+		Timestamp: timestamp1,
+		Atomic:    true,
+		Prefix: &pb.Path{
+			Target: dev,
+			Origin: origin,
+			Elem:   []*pb.PathElem{{Name: "a"}, {Name: "b", Key: map[string]string{"k1": "c1"}}},
+		},
+		Update: []*pb.Update{{
+			Path: &pb.Path{Elem: []*pb.PathElem{{Name: "f1"}}},
+			Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v1"}},
+		}, {
+			Path: &pb.Path{Elem: []*pb.PathElem{{Name: "f2"}}},
+			Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v2"}},
+		}},
+	}, {
+		Timestamp: timestamp1,
+		Atomic:    true,
+		Prefix: &pb.Path{
+			Target:  dev,
+			Origin:  origin,
+			Element: []string{"a", "b", "c2"},
+		},
+		Update: []*pb.Update{{
+			Path: &pb.Path{Element: []string{"f1"}},
+			Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v1"}},
+		}, {
+			Path: &pb.Path{Element: []string{"f2"}},
+			Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v2"}},
+		}},
+	}, {
+		Timestamp: timestamp1,
+		Prefix: &pb.Path{
+			Target: dev,
+			Origin: origin,
+			Elem:   []*pb.PathElem{{Name: "a"}, {Name: "d", Key: map[string]string{"k1": "c1"}}},
+		},
+		Update: []*pb.Update{{
+			Path: &pb.Path{Elem: []*pb.PathElem{{Name: "f3"}}},
+			Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v3"}},
+		}, {
+			Path: &pb.Path{Elem: []*pb.PathElem{{Name: "f4"}}},
+			Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v4"}},
+		}},
+	}, {
+		Timestamp: timestamp1,
+		Prefix: &pb.Path{
+			Target: dev,
+		},
+		Update: []*pb.Update{{
+			Path: &pb.Path{
+				Origin: origin,
+				Elem:   []*pb.PathElem{{Name: "a"}, {Name: "e", Key: map[string]string{"k1": "c1"}}, {Name: "f5"}},
+			},
+			Val: &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v5"}},
+		}},
+	}, {
+		Timestamp: timestamp1,
+		Prefix: &pb.Path{
+			Target:  dev,
+			Origin:  origin,
+			Element: []string{"a", "g"},
+		},
+		Update: []*pb.Update{{
+			Path: &pb.Path{Element: []string{"f6"}},
+			Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v6"}},
+		}, {
+			Path: &pb.Path{Element: []string{"f7"}},
+			Val:  &pb.TypedValue{Value: &pb.TypedValue_StringVal{StringVal: "v7"}},
+		}},
+	}}
+	tests := []struct {
+		desc string
+		n    *pb.Notification
+		want []*pb.Notification
+	}{{
+		desc: "Delete atomic notification using PathElem",
+		n: &pb.Notification{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+				Elem:   []*pb.PathElem{{Name: "a"}},
+			},
+			Delete: []*pb.Path{{Elem: []*pb.PathElem{{Name: "b", Key: map[string]string{"k1": "c1"}}}}},
+		},
+		want: []*pb.Notification{{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+			},
+			Delete: []*pb.Path{{Elem: []*pb.PathElem{{Name: "a"}, {Name: "b", Key: map[string]string{"k1": "c1"}}}}},
+		}},
+	}, {
+		desc: "Delete atomic notification using Element",
+		n: &pb.Notification{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target:  dev,
+				Origin:  origin,
+				Element: []string{"a"},
+			},
+			Delete: []*pb.Path{{Element: []string{"b", "c2"}}},
+		},
+		want: []*pb.Notification{{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+			},
+			Delete: []*pb.Path{{Element: []string{"a", "b", "c2"}}},
+		}},
+	}, {
+		desc: "Delete non-atomic notification using PathElem",
+		n: &pb.Notification{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+				Elem:   []*pb.PathElem{{Name: "a"}},
+			},
+			Delete: []*pb.Path{{Elem: []*pb.PathElem{{Name: "d", Key: map[string]string{"k1": "c1"}}}}},
+		},
+		want: []*pb.Notification{{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+			},
+			Delete: []*pb.Path{{Elem: []*pb.PathElem{{Name: "a"}, {Name: "d", Key: map[string]string{"k1": "c1"}}, {Name: "f3"}}}},
+		}, {
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+			},
+			Delete: []*pb.Path{{Elem: []*pb.PathElem{{Name: "a"}, {Name: "d", Key: map[string]string{"k1": "c1"}}, {Name: "f4"}}}},
+		}},
+	}, {
+		desc: "Delete non-atomic notification using Element",
+		n: &pb.Notification{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+			},
+			Delete: []*pb.Path{{Element: []string{"a", "g"}}},
+		},
+		want: []*pb.Notification{{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+			},
+			Delete: []*pb.Path{{Element: []string{"a", "g", "f6"}}},
+		}, {
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+			},
+			Delete: []*pb.Path{{Element: []string{"a", "g", "f7"}}},
+		}},
+	}, {
+		desc: "Delete notification with origin in update path",
+		n: &pb.Notification{
+			Timestamp: timestamp2,
+			Prefix:    &pb.Path{Target: dev},
+			Delete: []*pb.Path{{
+				Origin: origin,
+				Elem:   []*pb.PathElem{{Name: "a"}, {Name: "e"}},
+			}},
+		},
+		want: []*pb.Notification{{
+			Timestamp: timestamp2,
+			Prefix: &pb.Path{
+				Target: dev,
+				Origin: origin,
+			},
+			Delete: []*pb.Path{{Elem: []*pb.PathElem{{Name: "a"}, {Name: "e", Key: map[string]string{"k1": "c1"}}, {Name: "f5"}}}},
+		}},
+	}}
+	c := New([]string{dev})
+	for _, n := range initial {
+		if err := c.GnmiUpdate(n); err != nil {
+			t.Fatalf("Could not initialize cache: %v ", err)
+		}
+	}
+	var out []*pb.Notification
+	c.SetClient(func(l *ctree.Leaf) {
+		out = append(out, l.Value().(*pb.Notification))
+	})
+	index := 0
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			c.GnmiUpdate(tt.n)
+			count := len(out)
+			got := out[index:count]
+			index = count
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("GnmiUpdate got diff (+got-want) for deletes: %s", diff)
+			}
+		})
+	}
 }

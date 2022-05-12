@@ -502,28 +502,49 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 	return t.t.GetLeaf(path), nil
 }
 
+func toDeleteNotification(n *pb.Notification, timestamp int64) *pb.Notification {
+	d := &pb.Notification{
+		Timestamp: timestamp,
+		Prefix: &pb.Path{
+			Target: n.GetPrefix().GetTarget(),
+			Origin: n.GetPrefix().GetOrigin(),
+		},
+	}
+	prefix := n.GetPrefix()
+	path := n.Update[0].GetPath()
+	// Set origin if the origin is in the update
+	if origin := path.GetOrigin(); n.GetPrefix().GetOrigin() == "" && origin != "" {
+		d.Prefix.Origin = origin
+	}
+	switch {
+	case n.GetAtomic():
+		d.Delete = []*pb.Path{{Elem: prefix.GetElem(), Element: prefix.GetElement()}}
+	case len(prefix.GetElem()) > 0 || len(path.GetElem()) > 0:
+		d.Delete = []*pb.Path{{Elem: append(prefix.GetElem(), path.GetElem()...)}}
+	default:
+		d.Delete = []*pb.Path{{Element: append(prefix.GetElement(), path.GetElement()...)}}
+	}
+	return d
+}
+
 func (t *Target) gnmiRemove(n *pb.Notification) []*ctree.Leaf {
 	path := joinPrefixAndPath(n.Prefix, n.Delete[0])
 	if path[0] == metadata.Root {
 		t.meta.ResetEntry(path[1])
 	}
-	leaves := t.t.DeleteConditional(path, func(v interface{}) bool { return v.(*pb.Notification).GetTimestamp() < n.GetTimestamp() })
+	var leaves []*ctree.Leaf
+	f := func(v interface{}) {
+		d := v.(*pb.Notification)
+		leaves = append(leaves, ctree.DetachedLeaf(toDeleteNotification(d, n.GetTimestamp())))
+	}
+	t.t.WalkDeleted(path, func(v interface{}) bool { return v.(*pb.Notification).GetTimestamp() < n.GetTimestamp() }, f)
 	if len(leaves) == 0 {
 		return nil
 	}
 	deleted := int64(len(leaves))
 	t.meta.AddInt(metadata.LeafCount, -deleted)
 	t.meta.AddInt(metadata.DelCount, deleted)
-	var ls []*ctree.Leaf
-	for _, l := range leaves {
-		noti := &pb.Notification{
-			Timestamp: n.GetTimestamp(),
-			Prefix:    &pb.Path{Target: n.GetPrefix().GetTarget()},
-			Delete:    []*pb.Path{{Element: l}},
-		}
-		ls = append(ls, ctree.DetachedLeaf(noti))
-	}
-	return ls
+	return leaves
 }
 
 // updateCache calls fn for each Target.
