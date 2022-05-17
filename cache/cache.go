@@ -43,6 +43,10 @@ import (
 // int64 (nanoseconds since epoch).
 func T(n int64) time.Time { return time.Unix(0, n) }
 
+// Now is a function that can be overridden in tests to alter the timestamps
+// applied to deletes and metadata updates.
+var Now = time.Now
+
 // A Target hosts an indexed cache of state for a single target.
 type Target struct {
 	name   string             // name of the target
@@ -666,7 +670,7 @@ func deleteNoti(t, o string, p []string) *pb.Notification {
 		pe = append(pe, &pb.PathElem{Name: e})
 	}
 	return &pb.Notification{
-		Timestamp: time.Now().UnixNano(),
+		Timestamp: Now().UnixNano(),
 		Prefix:    &pb.Path{Target: t, Origin: o},
 		Delete:    []*pb.Path{&pb.Path{Elem: pe}},
 	}
@@ -679,7 +683,7 @@ func metaNoti(t, m string, v *pb.TypedValue) *pb.Notification {
 		pe = append(pe, &pb.PathElem{Name: p})
 	}
 	return &pb.Notification{
-		Timestamp: time.Now().UnixNano(),
+		Timestamp: Now().UnixNano(),
 		Prefix:    &pb.Path{Target: t},
 		Update: []*pb.Update{
 			&pb.Update{
