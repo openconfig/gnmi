@@ -30,6 +30,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/protobuf/encoding/prototext"
 	"google.golang.org/protobuf/proto"
 	"google.golang.org/protobuf/testing/protocmp"
@@ -1585,7 +1586,10 @@ func TestGNMIUpdateForDelete(t *testing.T) {
 			count := len(out)
 			got := out[index:count]
 			index = count
-			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+			lessFunc := func(a, b *pb.Notification) bool {
+				return a.String() < b.String()
+			}
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform(), cmpopts.SortSlices(lessFunc)); diff != "" {
 				t.Errorf("GnmiUpdate got diff (+got-want) for deletes: %s", diff)
 			}
 		})
