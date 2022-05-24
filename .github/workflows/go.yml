@@ -36,7 +36,7 @@ jobs:
       run: go test -v -coverprofile=profile.cov ./...
 
     - name: Submit coverage
-      uses: shogo82148/action-goveralls@v1
+      uses: shogo82148/actions-goveralls@v1
       with:
         path-to-profile: profile.cov
 
