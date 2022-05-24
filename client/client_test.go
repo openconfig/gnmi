@@ -486,12 +486,12 @@ func (f fakeStreamingClient) Close() error { return nil }
 
 // Once client will run the query and once complete you can act on the
 // returned tree.
-func ExampleClient_Once() {
+func ExampleClient_once() {
 	q := client.Query{
 		Addrs:   []string{"127.0.0.1:1234"},
 		Target:  "dev",
 		Queries: []client.Path{{"*"}},
-		Type:    client.Once, 
+		Type:    client.Once,
 	}
 	c := client.New()
 	defer c.Close()
@@ -507,12 +507,12 @@ func ExampleClient_Once() {
 
 // Poll client is like Once client, but can be re-triggered via Poll to
 // re-execute the query.
-func ExampleClient_Poll() {
+func ExampleClient_poll() {
 	q := client.Query{
 		Addrs:   []string{"127.0.0.1:1234"},
 		Target:  "dev",
 		Queries: []client.Path{{"*"}},
-		Type:    client.Poll, 
+		Type:    client.Poll,
 	}
 	c := client.New()
 	defer c.Close()
@@ -536,7 +536,7 @@ func ExampleClient_Poll() {
 
 // Stream client returns the current state for the query and keeps running
 // until closed or the underlying connection breaks.
-func ExampleClient_Stream() {
+func ExampleClient_stream() {
 	q := client.Query{
 		Addrs:   []string{"127.0.0.1:1234"},
 		Target:  "dev",
