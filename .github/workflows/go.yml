@@ -1,0 +1,61 @@
+name: Go
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+    
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go: ['1.13', '1.14', '1.15', '1.16', '1.x']
+    steps:
+
+    - name: Set up Go ${{ matrix.go }}
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
+      id: go
+
+    - name: Check out code into the Go module directory
+      uses: actions/checkout@v2
+
+    - name: Get dependencies
+      run: |
+        go get -v -t -d ./...
+
+    - name: Build
+      run: go build -v ./...
+
+  static_analysis:
+    name: Static Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install Go
+        uses: actions/setup-go@v2
+        with:
+          go-version: '1.14'
+        id: go
+
+      - name: Install required static analysis tools
+        run: |
+          go get -u honnef.co/go/tools/cmd/staticcheck
+
+      - name: Check out code
+        uses: actions/checkout@v2
+
+      - name: Go vet
+        run: go vet ./...
+
+      - name: Check gofmt
+        run: diff -u <(echo -n) <(gofmt -d -s .)
+
+      - name: Staticcheck
+        run: |
+          staticcheck ./...
