@@ -53,7 +53,7 @@ jobs:
 
       - name: Install required static analysis tools
         run: |
-          go get -u honnef.co/go/tools/cmd/staticcheck
+          go install honnef.co/go/tools/cmd/staticcheck@latest
 
       - name: Check out code
         uses: actions/checkout@v2
