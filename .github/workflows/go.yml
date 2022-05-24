@@ -59,7 +59,7 @@ jobs:
         uses: actions/checkout@v2
 
       - name: Go vet
-        run: go vet ./...
+        run: go vet -composites=false ./...
 
       - name: Check gofmt
         run: diff -u <(echo -n) <(gofmt -d -s .)
