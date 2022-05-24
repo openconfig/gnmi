@@ -37,7 +37,7 @@ import (
 	"github.com/openconfig/gnmi/cache"
 	coll "github.com/openconfig/gnmi/collector"
 	"github.com/openconfig/gnmi/connection"
-	"github.com/openconfig/gnmi/manager/manager"
+	"github.com/openconfig/gnmi/manager"
 	"github.com/openconfig/gnmi/subscribe"
 	"github.com/openconfig/gnmi/target"
 	"github.com/openconfig/gnmi/tunnel/dialer"
