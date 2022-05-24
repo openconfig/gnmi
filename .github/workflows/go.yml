@@ -81,15 +81,8 @@ jobs:
       - name: Check out code
         uses: actions/checkout@v2
 
-      - name: Go vet
-        run: go vet -composites=false ./...
-
-      - name: Check gofmt
-        run: diff -u <(echo -n) <(gofmt -d -s .)
-
-      - name: Staticcheck
-        run: |
-          staticcheck ./...
+      - name: Test
+        run: go test -v -coverprofile=profile.cov ./...
 
       - name: Submit coverage
         uses: shogo82148/actions-goveralls@v1
