@@ -491,7 +491,7 @@ func ExampleClient_Once() {
 		Addrs:   []string{"127.0.0.1:1234"},
 		Target:  "dev",
 		Queries: []client.Path{{"*"}},
-		Type:    client.Once,
+		Type:    Once, // client.Once in external packages.
 	}
 	c := client.New()
 	defer c.Close()
@@ -512,7 +512,7 @@ func ExampleClient_Poll() {
 		Addrs:   []string{"127.0.0.1:1234"},
 		Target:  "dev",
 		Queries: []client.Path{{"*"}},
-		Type:    client.Poll,
+		Type:    Poll, // client.Poll in external packages.
 	}
 	c := client.New()
 	defer c.Close()
