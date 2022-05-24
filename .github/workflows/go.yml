@@ -32,6 +32,14 @@ jobs:
     - name: Build
       run: go build -v ./...
 
+    - name: Test
+      run: go test -v -coverprofile=profile.cov ./...
+
+    - name: Submit coverage
+      uses: shogo82148/action-goveralls@v1
+      with:
+        path-to-profile: profile.cov
+
   static_analysis:
     name: Static Analysis
     runs-on: ubuntu-latest
