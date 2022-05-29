@@ -93,7 +93,7 @@ func (c *CacheClient) Poll() error {
 	return c.BaseClient.Poll()
 }
 
-// Synced will close when a sync is recieved from the query.
+// Synced will close when a sync is received from the query.
 func (c *CacheClient) Synced() <-chan struct{} {
 	return c.synced
 }

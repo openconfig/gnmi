@@ -180,7 +180,7 @@ func (c *Client) Close() error {
 	return c.conn.Close()
 }
 
-// Recv will recieve a single message from the server and process it based on
+// Recv will receive a single message from the server and process it based on
 // the provided handlers (Proto or Notification).
 func (c *Client) Recv() error {
 	n, err := c.sub.Recv()

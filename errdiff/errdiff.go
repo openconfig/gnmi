@@ -43,7 +43,7 @@ limitations under the License.
 //
 // The generic function Check may be used in place of Code or
 // Substring or when comparing against another error or for simple
-// existance of an error:
+// existence of an error:
 //
 //	testCases := []struct {
 //		...
@@ -112,7 +112,7 @@ func Substring(got error, want string) string {
 // want.  If want is a codes.Code, this function is the same as Code.
 // If want is a string, this function is the same as Substring.  If
 // want is an error, this is essentially the same as ExactTextCompare(got,
-// w.Error()).  If want is a bool, err is simply tested for existance (want of
+// w.Error()).  If want is a bool, err is simply tested for existence (want of
 // true means an error is wanted).
 func Check(got error, want interface{}) string {
 	switch w := want.(type) {

@@ -325,7 +325,7 @@ func parseQuery(query, delim string) ([]string, error) {
 	if w == 0 || w != len(delim) {
 		return nil, fmt.Errorf("delimiter must be single UTF-8 codepoint: %q", delim)
 	}
-	// Ignore leading and trailing delimters.
+	// Ignore leading and trailing delimiters.
 	query = strings.Trim(query, delim)
 	// Split path on delimeter with contextually aware key/value handling.
 	var buf []rune

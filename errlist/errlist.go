@@ -85,8 +85,8 @@ type List struct {
 
 // Errors is implemented by error types that can return lists of errors.
 type Errors interface {
-	// Errors returns the list of errors associated with the recevier.  It
-	// returns nil if there are no errors associated with the recevier.
+	// Errors returns the list of errors associated with the receiver.  It
+	// returns nil if there are no errors associated with the receiver.
 	Errors() []error
 }
 
@@ -96,7 +96,7 @@ var etype = reflect.TypeOf([]error{})
 // Add adds all non-nil errs to the list of errors in e and returns true if errs
 // contains a non-nil error.  If no non-nil errors are passed Add does nothing
 // and returns false.  Add will never add a nil error to the List.  If err
-// implementes the Errors interface or its underlying type is a slice of errors
+// implements the Errors interface or its underlying type is a slice of errors
 // then e.Add is called on each individual error.
 func (e *List) Add(errs ...error) bool {
 	added := false

@@ -101,7 +101,7 @@ func TestRemove(t *testing.T) {
 	}
 	d := noti.Delete[0]
 	if len(d.Elem) != 1 {
-		t.Fatalf("got %d, want 1 elems in delete notificatin path", len(d.Elem))
+		t.Fatalf("got %d, want 1 elems in delete notification path", len(d.Elem))
 	}
 	if p := d.Elem[0].Name; p != "*" {
 		t.Errorf("got %q, want %q in target delete path", p, "*")
@@ -430,7 +430,7 @@ func TestGNMIQuery(t *testing.T) {
 	}{
 		// This update is inserted here, but deleted below.
 		{gnmiNotification("dev1", []string{}, []string{"a", "e"}, 0, "value1", false), true, ""},
-		// This update is ovewritten below.
+		// This update is overwritten below.
 		{gnmiNotification("dev1", []string{}, []string{"a", "b"}, 0, "value1", false), true, "value3"},
 		// This update is inserted and not modified.
 		{gnmiNotification("dev1", []string{}, []string{"a", "c"}, 0, "value4", false), true, "value4"},

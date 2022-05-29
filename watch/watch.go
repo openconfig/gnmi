@@ -25,7 +25,7 @@ import (
 type Watcher interface {
 	// Read blocks and returns the next update for a file.
 	//
-	// An error is returned when there is an underyling issue in the Watcher
+	// An error is returned when there is an underlying issue in the Watcher
 	// preventing Read, or ctx is cancelled. The returned error may indicate a
 	// fatal issue requiring a new Watcher to be created.
 	//
