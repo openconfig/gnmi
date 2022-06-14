@@ -78,6 +78,34 @@ type ACL interface {
 	Check(string, string) bool
 }
 
+// options contains options for creating a Server.
+type options struct {
+	enableStats bool
+	noDupReport bool
+}
+
+// Option defines the function prototype to set options for creating a Server.
+type Option func(*options)
+
+// WithStats returns an Option to enable statistics collection of client
+// queries to the server.
+func WithStats() Option {
+	return func(o *options) {
+		o.enableStats = true
+	}
+}
+
+// WithoutDupReport returns an Option to disable reporting of duplicates in
+// the responses to the clients. When duplicate reporting is disabled, there
+// is no need to clone the Notification proto message for setting a non-zero
+// field "duplicates" in a response sent to clients, which can potentially
+// save CPU cycles.
+func WithoutDupReport() Option {
+	return func(o *options) {
+		o.noDupReport = true
+	}
+}
+
 // Server is the implementation of the gNMI Subcribe API.
 type Server struct {
 	pb.UnimplementedGNMIServer // Stub out all RPCs except Subscribe.
@@ -90,10 +118,14 @@ type Server struct {
 	subscribeSlots chan struct{}
 	timeout        time.Duration
 	stats          *stats
+	noDupReport    bool
 }
 
-func newServer(c *cache.Cache, st *stats) (*Server, error) {
-	s := &Server{c: c, m: match.New(), timeout: Timeout, stats: st}
+func newServer(c *cache.Cache, o options) (*Server, error) {
+	s := &Server{c: c, m: match.New(), timeout: Timeout, noDupReport: o.noDupReport}
+	if o.enableStats {
+		s.stats = newStats()
+	}
 	if SubscriptionLimit > 0 {
 		s.subscribeSlots = make(chan struct{}, SubscriptionLimit)
 	}
@@ -102,14 +134,14 @@ func newServer(c *cache.Cache, st *stats) (*Server, error) {
 
 // NewServer instantiates server to handle client queries.  The cache should be
 // already instantiated.
-func NewServer(c *cache.Cache) (*Server, error) {
-	return newServer(c, nil)
-}
-
-// NewServerWithStats instantiates a server with statistics collection enabled
-// to handle client queries. The cache should be already instantiated.
-func NewServerWithStats(c *cache.Cache) (*Server, error) {
-	return newServer(c, newStats())
+func NewServer(c *cache.Cache, opts ...Option) (*Server, error) {
+	o := options{}
+	for _, opt := range opts {
+		if opt != nil {
+			opt(&o)
+		}
+	}
+	return newServer(c, o)
 }
 
 // SetACL sets server ACL. This method is called before server starts to run.
@@ -288,7 +320,7 @@ type resp struct {
 // initial walk of the results as well as streamed updates and use a queue to
 // ensure order.
 func (s *Server) sendSubscribeResponse(r *resp, c *streamClient) error {
-	notification, err := MakeSubscribeResponse(r.n.Value(), r.dup)
+	notification, err := s.MakeSubscribeResponse(r.n.Value(), r.dup)
 	if err != nil {
 		return status.Errorf(codes.Unknown, err.Error())
 	}
@@ -531,7 +563,7 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 // This function modifies the message to set the duplicate count if it is
 // greater than 0. The function clones the gnmi notification if the duplicate count needs to be set.
 // You have to be working on a cloned message if you need to modify the message in any way.
-func MakeSubscribeResponse(n interface{}, dup uint32) (*pb.SubscribeResponse, error) {
+func (s *Server) MakeSubscribeResponse(n interface{}, dup uint32) (*pb.SubscribeResponse, error) {
 	var notification *pb.Notification
 	var ok bool
 	notification, ok = n.(*pb.Notification)
@@ -544,7 +576,7 @@ func MakeSubscribeResponse(n interface{}, dup uint32) (*pb.SubscribeResponse, er
 	// update is set with duplicate count to be on the side of efficiency.
 	// Only attempt to set the duplicate count if it is greater than 0. The default
 	// value in the message is already 0.
-	if dup > 0 && len(notification.Update) > 0 {
+	if !s.noDupReport && dup > 0 && len(notification.Update) > 0 {
 		// We need a copy of the cached notification before writing a client specific
 		// duplicate count as the notification is shared across all clients.
 		notification = proto.Clone(notification).(*pb.Notification)

@@ -33,7 +33,7 @@ import (
 	log "github.com/golang/glog"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/grpcutil"

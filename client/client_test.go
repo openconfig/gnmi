@@ -24,7 +24,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 	fclient "github.com/openconfig/gnmi/client/fake"
 )

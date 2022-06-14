@@ -24,7 +24,7 @@ import (
 	"time"
 
 	"github.com/openconfig/grpctunnel/tunnel"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/path"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"

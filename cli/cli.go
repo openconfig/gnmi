@@ -26,9 +26,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/ctree"
+	"github.com/protocolbuffers/txtpbfmt/parser"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -92,10 +94,23 @@ func QueryDisplay(ctx context.Context, query client.Query, cfg *Config) error {
 func ParseSubscribeProto(p string) (client.Query, error) {
 	var tq client.Query
 	sr := &gpb.SubscribeRequest{}
-	if err := proto.UnmarshalText(p, sr); err != nil {
+	if err := prototext.Unmarshal([]byte(p), sr); err != nil {
 		return tq, err
 	}
 	return client.NewQuery(sr)
+}
+
+// fixStability fixes the broken stability in the prototext.Marshal output.
+func fixStability(m prototext.MarshalOptions, r proto.Message) []byte {
+	b, err := m.Marshal(r)
+	if err != nil {
+		return []byte(fmt.Sprintf("failed to marshal %s: %v", r, err))
+	}
+	b, err = parser.Format(b)
+	if err != nil {
+		return []byte(fmt.Sprintf("failed to format %s: %v", r, err))
+	}
+	return b
 }
 
 // sendQueryAndDisplay directs a query to the specified target. The returned
@@ -114,14 +129,14 @@ func sendQueryAndDisplay(ctx context.Context, query client.Query, cfg *Config) e
 	case "SINGLE":
 		return displaySingleResults(ctx, query, cfg)
 	case "PROTO":
+		m := prototext.MarshalOptions{EmitASCII: true, Multiline: true, Indent: "  ", AllowPartial: true, EmitUnknown: true}
 		return displayProtoResults(ctx, query, cfg, func(r proto.Message) []byte {
-			return []byte(proto.MarshalTextString(r))
+			return fixStability(m, r)
 		})
 	case "SHORTPROTO":
+		m := prototext.MarshalOptions{EmitASCII: true, Multiline: false, AllowPartial: true, EmitUnknown: true}
 		return displayProtoResults(ctx, query, cfg, func(r proto.Message) []byte {
-			// r.String() will add extra whitespace at the end for some reason.
-			// Trim it down.
-			return bytes.TrimSpace([]byte(proto.CompactTextString(r)))
+			return bytes.TrimSpace(fixStability(m, r))
 		})
 	}
 	switch query.Type {

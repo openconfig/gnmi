@@ -32,7 +32,7 @@ import (
 	"github.com/google/go-cmp/cmp/cmpopts"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/peer"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
 	gnmiclient "github.com/openconfig/gnmi/client/gnmi"
@@ -44,13 +44,9 @@ import (
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-func startServerWithOpts(targets []string, withStats bool) (string, *Server, *cache.Cache, func(), error) {
+func startServer(targets []string, opts ...Option) (string, *Server, *cache.Cache, func(), error) {
 	c := cache.New(targets)
-	newServerFunc := NewServer
-	if withStats {
-		newServerFunc = NewServerWithStats
-	}
-	p, err := newServerFunc(c)
+	p, err := NewServer(c, opts...)
 	if err != nil {
 		return "", nil, nil, nil, fmt.Errorf("NewServer: %v", err)
 	}
@@ -71,17 +67,8 @@ func startServerWithOpts(targets []string, withStats bool) (string, *Server, *ca
 	}, nil
 }
 
-func startServer(targets []string) (string, *cache.Cache, func(), error) {
-	addr, _, c, teardown, err := startServerWithOpts(targets, false)
-	return addr, c, teardown, err
-}
-
-func startServerWithStats(targets []string) (string, *Server, *cache.Cache, func(), error) {
-	return startServerWithOpts(targets, true)
-}
-
 func TestOriginInSubscribeRequest(t *testing.T) {
-	addr, cache, teardown, err := startServer(client.Path{"dev1"})
+	addr, _, cache, teardown, err := startServer(client.Path{"dev1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +181,7 @@ func TestOriginInSubscribeRequest(t *testing.T) {
 }
 
 func TestGNMIOnce(t *testing.T) {
-	addr, cache, teardown, err := startServer(client.Path{"dev1"})
+	addr, _, cache, teardown, err := startServer(client.Path{"dev1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -304,7 +291,7 @@ func sendUpdates(t *testing.T, c *cache.Cache, paths []client.Path, timestamp *t
 }
 
 func TestGNMIPoll(t *testing.T) {
-	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -372,7 +359,7 @@ func TestGNMIPoll(t *testing.T) {
 }
 
 func TestGNMIStream(t *testing.T) {
-	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -475,7 +462,7 @@ func sendNotification(t *testing.T, c *cache.Cache, n *pb.Notification) {
 }
 
 func TestGNMIStreamAtomic(t *testing.T) {
-	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -554,7 +541,7 @@ func TestGNMIStreamNewUpdates(t *testing.T) {
 	defer func() {
 		gnmiclient.ToSubscribeRequest = defaultToSubscribeRequest
 	}()
-	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -661,7 +648,7 @@ func TestGNMIStreamNewUpdates(t *testing.T) {
 }
 
 func TestGNMIUpdatesOnly(t *testing.T) {
-	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -711,7 +698,7 @@ func TestGNMIUpdatesOnly(t *testing.T) {
 // If a client doesn't read any of the responses, it should not affect other
 // clients querying the same target.
 func TestGNMISubscribeUnresponsiveClient(t *testing.T) {
-	addr, cache, teardown, err := startServer([]string{"dev1"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -786,7 +773,7 @@ func TestGNMISubscribeUnresponsiveClient(t *testing.T) {
 }
 
 func TestGNMIDeletedTargetMessage(t *testing.T) {
-	addr, ch, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, ch, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -840,70 +827,6 @@ func TestGNMIDeletedTargetMessage(t *testing.T) {
 }
 
 func TestGNMICoalescedDupCount(t *testing.T) {
-	// Inject a simulated flow control to block sends and induce coalescing.
-	flowControlTest = func() { time.Sleep(10 * time.Millisecond) }
-	dequeCount := 0
-	qszReady := make(chan struct{})
-	dupReady := make(chan struct{})
-	qszWait := make(chan struct{})
-	dupWait := make(chan struct{})
-	clientStatsTest = func(dup, qsz int64) {
-		dequeCount++
-		if qsz > 0 {
-			close(qszReady)
-			<-qszWait
-		}
-		if dup > 0 {
-			close(dupReady)
-			<-dupWait
-		}
-	}
-	defer func() {
-		flowControlTest = func() {}
-		clientStatsTest = func(int64, int64) {}
-	}()
-	addr, s, cache, teardown, err := startServerWithStats([]string{"dev1"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer teardown()
-
-	stall := make(chan struct{})
-	done := make(chan struct{})
-	coalesced := uint32(0)
-	count := 0
-	c := client.BaseClient{}
-	q := client.Query{
-		Addrs:   []string{addr},
-		Target:  "dev1",
-		Queries: []client.Path{{"a"}},
-		Type:    client.Stream,
-		ProtoHandler: func(msg proto.Message) error {
-			resp, ok := msg.(*pb.SubscribeResponse)
-			if !ok {
-				return fmt.Errorf("failed to type assert message %#v", msg)
-			}
-			switch r := resp.Response.(type) {
-			case *pb.SubscribeResponse_Update:
-				count++
-				if r.Update.Update[0].GetDuplicates() > 0 {
-					coalesced = r.Update.Update[0].GetDuplicates()
-				}
-				switch count {
-				case 1:
-					close(stall)
-				case 2:
-					close(done)
-				}
-			}
-			return nil
-		},
-		TLS: &tls.Config{InsecureSkipVerify: true},
-	}
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	go c.Subscribe(ctx, q, gnmiclient.Type)
-
 	paths := []client.Path{
 		{"dev1", "a"},
 		{"dev1", "a"},
@@ -911,29 +834,112 @@ func TestGNMICoalescedDupCount(t *testing.T) {
 		{"dev1", "a"},
 		{"dev1", "a"},
 	}
-	var timestamp time.Time
-	sendUpdates(t, cache, paths[0:1], &timestamp)
-	<-qszReady
-	for _, st := range s.ClientStats() {
-		if st.QueueSize != 1 { // Sync is in the queue
-			t.Errorf("QueueSize: got %d, want 1", st.QueueSize)
-		}
-	}
-	close(qszWait)
-	<-stall
+	for _, tt := range []struct {
+		desc       string
+		opts       []Option
+		want       int64
+		wantReport uint32
+	}{{
+		desc:       "report coalesced",
+		opts:       []Option{WithStats()},
+		want:       int64(len(paths) - 1),
+		wantReport: uint32(len(paths) - 1),
+	}, {
+		desc:       "don't report coalesced",
+		opts:       []Option{WithStats(), WithoutDupReport()},
+		want:       int64(len(paths) - 1),
+		wantReport: 0,
+	}} {
+		t.Run(tt.desc, func(t *testing.T) {
+			// Inject a simulated flow control to block sends and induce coalescing.
+			flowControlTest = func() { time.Sleep(10 * time.Millisecond) }
+			dequeCount := 0
+			qszReady := make(chan struct{})
+			dupReady := make(chan struct{})
+			qszWait := make(chan struct{})
+			dupWait := make(chan struct{})
+			clientStatsTest = func(dup, qsz int64) {
+				dequeCount++
+				if qsz > 0 {
+					close(qszReady)
+					<-qszWait
+				}
+				if dup > 0 {
+					close(dupReady)
+					<-dupWait
+				}
+			}
+			defer func() {
+				flowControlTest = func() {}
+				clientStatsTest = func(int64, int64) {}
+			}()
+			addr, s, cache, teardown, err := startServer([]string{"dev1"}, tt.opts...)
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer teardown()
 
-	sendUpdates(t, cache, paths, &timestamp)
-	<-dupReady
-	for _, st := range s.ClientStats() {
-		if want := int64(len(paths) - 1); st.CoalesceCount != want {
-			t.Errorf("CoalesceCount: got %d, want %d", st.CoalesceCount, want)
-		}
-	}
-	close(dupWait)
-	<-done
+			stall := make(chan struct{})
+			done := make(chan struct{})
+			coalesced := uint32(0)
+			count := 0
+			c := client.BaseClient{}
+			q := client.Query{
+				Addrs:   []string{addr},
+				Target:  "dev1",
+				Queries: []client.Path{{"a"}},
+				Type:    client.Stream,
+				ProtoHandler: func(msg proto.Message) error {
+					resp, ok := msg.(*pb.SubscribeResponse)
+					if !ok {
+						return fmt.Errorf("failed to type assert message %#v", msg)
+					}
+					switch r := resp.Response.(type) {
+					case *pb.SubscribeResponse_Update:
+						count++
+						if r.Update.Update[0].GetDuplicates() > 0 {
+							coalesced = r.Update.Update[0].GetDuplicates()
+						}
+						switch count {
+						case 1:
+							close(stall)
+						case 2:
+							close(done)
+						}
+					}
+					return nil
+				},
+				TLS: &tls.Config{InsecureSkipVerify: true},
+			}
+			ctx, cancel := context.WithCancel(context.Background())
+			defer cancel()
+			go c.Subscribe(ctx, q, gnmiclient.Type)
 
-	if want := uint32(len(paths) - 1); coalesced != want {
-		t.Errorf("got coalesced count %d, want %d", coalesced, want)
+			var timestamp time.Time
+			sendUpdates(t, cache, paths[0:1], &timestamp)
+			<-qszReady
+			for _, st := range s.ClientStats() {
+				if st.QueueSize != 1 { // Sync is in the queue
+					t.Errorf("QueueSize: got %d, want 1", st.QueueSize)
+				}
+			}
+			close(qszWait)
+			<-stall
+
+			sendUpdates(t, cache, paths, &timestamp)
+			<-dupReady
+			for _, st := range s.ClientStats() {
+				if st.CoalesceCount != tt.want {
+					t.Errorf("CoalesceCount: got %d, want %d", st.CoalesceCount, tt.want)
+				}
+			}
+			close(dupWait)
+			<-done
+
+			if coalesced != tt.wantReport {
+				t.Errorf("got coalesced count %d, want %d", coalesced, tt.wantReport)
+			}
+		})
 	}
 }
 
@@ -948,7 +954,7 @@ func TestGNMISubscribeTimeout(t *testing.T) {
 		flowControlTest = func() {}
 	}()
 
-	addr, cache, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1011,7 +1017,7 @@ func TestSubscriptionLimit(t *testing.T) {
 		pendingSubsCountTest = func(int64) {}
 	}()
 
-	addr, s, _, teardown, err := startServerWithStats([]string{"dev1", "dev2"})
+	addr, s, _, teardown, err := startServer([]string{"dev1", "dev2"}, WithStats())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1093,7 +1099,7 @@ func TestGNMISubscriptionLimit(t *testing.T) {
 		subscriptionLimitTest = func() {}
 	}()
 
-	addr, _, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, _, teardown, err := startServer([]string{"dev1", "dev2"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1161,7 +1167,7 @@ func TestGNMIMultipleSubscriberCoalescion(t *testing.T) {
 	defer func() {
 		flowControlTest = func() {}
 	}()
-	addr, cache, teardown, err := startServer([]string{"dev1"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1"})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1253,7 +1259,7 @@ func TestGNMIServerStats(t *testing.T) {
 		updateSubsCountEnterTest = func() {}
 		updateSubsCountExitTest = func() {}
 	}()
-	addr, s, cache, teardown, err := startServerWithStats([]string{"dev1", "dev2"})
+	addr, s, cache, teardown, err := startServer([]string{"dev1", "dev2"}, WithStats())
 	if err != nil {
 		t.Fatal(err)
 	}

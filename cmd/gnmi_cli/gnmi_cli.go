@@ -41,7 +41,7 @@ import (
 	
 	log "github.com/golang/glog"
 	"golang.org/x/crypto/ssh/terminal"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/prototext"
 	"github.com/openconfig/gnmi/cli"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/flags"
@@ -69,9 +69,9 @@ var (
 	capabilitiesFlag = flag.Bool("capabilities", false, `When set, CLI will perform a Capabilities request. Usage: gnmi_cli -capabilities [-proto <gnmi.CapabilityRequest>] -address <address> [other flags ...]`)
 	getFlag          = flag.Bool("get", false, `When set, CLI will perform a Get request. Usage: gnmi_cli -get -proto <gnmi.GetRequest> -address <address> [other flags ...]`)
 	setFlag          = flag.Bool("set", false, `When set, CLI will perform a Set request. Usage: gnmi_cli -set -proto <gnmi.SetRequest> -address <address> [other flags ...]`)
-
-	withUserPass   = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
-	withPerRPCAuth = flag.Bool("with_per_rpc_auth", false, "Use per RPC auth.")
+	setReqFlag       = flag.Bool("include_set_req", false, `When set, CLI will pretty print the inputted set request`)
+	withUserPass     = flag.Bool("with_user_pass", false, "When set, CLI will prompt for username/password to use when connecting to a target.")
+	withPerRPCAuth   = flag.Bool("with_per_rpc_auth", false, "Use per RPC auth.")
 
 	// Certificate files.
 	insecureFlag = flag.Bool("insecure", false, "use insecure GRPC connection.")
@@ -183,13 +183,14 @@ func main() {
 		err = executeSubscribe(ctx)
 	}
 	if err != nil {
-		log.Error(err)
+		cfg.Display([]byte(fmt.Sprintf("%v", err)))
+		os.Exit(1)
 	}
 }
 
 func executeCapabilities(ctx context.Context) error {
 	r := &gpb.CapabilityRequest{}
-	if err := proto.UnmarshalText(*reqProto, r); err != nil {
+	if err := prototext.Unmarshal([]byte(*reqProto), r); err != nil {
 		return fmt.Errorf("unable to parse gnmi.CapabilityRequest from %q : %v", *reqProto, err)
 	}
 	c, err := gclient.New(ctx, client.Destination{
@@ -206,7 +207,7 @@ func executeCapabilities(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("target returned RPC error for Capabilities(%q): %v", r.String(), err)
 	}
-	cfg.Display([]byte(proto.MarshalTextString(response)))
+	cfg.Display([]byte(prototext.Format(response)))
 	return nil
 }
 
@@ -215,7 +216,7 @@ func executeGet(ctx context.Context) error {
 		return errors.New("-proto must be set")
 	}
 	r := &gpb.GetRequest{}
-	if err := proto.UnmarshalText(*reqProto, r); err != nil {
+	if err := prototext.Unmarshal([]byte(*reqProto), r); err != nil {
 		return fmt.Errorf("unable to parse gnmi.GetRequest from %q : %v", *reqProto, err)
 	}
 	c, err := gclient.New(ctx, client.Destination{
@@ -232,7 +233,7 @@ func executeGet(ctx context.Context) error {
 	if err != nil {
 		return fmt.Errorf("target returned RPC error for Get(%q): %v", r.String(), err)
 	}
-	cfg.Display([]byte(proto.MarshalTextString(response)))
+	cfg.Display([]byte(prototext.Format(response)))
 	return nil
 }
 
@@ -241,8 +242,11 @@ func executeSet(ctx context.Context) error {
 		return errors.New("-proto must be set")
 	}
 	r := &gpb.SetRequest{}
-	if err := proto.UnmarshalText(*reqProto, r); err != nil {
+	if err := prototext.Unmarshal([]byte(*reqProto), r); err != nil {
 		return fmt.Errorf("unable to parse gnmi.SetRequest from %q : %v", *reqProto, err)
+	}
+	if *setReqFlag {
+    cfg.Display([]byte(prototext.Format(r)))
 	}
 	c, err := gclient.New(ctx, client.Destination{
 		Addrs:       q.Addrs,
@@ -256,9 +260,9 @@ func executeSet(ctx context.Context) error {
 	}
 	response, err := c.(*gclient.Client).Set(ctx, r)
 	if err != nil {
-		return fmt.Errorf("target returned RPC error for Set(%q) : %v", r, err)
+		return fmt.Errorf("failed to apply Set: %w", err)
 	}
-	cfg.Display([]byte(proto.MarshalTextString(response)))
+	cfg.Display([]byte(prototext.Format(response)))
 	return nil
 }
 

@@ -25,7 +25,7 @@ import (
 	"fmt"
 
 	log "github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 )
 

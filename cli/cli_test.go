@@ -317,26 +317,27 @@ dev1/a/c, <nil>
 			TLS:     &tls.Config{InsecureSkipVerify: true},
 		},
 		cfg: Config{
-			Display:     display,
-			DisplayType: "proto",
+			Display:       display,
+			DisplayType:   "proto",
+			DisplayIndent: "  ",
 		},
 		want: `sync_response: true
 
-update: <
+update: {
   timestamp: 1440807212000000000
-  prefix: <
+  prefix: {
     target: "dev1"
-  >
-  update: <
-    path: <
+  }
+  update: {
+    path: {
       element: "a"
       element: "b"
-    >
-    val: <
+    }
+    val: {
       int_val: 5
-    >
-  >
->
+    }
+  }
+}
 
 `,
 	}, {
@@ -352,27 +353,28 @@ update: <
 			TLS:     &tls.Config{InsecureSkipVerify: true},
 		},
 		cfg: Config{
-			Display:     display,
-			DisplayType: "proto",
-			DisplaySize: true,
+			Display:       display,
+			DisplayType:   "proto",
+			DisplaySize:   true,
+			DisplayIndent: "  ",
 		},
 		want: `sync_response: true
 
-update: <
+update: {
   timestamp: 1440807212000000000
-  prefix: <
+  prefix: {
     target: "dev1"
-  >
-  update: <
-    path: <
+  }
+  update: {
+    path: {
       element: "a"
       element: "b"
-    >
-    val: <
+    }
+    val: {
       int_val: 5
-    >
-  >
->
+    }
+  }
+}
 
 // total response size: 36
 `,
@@ -632,8 +634,8 @@ dev1.a.c, 3.25, 101
 			Display:     display,
 			DisplayType: "shortproto",
 		},
-		want: `update:<timestamp:100 prefix:<target:"dev1" > update:<path:<element:"a" element:"b" > val:<int_val:5 > > >
-sync_response:true
+		want: `update: { timestamp: 100 prefix: { target: "dev1" } update: { path: { element: "a" element: "b" } val: { int_val: 5 } } }
+sync_response: true
 `,
 	}, {
 		desc: "single target multiple paths (with display size)",
@@ -704,7 +706,6 @@ sync_response:true
 				lines = append(lines[1:], lines[0])
 				got = strings.Join(lines, "\n")
 			}
-
 			if got != tt.want {
 				t.Errorf("sendQueryAndDisplay(ctx, address, %v, %v):\ngot(%d):\n%s\nwant(%d):\n%s", tt.query, tt.cfg, len(got), got, len(tt.want), tt.want)
 			}
@@ -846,10 +847,10 @@ dev/a/b, <nil>, 1970-01-01-00:00:00
 			Display:     display,
 			DisplayType: "shortproto",
 		},
-		want: `update:<timestamp:100 prefix:<target:"dev1" > update:<path:<element:"a" > val:<int_val:5 > > >
-update:<timestamp:100 prefix:<target:"dev1" > update:<path:<element:"a" element:"b" > val:<int_val:5 > > >
-update:<timestamp:200 prefix:<target:"dev1" > delete:<element:"a" element:"b" > >
-sync_response:true
+		want: `update: { timestamp: 100 prefix: { target: "dev1" } update: { path: { element: "a" } val: { int_val: 5 } } }
+update: { timestamp: 100 prefix: { target: "dev1" } update: { path: { element: "a" element: "b" } val: { int_val: 5 } } }
+update: { timestamp: 200 prefix: { target: "dev1" } delete: { element: "a" element: "b" } }
+sync_response: true
 `,
 	}}
 	opt, err := config.WithSelfTLSCert()
