@@ -20,9 +20,10 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/golang/protobuf/proto"
-	"github.com/golang/protobuf/ptypes"
+	"google.golang.org/protobuf/proto"
+
 	pb "github.com/openconfig/gnmi/proto/gnmi"
+	anypb "google.golang.org/protobuf/types/known/anypb"
 )
 
 type scalarTest struct {
@@ -210,9 +211,9 @@ func TestToScalar(t *testing.T) {
 }
 
 func TestEqual(t *testing.T) {
-	anyVal, err := ptypes.MarshalAny(&pb.TypedValue{Value: &pb.TypedValue_StringVal{"any val"}})
-	if err != nil {
-		t.Errorf("MarshalAny: %v", err)
+	anyVal := &anypb.Any{}
+	if err := anypb.MarshalFrom(anyVal, &pb.TypedValue{Value: &pb.TypedValue_StringVal{"any val"}}, proto.MarshalOptions{}); err != nil {
+		t.Fatalf("MarshalAny: %v", err)
 	}
 	for _, test := range []struct {
 		name string

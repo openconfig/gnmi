@@ -24,7 +24,8 @@ import (
 	"os"
 
 	log "github.com/golang/glog"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/prototext"
+	"github.com/protocolbuffers/txtpbfmt/parser"
 
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )
@@ -56,8 +57,16 @@ var (
 )
 
 func main() {
-	out := proto.MarshalTextString(config)
-	if err := ioutil.WriteFile(outputPath, []byte(out), os.ModePerm); err != nil {
+	m := prototext.MarshalOptions{EmitASCII: true, Multiline: true, Indent: "  ", AllowPartial: true, EmitUnknown: true}
+	b, err := m.Marshal(config)
+	if err != nil {
+		log.Exitf("failed to marshal %s: %v", config, err)
+	}
+	b, err = parser.Format(b)
+	if err != nil {
+		log.Exitf("failed to format %s: %v", config, err)
+	}
+	if err := ioutil.WriteFile(outputPath, b, os.ModePerm); err != nil {
 		log.Exit(err)
 	}
 }

@@ -29,7 +29,8 @@ import (
 	log "github.com/golang/glog"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
 
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
@@ -56,7 +57,7 @@ func loadConfig(fileName string) (*fpb.Config, error) {
 	}
 	cfg := &fpb.Config{}
 	if *text {
-		if err := proto.UnmarshalText(string(in), cfg); err != nil {
+		if err := prototext.Unmarshal(in, cfg); err != nil {
 			return nil, fmt.Errorf("failed to parse text file %s: %v", fileName, err)
 		}
 	} else {
