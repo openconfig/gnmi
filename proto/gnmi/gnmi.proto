@@ -37,7 +37,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.8.0";
+option (gnmi_service) = "0.9.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
@@ -83,9 +83,7 @@ service gNMI {
 message Notification {
   int64 timestamp = 1;          // Timestamp in nanoseconds since Epoch.
   Path prefix = 2;              // Prefix used for paths in the message.
-  // An alias for the path specified in the prefix field.
-  // Reference: gNMI Specification Section 2.4.2
-  string alias = 3;
+  string alias = 3 [deprecated=true];
   repeated Update update = 4;   // Data elements that have changed values.
   repeated Path delete = 5;     // Data elements that have been deleted.
   // This notification contains a set of paths that are always updated together
@@ -208,13 +206,13 @@ message ScalarArray {
 // initiating a subscription to a set of paths within the data tree. The
 // request field must be populated and the initial message must specify a
 // SubscriptionList to initiate a subscription. The message is subsequently
-// used to define aliases or trigger polled data to be sent by the target.
+// used trigger polled data to be sent by the target.
 // Reference: gNMI Specification Section 3.5.1.1
 message SubscribeRequest {
   oneof request {
     SubscriptionList subscribe = 1; // Specify the paths within a subscription.
     Poll poll = 3;                  // Trigger a polled update.
-    AliasList aliases = 4;          // Aliases to be created.
+    AliasList aliases = 4 [deprecated=true];
   }
   // Extension messages associated with the SubscribeRequest. See the
   // gNMI extension specification for further definition.
@@ -256,8 +254,7 @@ message SubscribeResponse {
 message SubscriptionList {
   Path prefix = 1;                          // Prefix used for paths.
   repeated Subscription subscription = 2;   // Set of subscriptions to create.
-  // Whether target defined aliases are allowed within the subscription.
-  bool use_aliases = 3;
+  bool use_aliases = 3 [deprecated=true];
   QOSMarking qos = 4;                       // DSCP marking to be used.
   // Mode of the subscription.
   enum Mode {
@@ -317,21 +314,15 @@ message QOSMarking {
   uint32 marking = 1;
 }
 
-// Alias specifies a data tree path, and an associated string which defines an
-// alias which is to be used for this path in the context of the RPC. The alias
-// is specified as a string which is prefixed with "#" to disambiguate it from
-// data tree element paths.
-// Reference: gNMI Specification Section 2.4.2
+// Alias has been deprecated as part of gNMI 0.9.0+
 message Alias {
-  Path path = 1;     // The path to be aliased.
-  string alias = 2;  // The alias value, a string prefixed by "#".
+  Path path = 1;
+  string alias = 2;
 }
 
-// AliasList specifies a list of aliases. It is used in a SubscribeRequest for
-// a client to create a set of aliases that the target is to utilize.
-// Reference: gNMI Specification Section 3.5.1.6
+// AliasList has been deprecated as part of gNMI 0.9.0+
 message AliasList {
-  repeated Alias alias = 1;    // The set of aliases to be created.
+  repeated Alias alias = 1;
 }
 
 // SetRequest is sent from a client to the target to update values in the data
