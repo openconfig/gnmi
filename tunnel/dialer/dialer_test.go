@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"testing"
 
-	"google.golang.org/grpc"
 	"github.com/openconfig/grpctunnel/tunnel"
+	"google.golang.org/grpc"
 )
 
 func TestNewDialer(t *testing.T) {

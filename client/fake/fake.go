@@ -25,8 +25,8 @@ import (
 	"fmt"
 
 	log "github.com/golang/glog"
-	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
+	"google.golang.org/protobuf/proto"
 )
 
 // New can be replaced for any negative testing you would like to do as well.

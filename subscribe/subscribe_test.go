@@ -30,9 +30,6 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/grpc"
-	"google.golang.org/grpc/peer"
-	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/client"
 	gnmiclient "github.com/openconfig/gnmi/client/gnmi"
@@ -40,6 +37,9 @@ import (
 	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
 	"github.com/openconfig/gnmi/value"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/peer"
+	"google.golang.org/protobuf/proto"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )

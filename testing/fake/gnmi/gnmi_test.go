@@ -17,20 +17,20 @@ limitations under the License.
 package gnmi
 
 import (
-	"golang.org/x/net/context"
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"golang.org/x/net/context"
 	"io"
 	"strings"
 	"sync"
 	"testing"
 
 	"github.com/kylelemons/godebug/pretty"
+	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
+	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc"
-	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"

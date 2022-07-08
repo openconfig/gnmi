@@ -24,8 +24,8 @@ import (
 	"os"
 
 	log "github.com/golang/glog"
-	"google.golang.org/protobuf/encoding/prototext"
 	"github.com/protocolbuffers/txtpbfmt/parser"
+	"google.golang.org/protobuf/encoding/prototext"
 
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )

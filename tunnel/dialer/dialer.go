@@ -22,8 +22,8 @@ import (
 	"fmt"
 	"net"
 
-	"google.golang.org/grpc"
 	"github.com/openconfig/grpctunnel/tunnel"
+	"google.golang.org/grpc"
 
 	tunnelpb "github.com/openconfig/grpctunnel/proto/tunnel"
 )

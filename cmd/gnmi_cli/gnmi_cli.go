@@ -38,14 +38,14 @@ import (
 	"unicode/utf8"
 
 	"flag"
-	
+
 	log "github.com/golang/glog"
-	"golang.org/x/crypto/ssh/terminal"
-	"google.golang.org/protobuf/encoding/prototext"
 	"github.com/openconfig/gnmi/cli"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/flags"
 	gclient "github.com/openconfig/gnmi/client/gnmi"
+	"golang.org/x/crypto/ssh/terminal"
+	"google.golang.org/protobuf/encoding/prototext"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
@@ -246,7 +246,7 @@ func executeSet(ctx context.Context) error {
 		return fmt.Errorf("unable to parse gnmi.SetRequest from %q : %v", *reqProto, err)
 	}
 	if *setReqFlag {
-    cfg.Display([]byte(prototext.Format(r)))
+		cfg.Display([]byte(prototext.Format(r)))
 	}
 	c, err := gclient.New(ctx, client.Destination{
 		Addrs:       q.Addrs,

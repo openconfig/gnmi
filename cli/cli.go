@@ -26,11 +26,11 @@ import (
 	"strings"
 	"time"
 
-	"google.golang.org/protobuf/encoding/prototext"
-	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/protocolbuffers/txtpbfmt/parser"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )

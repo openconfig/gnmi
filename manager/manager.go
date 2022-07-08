@@ -25,8 +25,8 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
 	"github.com/cenkalti/backoff/v4"
+	log "github.com/golang/glog"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/protobuf/proto"

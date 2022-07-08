@@ -26,11 +26,11 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/grpc"
 	"github.com/openconfig/gnmi/client"
 	_ "github.com/openconfig/gnmi/client/gnmi"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
+	"google.golang.org/grpc"
 
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )

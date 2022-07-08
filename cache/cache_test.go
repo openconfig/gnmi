@@ -31,14 +31,14 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
-	"google.golang.org/protobuf/encoding/prototext"
-	"google.golang.org/protobuf/proto"
-	"google.golang.org/protobuf/testing/protocmp"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/errdiff"
 	"github.com/openconfig/gnmi/latency"
 	"github.com/openconfig/gnmi/metadata"
 	"github.com/openconfig/gnmi/value"
+	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
+	"google.golang.org/protobuf/testing/protocmp"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )

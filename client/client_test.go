@@ -24,9 +24,9 @@ import (
 	"testing"
 	"time"
 
-	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/client"
 	fclient "github.com/openconfig/gnmi/client/fake"
+	"google.golang.org/protobuf/proto"
 )
 
 const (

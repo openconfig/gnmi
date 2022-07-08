@@ -55,8 +55,8 @@ func ToStrings(p *gpb.Path, prefix bool) []string {
 		}
 	}
 	if len(p.GetElem()) == 0 {
-  	// gnmi.Path.Element is deprecated, but being gracefully handled
-	  // when gnmi.PathElem doesn't exist
+		// gnmi.Path.Element is deprecated, but being gracefully handled
+		// when gnmi.PathElem doesn't exist
 		return append(is, p.GetElement()...)
 	}
 	for _, e := range p.GetElem() {
