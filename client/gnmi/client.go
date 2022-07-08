@@ -31,14 +31,14 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc"
 	"github.com/golang/protobuf/proto"
-	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/grpcutil"
 	"github.com/openconfig/gnmi/path"
 	"github.com/openconfig/gnmi/value"
+	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )

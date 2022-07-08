@@ -25,12 +25,12 @@ import (
 	"io/ioutil"
 
 	"flag"
-	
+
 	log "github.com/golang/glog"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )

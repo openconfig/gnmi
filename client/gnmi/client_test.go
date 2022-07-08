@@ -23,12 +23,12 @@ import (
 	"time"
 
 	"github.com/kylelemons/godebug/pretty"
-	"google.golang.org/grpc"
-	"github.com/openconfig/ygot/ygot"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/testing/fake/gnmi"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
 	"github.com/openconfig/gnmi/value"
+	"github.com/openconfig/ygot/ygot"
+	"google.golang.org/grpc"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"

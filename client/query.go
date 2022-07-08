@@ -23,9 +23,9 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/openconfig/grpctunnel/tunnel"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/path"
+	"github.com/openconfig/grpctunnel/tunnel"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )

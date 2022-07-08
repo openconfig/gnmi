@@ -21,8 +21,8 @@ package config
 import (
 	"crypto/tls"
 
-	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	gtls "github.com/openconfig/gnmi/testing/fake/testing/tls"
 )

@@ -25,11 +25,11 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
 	"github.com/cenkalti/backoff/v4"
+	log "github.com/golang/glog"
+	"github.com/golang/protobuf/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
-	"github.com/golang/protobuf/proto"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	tpb "github.com/openconfig/gnmi/proto/target"

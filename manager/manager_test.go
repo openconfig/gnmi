@@ -30,10 +30,10 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"google.golang.org/grpc/credentials"
-	"google.golang.org/grpc"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/connection"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	tpb "github.com/openconfig/gnmi/proto/target"

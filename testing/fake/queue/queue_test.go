@@ -21,8 +21,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	"github.com/golang/protobuf/proto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"

@@ -22,8 +22,8 @@ import (
 	"sync"
 	"time"
 
-	log "github.com/golang/glog"
 	"github.com/cenkalti/backoff/v4"
+	log "github.com/golang/glog"
 )
 
 var (

@@ -27,15 +27,15 @@ import (
 	"time"
 
 	log "github.com/golang/glog"
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/peer"
-	"google.golang.org/grpc/status"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/cache"
 	"github.com/openconfig/gnmi/coalesce"
 	"github.com/openconfig/gnmi/ctree"
 	"github.com/openconfig/gnmi/match"
 	"github.com/openconfig/gnmi/path"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/peer"
+	"google.golang.org/grpc/status"
 
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )

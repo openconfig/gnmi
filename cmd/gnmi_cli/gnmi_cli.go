@@ -38,14 +38,14 @@ import (
 	"unicode/utf8"
 
 	"flag"
-	
+
 	log "github.com/golang/glog"
-	"golang.org/x/crypto/ssh/terminal"
 	"github.com/golang/protobuf/proto"
 	"github.com/openconfig/gnmi/cli"
 	"github.com/openconfig/gnmi/client"
 	"github.com/openconfig/gnmi/client/flags"
 	gclient "github.com/openconfig/gnmi/client/gnmi"
+	"golang.org/x/crypto/ssh/terminal"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 )
