@@ -32,6 +32,7 @@ import (
 	log "github.com/golang/glog"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
+	"github.com/openconfig/grpctunnel/dialer"
 	"github.com/openconfig/grpctunnel/tunnel"
 	"google.golang.org/protobuf/encoding/prototext"
 	"github.com/openconfig/gnmi/cache"
@@ -40,7 +41,6 @@ import (
 	"github.com/openconfig/gnmi/manager"
 	"github.com/openconfig/gnmi/subscribe"
 	"github.com/openconfig/gnmi/target"
-	"github.com/openconfig/gnmi/tunnel/dialer"
 
 	tunnelpb "github.com/openconfig/grpctunnel/proto/tunnel"
 	cpb "github.com/openconfig/gnmi/proto/collector"
@@ -156,16 +156,19 @@ func runCollector(ctx context.Context) error {
 	if c.tServer, err = tunnel.NewServer(tunnel.ServerConfig{AddTargetHandler: c.addTargetHandler, DeleteTargetHandler: c.deleteTargetHandler}); err != nil {
 		log.Fatalf("failed to setup tunnel server: %v", err)
 	}
-	tDialer, err := dialer.NewDialer(c.tServer)
+	tDialer, err := dialer.FromServer(c.tServer)
 	if err != nil {
 		log.Fatalf("failed to setup tunnel dialer: %v", err)
 	}
 
+	dialerContext := func(ctx context.Context, target string, opts ...grpc.DialOption) (conn *grpc.ClientConn, err error) {
+		return tDialer.DialContext(ctx, target, tunnelpb.TargetType_GNMI_GNOI.String(), opts...)
+	}
 	// Create connection manager with default dialer. Target specific dialer will be added later.
 	c.cm, err = connection.NewManagerCustom(
 		map[string]connection.Dial{
 			connection.DEFAULT: grpc.DialContext,
-			"tunnel":           tDialer.DialContext},
+			"tunnel":           dialerContext},
 		defaultDialOpts...)
 	if err != nil {
 		return fmt.Errorf("error creating connection.Manager: %v", err)

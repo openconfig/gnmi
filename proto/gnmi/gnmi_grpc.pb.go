@@ -276,5 +276,5 @@ var GNMI_ServiceDesc = grpc.ServiceDesc{
 			ClientStreams: true,
 		},
 	},
-	Metadata: "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto",
+	Metadata: "proto/gnmi/gnmi.proto",
 }

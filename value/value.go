@@ -60,9 +60,9 @@ func FromScalar(i interface{}) (*pb.TypedValue, error) {
 	case uint64:
 		tv.Value = &pb.TypedValue_UintVal{v}
 	case float32:
-		tv.Value = &pb.TypedValue_FloatVal{v}
+		tv.Value = &pb.TypedValue_DoubleVal{float64(v)}
 	case float64:
-		tv.Value = &pb.TypedValue_FloatVal{float32(v)}
+		tv.Value = &pb.TypedValue_DoubleVal{v}
 	case bool:
 		tv.Value = &pb.TypedValue_BoolVal{v}
 	case []string:
@@ -100,7 +100,7 @@ type DeprecatedScalar struct {
 // return an error if the TypedValue does not contain a scalar type.
 func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 	var i interface{}
-	switch tv.Value.(type) {
+	switch tv.GetValue().(type) {
 	case *pb.TypedValue_DecimalVal:
 		i = decimalToFloat(tv.GetDecimalVal())
 	case *pb.TypedValue_StringVal:
@@ -113,6 +113,8 @@ func ToScalar(tv *pb.TypedValue) (interface{}, error) {
 		i = tv.GetBoolVal()
 	case *pb.TypedValue_FloatVal:
 		i = tv.GetFloatVal()
+	case *pb.TypedValue_DoubleVal:
+		i = tv.GetDoubleVal()
 	case *pb.TypedValue_LeaflistVal:
 		elems := tv.GetLeaflistVal().GetElement()
 		ss := make([]interface{}, len(elems))
@@ -162,51 +164,57 @@ func decimalToFloat(d *pb.Decimal64) float32 {
 // handles only the primitive types and ScalarArrays and returns false for all
 // other types.
 func Equal(a, b *pb.TypedValue) bool {
-	switch av := a.Value.(type) {
+	switch av := a.GetValue().(type) {
 	case *pb.TypedValue_StringVal:
-		bv, ok := b.Value.(*pb.TypedValue_StringVal)
+		bv, ok := b.GetValue().(*pb.TypedValue_StringVal)
 		if !ok {
 			return false
 		}
 		return av.StringVal == bv.StringVal
 	case *pb.TypedValue_IntVal:
-		bv, ok := b.Value.(*pb.TypedValue_IntVal)
+		bv, ok := b.GetValue().(*pb.TypedValue_IntVal)
 		if !ok {
 			return false
 		}
 		return av.IntVal == bv.IntVal
 	case *pb.TypedValue_UintVal:
-		bv, ok := b.Value.(*pb.TypedValue_UintVal)
+		bv, ok := b.GetValue().(*pb.TypedValue_UintVal)
 		if !ok {
 			return false
 		}
 		return av.UintVal == bv.UintVal
 	case *pb.TypedValue_BoolVal:
-		bv, ok := b.Value.(*pb.TypedValue_BoolVal)
+		bv, ok := b.GetValue().(*pb.TypedValue_BoolVal)
 		if !ok {
 			return false
 		}
 		return av.BoolVal == bv.BoolVal
 	case *pb.TypedValue_BytesVal:
-		bv, ok := b.Value.(*pb.TypedValue_BytesVal)
+		bv, ok := b.GetValue().(*pb.TypedValue_BytesVal)
 		if !ok {
 			return false
 		}
 		return string(av.BytesVal) == string(bv.BytesVal)
+	case *pb.TypedValue_DoubleVal:
+		bv, ok := b.Value.(*pb.TypedValue_DoubleVal)
+		if !ok {
+			return false
+		}
+		return av.DoubleVal == bv.DoubleVal
 	case *pb.TypedValue_FloatVal:
-		bv, ok := b.Value.(*pb.TypedValue_FloatVal)
+		bv, ok := b.GetValue().(*pb.TypedValue_FloatVal)
 		if !ok {
 			return false
 		}
 		return av.FloatVal == bv.FloatVal
 	case *pb.TypedValue_DecimalVal:
-		bv, ok := b.Value.(*pb.TypedValue_DecimalVal)
+		bv, ok := b.GetValue().(*pb.TypedValue_DecimalVal)
 		if !ok {
 			return false
 		}
 		return av.DecimalVal.Digits == bv.DecimalVal.Digits && av.DecimalVal.Precision == bv.DecimalVal.Precision
 	case *pb.TypedValue_LeaflistVal:
-		bv, ok := b.Value.(*pb.TypedValue_LeaflistVal)
+		bv, ok := b.GetValue().(*pb.TypedValue_LeaflistVal)
 		if !ok {
 			return false
 		}

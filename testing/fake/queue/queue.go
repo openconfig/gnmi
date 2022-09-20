@@ -482,7 +482,7 @@ func TypedValueOf(v *fpb.Value) *gpb.TypedValue {
 	case *fpb.Value_IntValue:
 		tv.Value = &gpb.TypedValue_IntVal{val.IntValue.Value}
 	case *fpb.Value_DoubleValue:
-		tv.Value = &gpb.TypedValue_FloatVal{float32(val.DoubleValue.Value)}
+		tv.Value = &gpb.TypedValue_DoubleVal{val.DoubleValue.Value}
 	case *fpb.Value_StringValue:
 		tv.Value = &gpb.TypedValue_StringVal{val.StringValue.Value}
 	case *fpb.Value_StringListValue:

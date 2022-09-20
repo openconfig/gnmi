@@ -99,5 +99,5 @@ var Collector_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "github.com/openconfig/gnmi/proto/collector/collector.proto",
+	Metadata: "proto/collector/collector.proto",
 }

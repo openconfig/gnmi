@@ -43,9 +43,14 @@ import (
 // int64 (nanoseconds since epoch).
 func T(n int64) time.Time { return time.Unix(0, n) }
 
-// Now is a function that can be overridden in tests to alter the timestamps
-// applied to deletes and metadata updates.
-var Now = time.Now
+var (
+	// Now is a function that can be overridden in tests to alter the timestamps
+	// applied to deletes and metadata updates.
+	Now = time.Now
+
+	// ErrStale is the error returned if an update is stale.
+	ErrStale = errors.New("update is stale")
+)
 
 // A Target hosts an indexed cache of state for a single target.
 type Target struct {
@@ -465,7 +470,7 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 		case n.GetTimestamp() < old.GetTimestamp():
 			// Update rejected. Timestamp < previous recorded timestamp.
 			t.meta.AddInt(metadata.StaleCount, 1)
-			return nil, errors.New("update is stale")
+			return nil, ErrStale
 		case n.GetTimestamp() == old.GetTimestamp():
 			if !proto.Equal(old, n) {
 				if log.V(1) {
@@ -474,7 +479,7 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 				// Allow to continue to update the cache taking the last supplied value for this timestamp.
 			} else {
 				t.meta.AddInt(metadata.StaleCount, 1)
-				return nil, errors.New("update is stale")
+				return nil, ErrStale
 			}
 		}
 		oldval.Update(n)

@@ -1221,7 +1221,7 @@ func TestTypedValueOf(t *testing.T) {
 	}, {
 		desc: "double value",
 		in:   &fpb.Value{Value: &fpb.Value_DoubleValue{&fpb.DoubleValue{Value: float64(101)}}},
-		want: &gpb.TypedValue{Value: &gpb.TypedValue_FloatVal{float32(101)}},
+		want: &gpb.TypedValue{Value: &gpb.TypedValue_DoubleVal{float64(101)}},
 	}, {
 		desc: "delete value",
 		in:   &fpb.Value{Value: &fpb.Value_Delete{&fpb.DeleteValue{}}},

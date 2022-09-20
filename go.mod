@@ -7,7 +7,7 @@ require (
 	github.com/golang/glog v0.0.0-20160126235308-23def4e6c14b
 	github.com/google/go-cmp v0.5.7
 	github.com/kylelemons/godebug v1.1.0
-	github.com/openconfig/grpctunnel v0.0.0-20220524190229-125331eabdde
+	github.com/openconfig/grpctunnel v0.0.0-20220819142823-6f5422b8ca70
 	github.com/openconfig/ygot v0.6.0
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20220608084003-fc78c767cd6a
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9

@@ -173,5 +173,5 @@ var AgentManager_ServiceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "github.com/openconfig/gnmi/testing/fake/proto/fake.proto",
+	Metadata: "testing/fake/proto/fake.proto",
 }

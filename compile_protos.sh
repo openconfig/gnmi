@@ -17,12 +17,17 @@
 set -euo pipefail
 
 # Go
-proto_imports_go="${GOPATH}/src"
-protoc -I=$proto_imports_go --go_out=$proto_imports_go --go_opt=paths=source_relative --go-grpc_out=$proto_imports_go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false github.com/openconfig/gnmi/testing/fake/proto/fake.proto
-protoc -I=$proto_imports_go --go_out=$proto_imports_go --go_opt=paths=source_relative --go-grpc_out=$proto_imports_go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false github.com/openconfig/gnmi/proto/gnmi/gnmi.proto
-protoc -I=$proto_imports_go --go_out=$proto_imports_go --go_opt=paths=source_relative --go-grpc_out=$proto_imports_go --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false github.com/openconfig/gnmi/proto/collector/collector.proto
-protoc -I=$proto_imports_go --go_out=$proto_imports_go --go_opt=paths=source_relative github.com/openconfig/gnmi/proto/gnmi_ext/gnmi_ext.proto
-protoc -I=$proto_imports_go --go_out=$proto_imports_go --go_opt=paths=source_relative github.com/openconfig/gnmi/proto/target/target.proto
+if ! which protoc-gen-go-grpc; then
+  go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
+fi
+protobufsrc=${GOPATH}/src/github.com/google/protobuf/src
+googleapis=${GOPATH}/src/github.com/googleapis/googleapis
+proto_imports_go=".:${protobufsrc}:${googleapis}:${GOPATH}/src"
+protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false testing/fake/proto/fake.proto
+protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/gnmi/gnmi.proto
+protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/collector/collector.proto
+protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative proto/gnmi_ext/gnmi_ext.proto
+protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative proto/target/target.proto
 
 # Python
 proto_imports_python=".:${GOPATH}/src"

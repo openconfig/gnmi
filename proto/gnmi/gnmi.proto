@@ -83,14 +83,14 @@ service gNMI {
 message Notification {
   int64 timestamp = 1;          // Timestamp in nanoseconds since Epoch.
   Path prefix = 2;              // Prefix used for paths in the message.
-  // An alias for the path specified in the prefix field.
-  // Reference: gNMI Specification Section 2.4.2
-  string alias = 3;
   repeated Update update = 4;   // Data elements that have changed values.
   repeated Path delete = 5;     // Data elements that have been deleted.
   // This notification contains a set of paths that are always updated together
   // referenced by a globally unique prefix.
   bool atomic = 6;
+  // Reserved field numbers and identifiers.
+  reserved "alias";
+  reserved 3;
 }
 
 // Update is a re-usable message that is used to store a particular Path,
@@ -191,7 +191,10 @@ message Error {
 // Decimal64 is used to encode a fixed precision decimal number. The value
 // is expressed as a set of digits with the precision specifying the
 // number of digits following the decimal point in the digit set.
+// This message is deprecated in favor of encoding all floating point types
+// as double precision.
 message Decimal64 {
+  option deprecated = true;
   int64 digits = 1;         // Set of digits.
   uint32 precision = 2;     // Number of digits following the decimal point.
 }
@@ -207,18 +210,19 @@ message ScalarArray {
 // SubscribeRequest is the message sent by the client to the target when
 // initiating a subscription to a set of paths within the data tree. The
 // request field must be populated and the initial message must specify a
-// SubscriptionList to initiate a subscription. The message is subsequently
-// used to define aliases or trigger polled data to be sent by the target.
+// SubscriptionList to initiate a subscription.
 // Reference: gNMI Specification Section 3.5.1.1
 message SubscribeRequest {
   oneof request {
     SubscriptionList subscribe = 1; // Specify the paths within a subscription.
     Poll poll = 3;                  // Trigger a polled update.
-    AliasList aliases = 4;          // Aliases to be created.
   }
   // Extension messages associated with the SubscribeRequest. See the
   // gNMI extension specification for further definition.
   repeated gnmi_ext.Extension extension = 5;
+  // Reserved field numbers and identifiers.
+  reserved 4;
+  reserved "aliases";
 }
 
 // Poll is sent within a SubscribeRequest to trigger the device to
@@ -256,8 +260,6 @@ message SubscribeResponse {
 message SubscriptionList {
   Path prefix = 1;                          // Prefix used for paths.
   repeated Subscription subscription = 2;   // Set of subscriptions to create.
-  // Whether target defined aliases are allowed within the subscription.
-  bool use_aliases = 3;
   QOSMarking qos = 4;                       // DSCP marking to be used.
   // Mode of the subscription.
   enum Mode {
@@ -281,6 +283,9 @@ message SubscriptionList {
   // current state. For ONCE and POLL modes, this causes the server to send only
   // the sync message (Sec. 3.5.2.3).
   bool updates_only = 9;
+  // Reserved field numbers and identifiers.
+  reserved 3;
+  reserved "use_aliases";
 }
 
 // Subscription is a single request within a SubscriptionList. The path
@@ -315,23 +320,6 @@ enum SubscriptionMode {
 // Reference: gNMI Specification Section 3.5.1.2
 message QOSMarking {
   uint32 marking = 1;
-}
-
-// Alias specifies a data tree path, and an associated string which defines an
-// alias which is to be used for this path in the context of the RPC. The alias
-// is specified as a string which is prefixed with "#" to disambiguate it from
-// data tree element paths.
-// Reference: gNMI Specification Section 2.4.2
-message Alias {
-  Path path = 1;     // The path to be aliased.
-  string alias = 2;  // The alias value, a string prefixed by "#".
-}
-
-// AliasList specifies a list of aliases. It is used in a SubscribeRequest for
-// a client to create a set of aliases that the target is to utilize.
-// Reference: gNMI Specification Section 3.5.1.6
-message AliasList {
-  repeated Alias alias = 1;    // The set of aliases to be created.
 }
 
 // SetRequest is sent from a client to the target to update values in the data
