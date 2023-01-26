@@ -21,6 +21,9 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
+
+	"github.com/openconfig/gnmi/latency"
 )
 
 const (
@@ -313,4 +316,21 @@ func (m *Metadata) GetStr(value string) (string, error) {
 		return "", ErrUnsetValue
 	}
 	return v, nil
+}
+
+// LatencyPath returns the metadata path for the latency statistics of
+// window w and type typ.
+func LatencyPath(w time.Duration, typ latency.StatType) []string {
+	return latency.Path(w, typ, []string{Root})
+}
+
+// RegisterLatencyMetadata registers latency stats metadata for time windows
+// specified in windowSizes. RegisterLatencyMetadata is not thread-safe and
+// should be called before any metadata.Metadata is instantiated.
+func RegisterLatencyMetadata(windowSizes []time.Duration) {
+	for _, size := range windowSizes {
+		for _, typ := range []latency.StatType{latency.Avg, latency.Max, latency.Min} {
+			RegisterIntValue(latency.MetadataName(size, typ), &IntValue{Path: LatencyPath(size, typ)})
+		}
+	}
 }

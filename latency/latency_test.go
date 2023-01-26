@@ -17,32 +17,52 @@ limitations under the License.
 package latency
 
 import (
+	"errors"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/openconfig/gnmi/errdiff"
-	"github.com/openconfig/gnmi/metadata"
 )
+
+type fakeMeta struct {
+	m   map[string]int64
+	err error
+}
+
+func (m *fakeMeta) SetInt(name string, val int64) error {
+	if m.err != nil {
+		return m.err
+	}
+	m.m[name] = val
+	return nil
+}
+
+func (m *fakeMeta) GetInt(name string) (int64, error) {
+	v, ok := m.m[name]
+	if !ok {
+		return 0, errors.New("error")
+	}
+	return v, nil
+}
 
 func TestLatencyWithoutWindows(t *testing.T) {
 	defer func() {
-		now = time.Now
+		Now = time.Now
 	}()
 	var windows []time.Duration
-	RegisterMetadata(windows)
 	lat := New(windows, nil)
-	m := metadata.New()
+	m := &fakeMeta{err: errors.New("error")}
 	compute := func(ts, nts time.Time) {
-		now = func() time.Time { return nts }
+		Now = func() time.Time { return nts }
 		lat.Compute(ts)
 	}
 	updateReset := func(nts time.Time) {
-		now = func() time.Time { return nts }
+		Now = func() time.Time { return nts }
 		lat.UpdateReset(m)
 	}
-	// Make sure it is still ok to call Compute and UpdateReset functions
-	// even if no latency windows are set.
+	// Make sure it is still ok (no panics) to call Compute and UpdateReset
+	// functions even if no latency windows are set.
 	compute(time.Unix(97, 0), time.Unix(98, 0)) // 1 second
 	compute(time.Unix(96, 0), time.Unix(99, 0)) // 3 second
 	updateReset(time.Unix(100, 0))
@@ -53,19 +73,18 @@ func TestLatencyWithoutWindows(t *testing.T) {
 
 func TestAvgLatency(t *testing.T) {
 	defer func() {
-		now = time.Now
+		Now = time.Now
 	}()
 	win := 2 * time.Second
 	windows := []time.Duration{win}
-	RegisterMetadata(windows)
 	lat := New(windows, &Options{AvgPrecision: time.Microsecond})
-	m := metadata.New()
+	m := &fakeMeta{m: map[string]int64{}}
 	compute := func(ts, nts time.Time) {
-		now = func() time.Time { return nts }
+		Now = func() time.Time { return nts }
 		lat.Compute(ts)
 	}
 	updateReset := func(nts time.Time) {
-		now = func() time.Time { return nts }
+		Now = func() time.Time { return nts }
 		lat.UpdateReset(m)
 	}
 	compute(time.Unix(96, 999398800), time.Unix(98, 0)) // 1 second 601200 ns
@@ -86,13 +105,56 @@ func TestAvgLatency(t *testing.T) {
 	}
 }
 
+func TestUpdateLast(t *testing.T) {
+	defer func() {
+		Now = time.Now
+	}()
+	win := time.Minute
+	windows := []time.Duration{win}
+	lat := New(windows, &Options{
+		AvgPrecision: time.Microsecond,
+		ComputeFunc:  func(ts time.Time, now time.Time) time.Duration { return now.Sub(ts) / 2 },
+	})
+	m := &fakeMeta{m: map[string]int64{}}
+	compute := func(ts, nts time.Time) {
+		Now = func() time.Time { return nts }
+		lat.Compute(ts)
+	}
+	updateReset := func(nts time.Time) {
+		Now = func() time.Time { return nts }
+		lat.UpdateReset(m)
+	}
+	compute(time.Unix(96, 999398800), time.Unix(98, 0)) // 1 second 601200 ns
+	compute(time.Unix(96, 0), time.Unix(99, 803400))    // 3 second 803400 ns
+	updateReset(time.Unix(100, 0))                      // No update because only 2 seconds have passed.
+	for _, typ := range []StatType{Avg, Max, Min} {
+		if _, err := m.GetInt(MetadataName(win, typ)); err == nil {
+			t.Fatalf("metadata %q: didn't get expected error", MetadataName(win, typ))
+		}
+	}
+	Now = func() time.Time { return time.Unix(100, 0) }
+	lat.UpdateLast(m) // Force an update even though 2 seconds < 1 minute
+	for name, want := range map[string]int64{
+		MetadataName(win, Avg): 1000350000,
+		MetadataName(win, Max): 1500401700,
+		MetadataName(win, Min): 500300600,
+	} {
+		val, err := m.GetInt(name)
+		if err != nil {
+			t.Fatalf("metadata %q: got unexpected error %v", name, err)
+		}
+		if val != want {
+			t.Errorf("metadata %q: got %d, want %d", name, val, want)
+		}
+	}
+}
+
 func TestLatency(t *testing.T) {
 	defer func() {
-		now = time.Now
+		Now = time.Now
 	}()
 	smWin, mdWin, lgWin := 2*time.Second, 4*time.Second, 8*time.Second
 	windows := []time.Duration{smWin, mdWin, lgWin}
-	RegisterMetadata(windows)
 	meta := func(w time.Duration, typ StatType) string {
 		return stat{window: w, typ: typ}.metaName()
 	}
@@ -118,7 +180,7 @@ func TestLatency(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
 			lat := New(windows, tt.opts)
-			m := metadata.New()
+			m := &fakeMeta{m: map[string]int64{}}
 			checkLatency := func(desc string, lm map[string]time.Duration) {
 				for name, want := range lm {
 					val, err := m.GetInt(name)
@@ -141,11 +203,11 @@ func TestLatency(t *testing.T) {
 			checkLatency("initial state", nil)
 
 			compute := func(ts, nts time.Time) {
-				now = func() time.Time { return nts }
+				Now = func() time.Time { return nts }
 				lat.Compute(ts)
 			}
 			updateReset := func(nts time.Time) {
-				now = func() time.Time { return nts }
+				Now = func() time.Time { return nts }
 				lat.UpdateReset(m)
 			}
 
@@ -254,7 +316,7 @@ func TestParseWindows(t *testing.T) {
 		windows []string
 		period  time.Duration
 		want    []time.Duration
-		err     interface{}
+		err     any
 	}{{
 		desc:    "wrong time Duration",
 		windows: []string{"abc"},

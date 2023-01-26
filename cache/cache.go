@@ -125,7 +125,7 @@ func New(targets []string, opts ...Option) *Cache {
 			opt(&c.opts)
 		}
 	}
-	latency.RegisterMetadata(c.opts.latencyWindows)
+	metadata.RegisterLatencyMetadata(c.opts.latencyWindows)
 
 	for _, t := range targets {
 		c.Add(t)
@@ -331,7 +331,12 @@ func (c *Cache) GnmiUpdate(n *pb.Notification) error {
 // each individual Update/Delete is sent to cache as
 // a separate gnmi.Notification.
 func (t *Target) GnmiUpdate(n *pb.Notification) error {
-	t.checkTimestamp(T(n.GetTimestamp()))
+	if u := n.GetUpdate(); len(u) > 0 {
+		if p := u[0].GetPath().GetElem(); len(p) > 0 && p[0].GetName() != metadata.Root {
+			// Record latest timestamp from the device, excluding all 'meta' paths.
+			t.checkTimestamp(T(n.GetTimestamp()))
+		}
+	}
 	switch {
 	// Store atomic notifications as a single leaf in the tree.
 	case n.Atomic:
@@ -422,6 +427,12 @@ func (t *Target) checkTimestamp(ts time.Time) {
 	if ts.After(t.ts) {
 		t.ts = ts
 	}
+}
+
+func (t *Target) resetTimestamp() {
+	defer t.tsmu.Unlock()
+	t.tsmu.Lock()
+	t.ts = time.Time{}
 }
 
 func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
@@ -647,6 +658,8 @@ func (t *Target) updateMeta(clients func(*ctree.Leaf)) {
 // Reset clears the Target of stale data upon a reconnection and notifies
 // cache client of the removal.
 func (t *Target) Reset() {
+	// Clear latest timestamp received from device.
+	t.resetTimestamp()
 	// Reset metadata to zero values (e.g. connected = false) and notify clients.
 	t.meta.Clear()
 	t.updateMeta(t.client)

@@ -570,6 +570,51 @@ update: {
 }
 `,
 	}, {
+		desc: "single target multiple paths with timestamp format (streaming)",
+		updates: []*fpb.Value{
+			{Path: []string{"a", "b"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 100}},
+			{Value: &fpb.Value_Sync{Sync: 1}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 300}},
+			{Path: []string{"a", "b"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 6}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 400}},
+		},
+		query: client.Query{
+			Target:  "dev1",
+			Queries: []client.Path{{"a"}},
+			Type:    client.Stream,
+			TLS:     &tls.Config{InsecureSkipVerify: true},
+		},
+		cfg: Config{
+			Display:       display,
+			DisplayPrefix: "",
+			DisplayIndent: "  ",
+			DisplayType:   "group",
+			// StreamingDuration will expire before Count updates are received because
+			// no updates are being streamed in the test.
+			Count:             3,
+			StreamingDuration: 100 * time.Millisecond,
+			Timestamp:         "raw",
+		},
+		want: `{
+  "dev1": {
+    "a": {
+      "b": {
+        "timestamp": 100,
+        "value": 5
+      }
+    }
+  }
+}
+{
+  "dev1": {
+    "a": {
+      "b": {
+        "timestamp": 400,
+        "value": 6
+      }
+    }
+  }
+}
+`,
+	}, {
 		desc: "single target multiple paths (single line)",
 		updates: []*fpb.Value{
 			{Path: []string{"a", "b"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 100}},

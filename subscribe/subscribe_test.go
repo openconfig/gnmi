@@ -25,6 +25,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"sync/atomic"
 	"testing"
 	"time"
 
@@ -46,10 +47,7 @@ import (
 
 func startServer(targets []string, opts ...Option) (string, *Server, *cache.Cache, func(), error) {
 	c := cache.New(targets)
-	p, err := NewServer(c, opts...)
-	if err != nil {
-		return "", nil, nil, nil, fmt.Errorf("NewServer: %v", err)
-	}
+	p, _ := NewServer(c, opts...)
 	c.SetClient(p.Update)
 	lis, err := net.Listen("tcp", "")
 	if err != nil {
@@ -477,7 +475,7 @@ func TestGNMIStreamAtomic(t *testing.T) {
 
 	ns := []*pb.Notification{}
 	sync := false
-	count := 0
+	var count int32
 	c := client.BaseClient{}
 	q := client.Query{
 		Addrs:   []string{addr},
@@ -491,10 +489,9 @@ func TestGNMIStreamAtomic(t *testing.T) {
 			}
 			switch r := resp.Response.(type) {
 			case *pb.SubscribeResponse_Update:
-				count++
 				ns = append(ns, resp.GetUpdate())
 				// The total updates received should be 3, 1 before sync, 2 after.
-				if count == 3 {
+				if atomic.AddInt32(&count, 1) == 3 {
 					c.Close()
 				}
 			case *pb.SubscribeResponse_Error:
@@ -503,8 +500,8 @@ func TestGNMIStreamAtomic(t *testing.T) {
 				if sync {
 					t.Fatal("received more than one sync message")
 				}
-				if count != 1 {
-					t.Fatalf("initial updates before sync, got %d, want 1", count)
+				if x := atomic.LoadInt32(&count); x != 1 {
+					t.Fatalf("initial updates before sync, got %d, want 1", x)
 				}
 				sync = true
 				// Send some updates after the sync occurred.
@@ -740,7 +737,7 @@ func TestGNMISubscribeUnresponsiveClient(t *testing.T) {
 
 	// Start the second client for the same target and actually accept
 	// responses.
-	count := 0
+	var count int32
 	client2 := client.BaseClient{}
 	q2 := client.Query{
 		Addrs:   []string{addr},
@@ -754,7 +751,7 @@ func TestGNMISubscribeUnresponsiveClient(t *testing.T) {
 			}
 			switch r := resp.Response.(type) {
 			case *pb.SubscribeResponse_Update:
-				count++
+				atomic.AddInt32(&count, 1)
 			case *pb.SubscribeResponse_SyncResponse:
 				client2.Close()
 			default:
@@ -852,14 +849,13 @@ func TestGNMICoalescedDupCount(t *testing.T) {
 	}} {
 		t.Run(tt.desc, func(t *testing.T) {
 			// Inject a simulated flow control to block sends and induce coalescing.
-			flowControlTest = func() { time.Sleep(10 * time.Millisecond) }
-			dequeCount := 0
+			var dequeCount int32
 			qszReady := make(chan struct{})
 			dupReady := make(chan struct{})
 			qszWait := make(chan struct{})
 			dupWait := make(chan struct{})
-			clientStatsTest = func(dup, qsz int64) {
-				dequeCount++
+			clientStatsTest := func(dup, qsz int64) {
+				atomic.AddInt32(&dequeCount, 1)
 				if qsz > 0 {
 					close(qszReady)
 					<-qszWait
@@ -869,11 +865,10 @@ func TestGNMICoalescedDupCount(t *testing.T) {
 					<-dupWait
 				}
 			}
-			defer func() {
-				flowControlTest = func() {}
-				clientStatsTest = func(int64, int64) {}
-			}()
-			addr, s, cache, teardown, err := startServer([]string{"dev1"}, tt.opts...)
+			flowControlTest := func() { time.Sleep(10 * time.Millisecond) }
+			opts := append(tt.opts, WithFlowControlTest(flowControlTest))
+			opts = append(opts, WithClientStatsTest(clientStatsTest))
+			addr, s, cache, teardown, err := startServer([]string{"dev1"}, opts...)
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -882,7 +877,7 @@ func TestGNMICoalescedDupCount(t *testing.T) {
 			stall := make(chan struct{})
 			done := make(chan struct{})
 			coalesced := uint32(0)
-			count := 0
+			var count int32
 			c := client.BaseClient{}
 			q := client.Query{
 				Addrs:   []string{addr},
@@ -896,11 +891,11 @@ func TestGNMICoalescedDupCount(t *testing.T) {
 					}
 					switch r := resp.Response.(type) {
 					case *pb.SubscribeResponse_Update:
-						count++
+						atomic.AddInt32(&count, 1)
 						if r.Update.Update[0].GetDuplicates() > 0 {
 							coalesced = r.Update.Update[0].GetDuplicates()
 						}
-						switch count {
+						switch atomic.LoadInt32(&count) {
 						case 1:
 							close(stall)
 						case 2:
@@ -944,17 +939,20 @@ func TestGNMICoalescedDupCount(t *testing.T) {
 }
 
 func TestGNMISubscribeTimeout(t *testing.T) {
-	// Set a low timeout that is below the induced flowControl delay.
-	Timeout = 100 * time.Millisecond
-	// Cause query to hang indefinitely to induce timeout.
-	flowControlTest = func() { select {} }
-	// Reset the global variables so as not to interfere with other tests.
-	defer func() {
-		Timeout = time.Minute
-		flowControlTest = func() {}
-	}()
+	stall := make(chan struct{})
+	defer close(stall)
+	opts := []Option{
+		// Set a low timeout that is below the induced flowControl delay.
+		WithTimeout(100 * time.Millisecond),
+		// Cause query to hang indefinitely to induce timeout.
+		WithFlowControlTest(func() {
+			select {
+			case <-stall:
+			}
+		}),
+	}
 
-	addr, _, cache, teardown, err := startServer([]string{"dev1", "dev2"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1", "dev2"}, opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -984,190 +982,9 @@ func TestGNMISubscribeTimeout(t *testing.T) {
 	}
 }
 
-func TestSubscriptionLimit(t *testing.T) {
-	totalQueries := 20
-	SubscriptionLimit = 7
-	pendingQueries := totalQueries - SubscriptionLimit
-	causeLimit := make(chan struct{})
-	subscriptionLimitTest = func() {
-		<-causeLimit
-	}
-	var pendingSubsMu sync.Mutex
-	pendingSubs := 0
-	pendingSubsReadyCh := make(chan struct{})
-	pendingSubsCh := make(chan struct{})
-	pendingSubsCountTest = func(inc int64) {
-		if inc <= 0 {
-			return
-		}
-		pendingSubsMu.Lock()
-		pendingSubs++
-		if pendingSubs == pendingQueries {
-			close(pendingSubsReadyCh)
-			pendingSubsMu.Unlock()
-			<-pendingSubsCh
-			return
-		}
-		pendingSubsMu.Unlock()
-	}
-	// Clear the global variables so as not to interfere with other tests.
-	defer func() {
-		SubscriptionLimit = 0
-		subscriptionLimitTest = func() {}
-		pendingSubsCountTest = func(int64) {}
-	}()
-
-	addr, s, _, teardown, err := startServer([]string{"dev1", "dev2"}, WithStats())
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer teardown()
-
-	fc := make(chan struct{})
-	q := client.Query{
-		Addrs:   []string{addr},
-		Target:  "dev1",
-		Queries: []client.Path{{"a"}},
-		Type:    client.Once,
-		NotificationHandler: func(n client.Notification) error {
-			switch n.(type) {
-			case client.Sync:
-				fc <- struct{}{}
-			}
-			return nil
-		},
-		TLS: &tls.Config{InsecureSkipVerify: true},
-	}
-
-	// Launch parallel queries.
-	for i := 0; i < totalQueries; i++ {
-		c := client.BaseClient{}
-		go c.Subscribe(context.Background(), q, gnmiclient.Type)
-	}
-
-	timeout := time.After(500 * time.Millisecond)
-	finished := 0
-firstQueries:
-	for {
-		select {
-		case <-fc:
-			finished++
-		case <-timeout:
-			break firstQueries
-		}
-	}
-	if finished != SubscriptionLimit {
-		t.Fatalf("got %d finished queries, want %d", finished, SubscriptionLimit)
-	}
-	<-pendingSubsReadyCh
-	st := s.TypeStats()["once"]
-	if st.ActiveSubscriptionCount != int64(totalQueries) {
-		t.Errorf("ActiveSubscriptionCount: got %d, want %d", st.ActiveSubscriptionCount, totalQueries)
-	}
-	if st.SubscriptionCount != int64(totalQueries) {
-		t.Errorf("SubscriptionCount: got %d, want %d", st.SubscriptionCount, totalQueries)
-	}
-	if st.PendingSubscriptionCount != int64(pendingQueries) {
-		t.Errorf("PendingSubscriptionCount: got %d, want %d", st.PendingSubscriptionCount, pendingQueries)
-	}
-	close(causeLimit)
-	close(pendingSubsCh)
-	timeout = time.After(time.Second)
-remainingQueries:
-	for {
-		select {
-		case <-fc:
-			if finished++; finished == totalQueries {
-				break remainingQueries
-			}
-		case <-timeout:
-			t.Errorf("Remaining queries did not proceed after limit removed. got %d, want %d", finished, totalQueries)
-		}
-	}
-}
-
-func TestGNMISubscriptionLimit(t *testing.T) {
-	totalQueries := 20
-	SubscriptionLimit = 7
-	causeLimit := make(chan struct{})
-	subscriptionLimitTest = func() {
-		<-causeLimit
-	}
-	// Clear the global variables so as not to interfere with other tests.
-	defer func() {
-		SubscriptionLimit = 0
-		subscriptionLimitTest = func() {}
-	}()
-
-	addr, _, _, teardown, err := startServer([]string{"dev1", "dev2"})
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer teardown()
-
-	fc := make(chan struct{})
-	q := client.Query{
-		Addrs:   []string{addr},
-		Target:  "dev1",
-		Queries: []client.Path{{"a"}},
-		Type:    client.Once,
-		ProtoHandler: func(msg proto.Message) error {
-			resp, ok := msg.(*pb.SubscribeResponse)
-			if !ok {
-				return fmt.Errorf("failed to type assert message %#v", msg)
-			}
-			switch resp.Response.(type) {
-			case *pb.SubscribeResponse_SyncResponse:
-				fc <- struct{}{}
-			}
-			return nil
-		},
-		TLS: &tls.Config{InsecureSkipVerify: true},
-	}
-
-	// Launch parallel queries.
-	for i := 0; i < totalQueries; i++ {
-		c := client.BaseClient{}
-		go c.Subscribe(context.Background(), q, gnmiclient.Type)
-	}
-
-	timeout := time.After(500 * time.Millisecond)
-	finished := 0
-firstQueries:
-	for {
-		select {
-		case <-fc:
-			finished++
-		case <-timeout:
-			break firstQueries
-		}
-	}
-	if finished != SubscriptionLimit {
-		t.Fatalf("got %d finished queries, want %d", finished, SubscriptionLimit)
-	}
-
-	close(causeLimit)
-	timeout = time.After(time.Second)
-remainingQueries:
-	for {
-		select {
-		case <-fc:
-			if finished++; finished == totalQueries {
-				break remainingQueries
-			}
-		case <-timeout:
-			t.Errorf("Remaining queries did not proceed after limit removed. got %d, want %d", finished, totalQueries)
-		}
-	}
-}
-
 func TestGNMIMultipleSubscriberCoalescion(t *testing.T) {
 	// Inject a simulated flow control to block sends and induce coalescing.
-	flowControlTest = func() { time.Sleep(time.Second) }
-	defer func() {
-		flowControlTest = func() {}
-	}()
-	addr, _, cache, teardown, err := startServer([]string{"dev1"})
+	addr, _, cache, teardown, err := startServer([]string{"dev1"}, WithFlowControlTest(func() { time.Sleep(time.Second) }))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1229,7 +1046,7 @@ func TestGNMIServerStats(t *testing.T) {
 	ready2 := make(chan struct{})
 	ready3 := make(chan struct{})
 	subsEnterCount := 0
-	updateSubsCountEnterTest = func() {
+	updateSubsCountEnterTest := func() {
 		subsEnterCount++
 		switch subsEnterCount {
 		case 1:
@@ -1244,7 +1061,7 @@ func TestGNMIServerStats(t *testing.T) {
 	wait2 := make(chan struct{})
 	wait3 := make(chan struct{})
 	subsExitCount := 0
-	updateSubsCountExitTest = func() {
+	updateSubsCountExitTest := func() {
 		subsExitCount++
 		switch subsExitCount {
 		case 1:
@@ -1255,11 +1072,12 @@ func TestGNMIServerStats(t *testing.T) {
 			close(wait3)
 		}
 	}
-	defer func() {
-		updateSubsCountEnterTest = func() {}
-		updateSubsCountExitTest = func() {}
-	}()
-	addr, s, cache, teardown, err := startServer([]string{"dev1", "dev2"}, WithStats())
+	opts := []Option{
+		WithStats(),
+		WithUpdateSubsCountEnterTest(updateSubsCountEnterTest),
+		WithUpdateSubsCountExitTest(updateSubsCountExitTest),
+	}
+	addr, s, cache, teardown, err := startServer([]string{"dev1", "dev2"}, opts...)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1468,11 +1286,7 @@ func (s *fakeSubServer) Context() context.Context {
 func TestGNMIACL(t *testing.T) {
 	targets := []string{"dev-pii", "dev-no-pii"}
 	c := cache.New(targets)
-	p, err := NewServer(c)
-	if err != nil {
-		t.Errorf("NewServer: %v", err)
-		return
-	}
+	p, _ := NewServer(c)
 	paths := []client.Path{
 		{"dev-pii", "a", "b"},
 		{"dev-pii", "a", "c"},
@@ -1541,7 +1355,7 @@ func TestGNMIACL(t *testing.T) {
 
 	for _, test := range tests {
 		facl := &fakeACL{}
-		p.SetACL(facl)
+		p.o.acl = facl
 		var cancel context.CancelFunc
 		subSvr := &fakeSubServer{user: test.user,
 			req: make(chan *pb.SubscribeRequest, 2),

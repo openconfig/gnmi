@@ -181,7 +181,7 @@ func runCollector(ctx context.Context) error {
 		Connect:           c.cache.Connect,
 		ConnectError:      c.cache.ConnectError,
 		ConnectionManager: c.cm,
-		Timeout:           subscribe.Timeout,
+		Timeout:           *dialTimeout,
 		Update: func(target string, v *gnmipb.Notification) {
 			// Explicitly set all updates as having come from this target even if
 			// the target itself doesn't report or incorrectly reports the target
@@ -217,10 +217,7 @@ func runCollector(ctx context.Context) error {
 	// Initialize the Collector server.
 	cpb.RegisterCollectorServer(srv, coll.New(c.tm.Reconnect))
 	// Initialize gNMI Proxy Subscribe server.
-	subscribeSrv, err := subscribe.NewServer(c.cache)
-	if err != nil {
-		return fmt.Errorf("Could not instantiate gNMI server: %v", err)
-	}
+	subscribeSrv, _ := subscribe.NewServer(c.cache)
 	gnmipb.RegisterGNMIServer(srv, subscribeSrv)
 	// Forward streaming updates to clients.
 	c.cache.SetClient(subscribeSrv.Update)

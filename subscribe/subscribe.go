@@ -40,27 +40,6 @@ import (
 	pb "github.com/openconfig/gnmi/proto/gnmi"
 )
 
-var (
-	// Value overridden in tests to simulate flow control.
-	flowControlTest = func() {}
-	// Timeout specifies how long a send can be pending before the RPC is closed.
-	Timeout = time.Minute
-	// SubscriptionLimit specifies how many queries can be processing simultaneously.
-	// This number includes Once queries, Polling subscriptions, and Streaming
-	// subscriptions that have not yet synced. Once a streaming subscription has
-	// synced, it no longer counts against the limit. A polling subscription
-	// counts against the limit during each polling cycle while it is processed.
-	SubscriptionLimit = 0
-	// Value overridden in tests to evaluate SubscriptionLimit enforcement.
-	subscriptionLimitTest = func() {}
-	// Values overridden in tests to verify subscription counters.
-	updateSubsCountEnterTest = func() {}
-	updateSubsCountExitTest  = func() {}
-	pendingSubsCountTest     = func(int64) {}
-	// Values overridden in tests to verify subscription client counters.
-	clientStatsTest = func(int64, int64) {}
-)
-
 type aclStub struct{}
 
 func (a *aclStub) Check(string) bool {
@@ -80,18 +59,69 @@ type ACL interface {
 
 // options contains options for creating a Server.
 type options struct {
-	enableStats bool
 	noDupReport bool
+	timeout     time.Duration
+	stats       *stats
+	acl         ACL
+	// Test override functions
+	flowControlTest          func()
+	clientStatsTest          func(int64, int64)
+	updateSubsCountEnterTest func()
+	updateSubsCountExitTest  func()
 }
 
 // Option defines the function prototype to set options for creating a Server.
 type Option func(*options)
 
+// WithTimeout returns an Option to specify how long a send can be pending
+// before the RPC is closed.
+func WithTimeout(t time.Duration) Option {
+	return func(o *options) {
+		o.timeout = t
+	}
+}
+
+// WithFlowControlTest returns an Option to override a test function to
+// simulate flow control.
+func WithFlowControlTest(f func()) Option {
+	return func(o *options) {
+		o.flowControlTest = f
+	}
+}
+
+// WithClientStatsTest test override function.
+func WithClientStatsTest(f func(int64, int64)) Option {
+	return func(o *options) {
+		o.clientStatsTest = f
+	}
+}
+
+// WithUpdateSubsCountEnterTest test override function.
+func WithUpdateSubsCountEnterTest(f func()) Option {
+	return func(o *options) {
+		o.updateSubsCountEnterTest = f
+	}
+}
+
+// WithUpdateSubsCountExitTest test override function.
+func WithUpdateSubsCountExitTest(f func()) Option {
+	return func(o *options) {
+		o.updateSubsCountExitTest = f
+	}
+}
+
 // WithStats returns an Option to enable statistics collection of client
 // queries to the server.
 func WithStats() Option {
 	return func(o *options) {
-		o.enableStats = true
+		o.stats = newStats()
+	}
+}
+
+// WithACL sets server ACL.
+func WithACL(a ACL) Option {
+	return func(o *options) {
+		o.acl = a
 	}
 }
 
@@ -112,24 +142,7 @@ type Server struct {
 
 	c *cache.Cache // The cache queries are performed against.
 	m *match.Match // Structure to match updates against active subscriptions.
-	a ACL          // server ACL.
-	// subscribeSlots is a channel of size SubscriptionLimit to restrict how many
-	// queries are in flight.
-	subscribeSlots chan struct{}
-	timeout        time.Duration
-	stats          *stats
-	noDupReport    bool
-}
-
-func newServer(c *cache.Cache, o options) (*Server, error) {
-	s := &Server{c: c, m: match.New(), timeout: Timeout, noDupReport: o.noDupReport}
-	if o.enableStats {
-		s.stats = newStats()
-	}
-	if SubscriptionLimit > 0 {
-		s.subscribeSlots = make(chan struct{}, SubscriptionLimit)
-	}
-	return s, nil
+	o options
 }
 
 // NewServer instantiates server to handle client queries.  The cache should be
@@ -141,12 +154,10 @@ func NewServer(c *cache.Cache, opts ...Option) (*Server, error) {
 			opt(&o)
 		}
 	}
-	return newServer(c, o)
-}
-
-// SetACL sets server ACL. This method is called before server starts to run.
-func (s *Server) SetACL(a ACL) {
-	s.a = a
+	if o.timeout == 0 {
+		o.timeout = time.Minute
+	}
+	return &Server{c: c, m: match.New(), o: o}, nil
 }
 
 // UpdateNotification uses paths in a pb.Notification n to match registered
@@ -179,26 +190,30 @@ func (s *Server) Update(n *ctree.Leaf) {
 }
 
 func (s *Server) updateTargetCounts(target string) func() {
-	if s.stats == nil {
+	if s.o.stats == nil {
 		return func() {}
 	}
-	st := s.stats.targetStats(target)
+	st := s.o.stats.targetStats(target)
 	atomic.AddInt64(&st.ActiveSubscriptionCount, 1)
 	atomic.AddInt64(&st.SubscriptionCount, 1)
 	return func() {
 		atomic.AddInt64(&st.ActiveSubscriptionCount, -1)
-		updateSubsCountExitTest()
+		if s.o.updateSubsCountExitTest != nil {
+			s.o.updateSubsCountExitTest()
+		}
 	}
 }
 
 func (s *Server) updateTypeCounts(typ string) func() {
-	if s.stats == nil {
+	if s.o.stats == nil {
 		return func() {}
 	}
-	st := s.stats.typeStats(typ)
+	st := s.o.stats.typeStats(typ)
 	atomic.AddInt64(&st.ActiveSubscriptionCount, 1)
 	atomic.AddInt64(&st.SubscriptionCount, 1)
-	updateSubsCountEnterTest()
+	if s.o.updateSubsCountEnterTest != nil {
+		s.o.updateSubsCountEnterTest()
+	}
 	return func() {
 		atomic.AddInt64(&st.ActiveSubscriptionCount, -1)
 	}
@@ -232,8 +247,8 @@ func addSubscription(m *match.Match, s *pb.SubscriptionList, c *matchClient) (re
 func (s *Server) Subscribe(stream pb.GNMI_SubscribeServer) error {
 	c := streamClient{stream: stream, acl: &aclStub{}}
 	var err error
-	if s.a != nil {
-		a, err := s.a.NewRPCACL(stream.Context())
+	if s.o.acl != nil {
+		a, err := s.o.acl.NewRPCACL(stream.Context())
 		if err != nil {
 			log.Errorf("NewRPCACL fails due to %v", err)
 			return status.Error(codes.Unauthenticated, "no authentication/authorization for requested operation")
@@ -334,12 +349,14 @@ func (s *Server) sendSubscribeResponse(r *resp, c *streamClient) error {
 	}
 
 	// Start the timeout before attempting to send.
-	r.t.Reset(s.timeout)
+	r.t.Reset(s.o.timeout)
 	// Clear the timeout upon sending.
 	defer r.t.Stop()
 	// An empty function in production, replaced in test to simulate flow control
 	// by blocking before send.
-	flowControlTest()
+	if s.o.flowControlTest != nil {
+		s.o.flowControlTest()
+	}
 	return r.stream.Send(notification)
 }
 
@@ -375,15 +392,6 @@ type streamClient struct {
 	errC   chan<- error
 }
 
-func (s *Server) addPendingSubsCount(mode string, inc int64) {
-	if s.stats == nil {
-		return
-	}
-	st := s.stats.typeStats(mode)
-	atomic.AddInt64(&st.PendingSubscriptionCount, inc)
-	pendingSubsCountTest(inc)
-}
-
 // processSubscription walks the cache tree and inserts all of the matching
 // nodes into the coalesce queue followed by a subscriptionSync response.
 func (s *Server) processSubscription(c *streamClient) {
@@ -393,31 +401,10 @@ func (s *Server) processSubscription(c *streamClient) {
 	defer func() {
 		if err != nil {
 			log.Error(err)
-			c.queue.Close()
 			c.errC <- err
 		}
 		log.V(2).Infof("end processSubscription for %p", c)
 	}()
-	if s.subscribeSlots != nil {
-		select {
-		// Register a subscription in the channel, which will block if SubscriptionLimit queries
-		// are already in flight.
-		case s.subscribeSlots <- struct{}{}:
-		default:
-			mode := strings.ToLower(c.sr.GetSubscribe().Mode.String())
-			s.addPendingSubsCount(mode, 1)
-			log.V(2).Infof("subscription %s delayed waiting for 1 of %d subscription slots.", c.sr, len(s.subscribeSlots))
-			s.subscribeSlots <- struct{}{}
-			s.addPendingSubsCount(mode, -1)
-			log.V(2).Infof("subscription %s resumed", c.sr)
-		}
-		// Remove subscription from the channel upon completion.
-		defer func() {
-			// Artificially hold subscription processing in tests to synchronously test limit.
-			subscriptionLimitTest()
-			<-s.subscribeSlots
-		}()
-	}
 	if !c.sr.GetSubscribe().GetUpdatesOnly() {
 		for _, subscription := range c.sr.GetSubscribe().Subscription {
 			var fullPath []string
@@ -473,13 +460,15 @@ func (s *Server) processPollingSubscription(c *streamClient) {
 }
 
 func (s *Server) updateClientStats(client, target string, dup, queueSize int64) {
-	if s.stats == nil {
+	if s.o.stats == nil {
 		return
 	}
-	st := s.stats.clientStats(client, target)
+	st := s.o.stats.clientStats(client, target)
 	atomic.AddInt64(&st.CoalesceCount, dup)
 	atomic.StoreInt64(&st.QueueSize, queueSize)
-	clientStatsTest(dup, queueSize)
+	if s.o.clientStatsTest != nil {
+		s.o.clientStatsTest(dup, queueSize)
+	}
 }
 
 // sendStreamingResults forwards all streaming updates to a given streaming
@@ -491,12 +480,12 @@ func (s *Server) sendStreamingResults(c *streamClient) {
 	// same Peer and has no meaning otherwise.
 	szKey := fmt.Sprintf("%s:%p", peer.Addr, c.sr)
 	defer func() {
-		if s.stats != nil {
-			s.stats.removeClientStats(szKey)
+		if s.o.stats != nil {
+			s.o.stats.removeClientStats(szKey)
 		}
 	}()
 
-	t := time.NewTimer(s.timeout)
+	t := time.NewTimer(s.o.timeout)
 	// Make sure the timer doesn't expire waiting for a value to send, only
 	// waiting to send.
 	t.Stop()
@@ -576,7 +565,7 @@ func (s *Server) MakeSubscribeResponse(n interface{}, dup uint32) (*pb.Subscribe
 	// update is set with duplicate count to be on the side of efficiency.
 	// Only attempt to set the duplicate count if it is greater than 0. The default
 	// value in the message is already 0.
-	if !s.noDupReport && dup > 0 && len(notification.Update) > 0 {
+	if !s.o.noDupReport && dup > 0 && len(notification.Update) > 0 {
 		// We need a copy of the cached notification before writing a client specific
 		// duplicate count as the notification is shared across all clients.
 		notification = proto.Clone(notification).(*pb.Notification)
@@ -613,28 +602,28 @@ func isTargetDelete(l *ctree.Leaf) bool {
 // stream, once, or poll. Statistics is available only if the Server is
 // created with NewServerWithStats.
 func (s *Server) TypeStats() map[string]TypeStats {
-	if s.stats == nil {
+	if s.o.stats == nil {
 		return nil
 	}
-	return s.stats.allTypeStats()
+	return s.o.stats.allTypeStats()
 }
 
 // TargetStats returns statistics of subscribe queries for all targets.
 // Statistics is available only if the Server is created with
 // NewServerWithStats.
 func (s *Server) TargetStats() map[string]TargetStats {
-	if s.stats == nil {
+	if s.o.stats == nil {
 		return nil
 	}
-	return s.stats.allTargetStats()
+	return s.o.stats.allTargetStats()
 }
 
 // ClientStats returns states of all subscribe clients such as queue size,
 // coalesce count. Statistics is available only if the Server is created
 // with NewServerWithStats.
 func (s *Server) ClientStats() map[string]ClientStats {
-	if s.stats == nil {
+	if s.o.stats == nil {
 		return nil
 	}
-	return s.stats.allClientStats()
+	return s.o.stats.allClientStats()
 }

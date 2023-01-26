@@ -24,7 +24,6 @@ import (
 // subscribe mode, e.g. stream, once, or poll.
 type TypeStats struct {
 	ActiveSubscriptionCount  int64 // currently active subscription count
-	PendingSubscriptionCount int64 // currently pending subscription count
 	SubscriptionCount        int64 // total subscription count, cumulative
 }
 

@@ -16,7 +16,13 @@ limitations under the License.
 
 package metadata
 
-import "testing"
+import (
+	"testing"
+	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/openconfig/gnmi/latency"
+)
 
 func TestPath(t *testing.T) {
 	if path := Path("invalid"); path != nil {
@@ -285,5 +291,35 @@ func TestClear(t *testing.T) {
 			}
 		}
 
+	}
+}
+
+func TestRegisterLatencyMetadata(t *testing.T) {
+	windows := []time.Duration{2 * time.Second, 5 * time.Minute}
+	latMetas := map[string][]string{}
+	for _, w := range windows {
+		for _, typ := range []latency.StatType{latency.Avg, latency.Max, latency.Min} {
+			latMetas[latency.MetadataName(w, typ)] = latency.Path(w, typ, []string{Root})
+		}
+	}
+	defer func() { // cleanup registered latency metadata
+		for metaName := range latMetas {
+			UnregisterIntValue(metaName)
+		}
+	}()
+	for metaName := range latMetas {
+		if _, exist := TargetIntValues[metaName]; exist {
+			t.Fatalf("Latency metadata %q existed before registration", metaName)
+		}
+	}
+	RegisterLatencyMetadata(windows)
+	for metaName, metaPath := range latMetas {
+		meta, exist := TargetIntValues[metaName]
+		if !exist {
+			t.Fatalf("Latency metadata %q does not exist after registration", metaName)
+		}
+		if diff := cmp.Diff(metaPath, meta.Path); diff != "" {
+			t.Errorf("Got wrong path for %q (-want+got): %s", metaName, diff)
+		}
 	}
 }

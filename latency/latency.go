@@ -22,8 +22,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/openconfig/gnmi/metadata"
 )
 
 const (
@@ -41,7 +39,8 @@ const (
 	metaName = "LatencyWindow"
 )
 
-var now = time.Now
+// Now is a stub for testing.
+var Now = time.Now
 
 // StatType is the type of latency statistics supported for a time window.
 type StatType int
@@ -54,6 +53,11 @@ const (
 	// Min is the minimum latency of a time window.
 	Min
 )
+
+// Metadata defines the interface required by latency metadata.
+type Metadata interface {
+	SetInt(name string, value int64) error
+}
 
 // CompactDurationString returns a compact string for a time window d. It
 // removes unnecessary suffixes like "0m0s" and "0s" from the Golang
@@ -94,14 +98,14 @@ func (s stat) metaName() string {
 }
 
 // metaPath returns the metadata path corresponding to the Stat s.
-func (s stat) metaPath() []string {
-	return []string{metadata.Root, ElemLatency, ElemWindow, CompactDurationString(s.window), s.typ.String()}
+func (s stat) metaPath(prefix []string) []string {
+	return append(prefix, ElemLatency, ElemWindow, CompactDurationString(s.window), s.typ.String())
 }
 
 // Path returns the metadata path for the latency statistics of window w
 // and type typ.
-func Path(w time.Duration, typ StatType) []string {
-	return stat{window: w, typ: typ}.metaPath()
+func Path(w time.Duration, typ StatType, prefix []string) []string {
+	return stat{window: w, typ: typ}.metaPath(prefix)
 }
 
 // MetadataName returns the metadata name for the latency statistics
@@ -120,7 +124,7 @@ type slot struct {
 }
 
 type window struct {
-	stats   map[string]func(string, *metadata.Metadata)
+	stats   map[string]func(string, Metadata)
 	size    time.Duration // window size
 	total   time.Duration // cumulative latency of this time window
 	sf      int64         // scaling factor of total
@@ -131,11 +135,11 @@ type window struct {
 
 func newWindow(size time.Duration, sf int64) *window {
 	w := &window{
-		stats: map[string]func(string, *metadata.Metadata){},
+		stats: map[string]func(string, Metadata){},
 		size:  size,
 		sf:    sf,
 	}
-	for st, f := range map[StatType]func(string, *metadata.Metadata){
+	for st, f := range map[StatType]func(string, Metadata){
 		Avg: w.setAvg,
 		Max: w.setMax,
 		Min: w.setMin} {
@@ -154,7 +158,7 @@ func (w *window) add(ls *slot) {
 	w.slots = append(w.slots, ls)
 }
 
-func (w *window) setAvg(name string, m *metadata.Metadata) {
+func (w *window) setAvg(name string, m Metadata) {
 	if w.count == 0 {
 		return
 	}
@@ -164,7 +168,7 @@ func (w *window) setAvg(name string, m *metadata.Metadata) {
 	}
 }
 
-func (w *window) setMax(name string, m *metadata.Metadata) {
+func (w *window) setMax(name string, m Metadata) {
 	var max time.Duration
 	for _, slot := range w.slots {
 		if slot.max > max {
@@ -176,7 +180,7 @@ func (w *window) setMax(name string, m *metadata.Metadata) {
 	}
 }
 
-func (w *window) setMin(name string, m *metadata.Metadata) {
+func (w *window) setMin(name string, m Metadata) {
 	if len(w.slots) == 0 {
 		return
 	}
@@ -218,8 +222,8 @@ func (w *window) isCovered(ts time.Time) bool {
 	return false
 }
 
-func (w *window) updateMeta(m *metadata.Metadata, ts time.Time) {
-	if !w.isCovered(ts) {
+func (w *window) updateMeta(m Metadata, ts time.Time, ignoreInitialWindowCoverage bool) {
+	if !ignoreInitialWindowCoverage && !w.isCovered(ts) {
 		return
 	}
 	w.slide(ts)
@@ -239,6 +243,7 @@ type Latency struct {
 	min         time.Duration // minimum latency
 	max         time.Duration // maximum latency
 	windows     []*window
+	compute     func(ts, now time.Time) time.Duration
 }
 
 // Options contains the options for creating a Latency.
@@ -250,6 +255,9 @@ type Options struct {
 	// durations needed to calculate averages. The precision of the Max and Min
 	// stats are not affected by this setting.
 	AvgPrecision time.Duration
+	// ComputeFunc defines how to calculate latency for the timestamp provided
+	// to Compute. If unspecified, the latency is calculated as now.Sub(ts).
+	ComputeFunc func(ts, now time.Time) time.Duration
 }
 
 // New returns a Latency object supporting latency stats for time windows
@@ -260,11 +268,19 @@ func New(windowSizes []time.Duration, opts *Options) *Latency {
 		precision = opts.AvgPrecision
 	}
 	sf := precision / time.Nanosecond
+	compute := func(ts, now time.Time) time.Duration { return now.Sub(ts) }
+	if opts != nil && opts.ComputeFunc != nil {
+		compute = opts.ComputeFunc
+	}
 	var windows []*window
 	for _, size := range windowSizes {
 		windows = append(windows, newWindow(size, sf.Nanoseconds()))
 	}
-	return &Latency{windows: windows, scaleFactor: sf}
+	return &Latency{
+		windows:     windows,
+		scaleFactor: sf,
+		compute:     compute,
+	}
 }
 
 // Compute calculates the time difference between now and ts (the timestamp
@@ -272,8 +288,8 @@ func New(windowSizes []time.Duration, opts *Options) *Latency {
 func (l *Latency) Compute(ts time.Time) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	nowTime := now()
-	lat := nowTime.Sub(ts)
+	nowTime := Now()
+	lat := l.compute(ts, nowTime)
 	l.totalDiff += lat / l.scaleFactor
 	l.count++
 	if lat > l.max {
@@ -292,13 +308,23 @@ func (l *Latency) Compute(ts time.Time) {
 // the corresponding stats in Metadata m.
 // UpdateReset is expected to be called periodically at a fixed interval
 // (e.g. 2s) of which the time windows should be multiples of this interval.
-func (l *Latency) UpdateReset(m *metadata.Metadata) {
+func (l *Latency) UpdateReset(m Metadata) { l.update(m, false) }
+
+// UpdateLast is the same as UpdateReset except that it doesn't require a
+// window to meet the initial window size requirement to update its stats.
+// UpdateLast is expected to be called at most once at the end of the life
+// of Latency to force updating the windows that haven't received latency
+// stats long enough to generate even a single update. For a long lasting
+// Latency, there is no need to call UpdateLast.
+func (l *Latency) UpdateLast(m Metadata) { l.update(m, true) }
+
+func (l *Latency) update(m Metadata, ignoreInitialWindowCoverage bool) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	ts := now()
+	ts := Now()
 	defer func() {
 		for _, window := range l.windows {
-			window.updateMeta(m, ts)
+			window.updateMeta(m, ts, ignoreInitialWindowCoverage)
 		}
 		l.start = ts
 	}()
@@ -320,18 +346,6 @@ func (l *Latency) UpdateReset(m *metadata.Metadata) {
 	l.count = 0
 	l.min = 0
 	l.max = 0
-}
-
-// RegisterMetadata registers latency stats metadata for time windows
-// specified in windowSizes. RegisterMetadata is not thread-safe and
-// should be called before any metadata.Metadata is instantiated.
-func RegisterMetadata(windowSizes []time.Duration) {
-	for _, size := range windowSizes {
-		for _, typ := range []StatType{Avg, Max, Min} {
-			st := stat{window: size, typ: typ}
-			metadata.RegisterIntValue(st.metaName(), &metadata.IntValue{Path: st.metaPath()})
-		}
-	}
 }
 
 // ParseWindows parses the time durations of latency windows and verify they

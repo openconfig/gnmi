@@ -300,8 +300,8 @@ func displayStreamingResults(ctx context.Context, query client.Query, cfg *Confi
 			return
 		}
 		b := make(pathmap)
-		if cfg.Timestamp != "" {
-			b.add(append(path, "timestamp"), ts)
+		if t := formatTime(ts, cfg); t != nil {
+			b.add(append(path, "timestamp"), t)
 			b.add(append(path, "value"), val)
 		} else {
 			b.add(path, val)

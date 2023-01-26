@@ -221,9 +221,9 @@ func TestMetadataLatency(t *testing.T) {
 	opt, _ := WithLatencyWindows([]string{"2s"}, 2*time.Second)
 	c := New([]string{"dev1"}, opt)
 	for _, path := range [][]string{
-		latency.Path(window, latency.Avg),
-		latency.Path(window, latency.Max),
-		latency.Path(window, latency.Min),
+		metadata.LatencyPath(window, latency.Avg),
+		metadata.LatencyPath(window, latency.Max),
+		metadata.LatencyPath(window, latency.Min),
 	} {
 		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			t.Errorf("%s exists when device not in sync", strings.Join(path, "/"))
@@ -235,9 +235,9 @@ func TestMetadataLatency(t *testing.T) {
 	c.GnmiUpdate(gnmiNotification("dev1", nil, []string{"a", "1"}, timestamp, "b", false))
 	c.GetTarget("dev1").updateMeta(nil)
 	for _, path := range [][]string{
-		latency.Path(window, latency.Avg),
-		latency.Path(window, latency.Max),
-		latency.Path(window, latency.Min),
+		metadata.LatencyPath(window, latency.Avg),
+		metadata.LatencyPath(window, latency.Max),
+		metadata.LatencyPath(window, latency.Min),
 	} {
 		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 			l := v.(*pb.Notification).Update[0].Val.GetIntVal()

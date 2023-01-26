@@ -17,10 +17,11 @@ limitations under the License.
 // The gnmi_cli program implements the GNMI CLI.
 //
 // usage:
-// gnmi_cli --address=<ADDRESS>                            \
-//            -q=<OPENCONFIG_PATH[,OPENCONFIG_PATH[,...]]> \
-//            [-qt=<QUERY_TYPE>]                           \
-//            [-<ADDITIONAL_OPTION(s)>]
+//
+//	gnmi_cli --address=<ADDRESS>                            \
+//	           -q=<OPENCONFIG_PATH[,OPENCONFIG_PATH[,...]]> \
+//	           [-qt=<QUERY_TYPE>]                           \
+//	          [-<ADDITIONAL_OPTION(s)>]
 package main
 
 import (
@@ -64,7 +65,8 @@ var (
 	queryType   = flag.String("query_type", client.Once.String(), "Type of result, one of: (o, once, p, polling, s, streaming).")
 	queryAddr   = flags.NewStringList(&q.Addrs, nil)
 
-	reqProto = flag.String("proto", "", "Text proto for gNMI request.")
+	reqProto  = flag.String("proto", "", "Text proto for gNMI request.")
+	protoFile = flag.String("proto_file", "", "Text proto file for gNMI request.")
 
 	capabilitiesFlag = flag.Bool("capabilities", false, `When set, CLI will perform a Capabilities request. Usage: gnmi_cli -capabilities [-proto <gnmi.CapabilityRequest>] -address <address> [other flags ...]`)
 	getFlag          = flag.Bool("get", false, `When set, CLI will perform a Get request. Usage: gnmi_cli -get -proto <gnmi.GetRequest> -address <address> [other flags ...]`)
@@ -189,9 +191,13 @@ func main() {
 }
 
 func executeCapabilities(ctx context.Context) error {
+	s, err := protoRequestFromFlags()
+	if err != nil {
+		return err
+	}
 	r := &gpb.CapabilityRequest{}
-	if err := prototext.Unmarshal([]byte(*reqProto), r); err != nil {
-		return fmt.Errorf("unable to parse gnmi.CapabilityRequest from %q : %v", *reqProto, err)
+	if err := prototext.Unmarshal([]byte(s), r); err != nil {
+		return fmt.Errorf("unable to parse gnmi.CapabilityRequest from %q : %v", s, err)
 	}
 	c, err := gclient.New(ctx, client.Destination{
 		Addrs:       q.Addrs,
@@ -212,12 +218,16 @@ func executeCapabilities(ctx context.Context) error {
 }
 
 func executeGet(ctx context.Context) error {
-	if *reqProto == "" {
-		return errors.New("-proto must be set")
+	s, err := protoRequestFromFlags()
+	if err != nil {
+		return err
+	}
+	if s == "" {
+		return errors.New("-proto must be set or -proto_file must contain proto")
 	}
 	r := &gpb.GetRequest{}
-	if err := prototext.Unmarshal([]byte(*reqProto), r); err != nil {
-		return fmt.Errorf("unable to parse gnmi.GetRequest from %q : %v", *reqProto, err)
+	if err := prototext.Unmarshal([]byte(s), r); err != nil {
+		return fmt.Errorf("unable to parse gnmi.GetRequest from %q : %v", s, err)
 	}
 	c, err := gclient.New(ctx, client.Destination{
 		Addrs:       q.Addrs,
@@ -238,15 +248,19 @@ func executeGet(ctx context.Context) error {
 }
 
 func executeSet(ctx context.Context) error {
-	if *reqProto == "" {
-		return errors.New("-proto must be set")
+	s, err := protoRequestFromFlags()
+	if err != nil {
+		return err
+	}
+	if s == "" {
+		return errors.New("-proto must be set or -proto_file must contain proto")
 	}
 	r := &gpb.SetRequest{}
-	if err := prototext.Unmarshal([]byte(*reqProto), r); err != nil {
-		return fmt.Errorf("unable to parse gnmi.SetRequest from %q : %v", *reqProto, err)
+	if err := prototext.Unmarshal([]byte(s), r); err != nil {
+		return fmt.Errorf("unable to parse gnmi.SetRequest from %q : %v", s, err)
 	}
 	if *setReqFlag {
-    cfg.Display([]byte(prototext.Format(r)))
+		cfg.Display([]byte(prototext.Format(r)))
 	}
 	c, err := gclient.New(ctx, client.Destination{
 		Addrs:       q.Addrs,
@@ -267,7 +281,11 @@ func executeSet(ctx context.Context) error {
 }
 
 func executeSubscribe(ctx context.Context) error {
-	if *reqProto != "" {
+	s, err := protoRequestFromFlags()
+	if err != nil {
+		return err
+	}
+	if s != "" {
 		// Convert SubscribeRequest to a client.Query
 		tq, err := cli.ParseSubscribeProto(*reqProto)
 		if err != nil {
@@ -359,4 +377,18 @@ func parseQuery(query, delim string) ([]string, error) {
 		return nil, fmt.Errorf("malformed query, missing trailing ']': %q", query)
 	}
 	return strings.Split(string(buf), string(null)), nil
+}
+
+func protoRequestFromFlags() (string, error) {
+	if *protoFile != "" {
+		if *reqProto != "" {
+			return "", errors.New("only one of -proto and -proto_file are allowed to be set")
+		}
+		b, err := os.ReadFile(*protoFile)
+		if err != nil {
+			return "", fmt.Errorf("could not read %q: %v", *protoFile, err)
+		}
+		return string(b), nil
+	}
+	return *reqProto, nil
 }
