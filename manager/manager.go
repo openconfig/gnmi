@@ -69,6 +69,9 @@ type Config struct {
 	Sync func(string)
 	// Timeout defines the optional duration to wait for a gRPC dial.
 	Timeout time.Duration
+	// ReceiveTimeout defines the optional duration to wait for receiving from
+	// a target. 0 means timeout is disabled.
+	ReceiveTimeout time.Duration
 	// Update will be invoked in response to gNMI updates.
 	Update func(string, *gpb.Notification)
 	// ConnectionManager is used to create gRPC connections.
@@ -99,6 +102,7 @@ type Manager struct {
 	sync              func(string)
 	testSync          func() // exposed for test synchronization
 	timeout           time.Duration
+	receiveTimeout    time.Duration
 	update            func(string, *gpb.Notification)
 
 	mu      sync.Mutex
@@ -134,6 +138,7 @@ func NewManager(cfg Config) (*Manager, error) {
 		targets:           make(map[string]*target),
 		testSync:          func() {},
 		timeout:           cfg.Timeout,
+		receiveTimeout:    cfg.ReceiveTimeout,
 		update:            cfg.Update,
 	}, nil
 }
@@ -191,11 +196,30 @@ func (m *Manager) createConn(ctx context.Context, name string, t *tpb.Target) (c
 	}
 }
 
-func (m *Manager) handleUpdates(name string, sc gpb.GNMI_SubscribeClient) error {
+func (m *Manager) handleUpdates(ctx context.Context, name string, sc gpb.GNMI_SubscribeClient) error {
 	defer m.testSync()
 	connected := false
+	var recvTimer *time.Timer
+	if m.receiveTimeout.Nanoseconds() > 0 {
+		recvTimer = time.NewTimer(m.receiveTimeout)
+		recvTimer.Stop()
+		go func() {
+			select {
+			case <-ctx.Done():
+			case <-recvTimer.C:
+				log.Errorf("Timed out waiting to receive from %q after %v", name, m.receiveTimeout)
+				m.Reconnect(name)
+			}
+		}()
+	}
 	for {
+		if recvTimer != nil {
+			recvTimer.Reset(m.receiveTimeout)
+		}
 		resp, err := sc.Recv()
+		if recvTimer != nil {
+			recvTimer.Stop()
+		}
 		if err != nil {
 			if m.reset != nil {
 				m.reset(name)
@@ -238,7 +262,7 @@ func (m *Manager) subscribe(ctx context.Context, name string, conn *grpc.ClientC
 	if err := sc.Send(cr); err != nil {
 		return fmt.Errorf("error sending subscription request to target %q: %v", name, err)
 	}
-	if err = m.handleUpdates(name, sc); err != nil {
+	if err = m.handleUpdates(ctx, name, sc); err != nil {
 		return fmt.Errorf("stream failed for target %q: %v", name, err)
 	}
 	return nil

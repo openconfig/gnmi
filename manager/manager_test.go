@@ -554,6 +554,87 @@ func TestRetrySubscribe(t *testing.T) {
 	r.assertLast(t, "no recovery after remove", nil, nil, nil, 0)
 }
 
+func TestReceiveTimeout(t *testing.T) {
+	f := newFakeConnection(t)
+	addr, stop := newDevice(t, &fakeServer{})
+	defer stop()
+
+	origSubscribeClient := subscribeClient
+	defer func() { subscribeClient = origSubscribeClient }()
+	fc := newFakeSubscribeClient()
+	subscribeClient = func(ctx context.Context, conn *grpc.ClientConn) (gpb.GNMI_SubscribeClient, error) {
+		go func() {
+			select {
+			case <-ctx.Done():
+				fc.sendRecvErr() // Simulate stream closure.
+			}
+		}()
+		return fc, nil
+	}
+
+	r := record{}
+	m, err := NewManager(Config{
+		Credentials:    &fakeCreds{},
+		Timeout:        time.Minute,
+		ReceiveTimeout: 2 * time.Second,
+		Connect: func(s string) {
+			r.connects = append(r.connects, s)
+		},
+		ConnectionManager: f,
+		Sync: func(s string) {
+			r.syncs = append(r.syncs, s)
+		},
+		Reset: func(s string) {
+			r.resets = append(r.resets, s)
+		},
+		Update: func(_ string, g *gpb.Notification) {
+			r.updates = append(r.updates, g)
+		},
+	})
+	if err != nil {
+		t.Fatal("could not initialize Manager")
+	}
+	handleUpdateDoneOnce := make(chan struct{})
+	handleUpdateCalled := make(chan struct{}, 1)
+	m.testSync = func() {
+		select {
+		case <-handleUpdateDoneOnce:
+		default:
+			close(handleUpdateDoneOnce)
+		}
+		handleUpdateCalled <- struct{}{}
+	}
+
+	name := "device1"
+	err = m.Add(name, &tpb.Target{Addresses: []string{addr}}, validSubscribeRequest)
+	if err != nil {
+		t.Fatalf("got error adding: %v, want no error", err)
+	}
+	defer m.Remove(name)
+
+	_, ok := m.targets[name]
+	if !ok {
+		t.Fatalf("missing internal target")
+	}
+
+	<-handleUpdateDoneOnce // receive has timed out
+	<-handleUpdateCalled
+	r.assertLast(t, "after receive timeout", nil, nil, []string{name}, 0) // reset once
+
+	// Verify manager will try reconnecting to target
+	fc.sendSync()
+	<-handleUpdateCalled
+	r.assertLast(t, "sync after reconnect", []string{name}, []string{name}, nil, 0)
+
+	updateCount := 10
+	for i := 0; i < updateCount; i++ {
+		fc.sendUpdate()
+		<-handleUpdateCalled
+	}
+	r.assertLast(t, "updates sent after reconnect", nil, nil, nil, updateCount)
+	assertTargets(t, m, 1)
+}
+
 func TestRemoveDuringBackoff(t *testing.T) {
 	origBaseDelay, origMaxDelay := RetryBaseDelay, RetryMaxDelay
 	defer func() { RetryBaseDelay, RetryMaxDelay = origBaseDelay, origMaxDelay }()
