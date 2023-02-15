@@ -19,7 +19,7 @@ syntax = "proto3";
 // collector to connect to multiple gNMI targets.
 package target;
 
-import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
+import "proto/gnmi/gnmi.proto";
 
 option go_package = "github.com/openconfig/gnmi/proto/target";
 
