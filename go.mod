@@ -1,4 +1,4 @@
-module github.com/Borderless-io/gnmi
+module github.com/openconfig/gnmi
 
 go 1.18
 
