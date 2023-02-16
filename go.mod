@@ -18,6 +18,8 @@ require (
 
 require (
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/protobuf v3.21.12+incompatible // indirect
+	github.com/googleapis/googleapis v0.0.0-20230215185628-1c95287d27e7 // indirect
 	github.com/mitchellh/go-wordwrap v1.0.1 // indirect
 	github.com/openconfig/goyang v0.0.0-20200115183954-d0a48929f0ea // indirect
 	golang.org/x/sys v0.0.0-20210809222454-d867a43fc93e // indirect

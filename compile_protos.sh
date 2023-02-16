@@ -16,13 +16,16 @@
 
 set -euo pipefail
 
+# this function will get the location of a fully-qualified go import where it is stored in the local, module cache
+moddir() { go list -mod="" -m -f '{{ .Dir }}' "$1"; }
+
 # Go
 if ! which protoc-gen-go-grpc; then
   go install google.golang.org/grpc/cmd/protoc-gen-go-grpc@latest
 fi
-protobufsrc=${GOPATH}/src/github.com/google/protobuf/src
-googleapis=${GOPATH}/src/github.com/googleapis/googleapis
-proto_imports_go=".:${protobufsrc}:${googleapis}:${GOPATH}/src"
+protobufsrc=$(moddir github.com/google/protobuf)
+googleapis=$(moddir github.com/googleapis/googleapis)
+proto_imports_go=".:${protobufsrc}:${googleapis}:$(pwd)/proto/gnmi/"
 protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false testing/fake/proto/fake.proto
 protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/gnmi/gnmi.proto
 protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/collector/collector.proto
