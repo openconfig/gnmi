@@ -64,6 +64,8 @@ const (
 	LatestTimestamp = "latestTimestamp"
 	// ConnectError is the error related to connection failure.
 	ConnectError = "connectError"
+	// ServerName is an optional metadata used to identify the server to clients.
+	ServerName = "serverName"
 )
 
 // IntValue contains the path and other options for an int64 metadata.
@@ -85,8 +87,12 @@ func UnregisterIntValue(name string) {
 
 // StrValue contains the valid and the option to reset to emptry string.
 type StrValue struct {
-	Valid        bool
 	InitEmptyStr bool // Whether to initiate to "".
+}
+
+// RegisterStrValue registers a string type metadata.
+func RegisterStrValue(name string, val *StrValue) {
+	TargetStrValues[name] = val
 }
 
 var (
@@ -111,8 +117,8 @@ var (
 
 	// TargetStrValues is the list of all string metadata fields.
 	TargetStrValues = map[string]*StrValue{
-		ConnectedAddr: {Valid: true, InitEmptyStr: true},
-		ConnectError:  {Valid: true, InitEmptyStr: false},
+		ConnectedAddr: {InitEmptyStr: true},
+		ConnectError:  {InitEmptyStr: false},
 	}
 )
 
@@ -132,7 +138,7 @@ func Path(value string) []string {
 	if TargetBoolValues[value] {
 		return []string{Root, value}
 	}
-	if val, ok := TargetStrValues[value]; ok && val.Valid {
+	if val := TargetStrValues[value]; val != nil {
 		return []string{Root, value}
 	}
 
@@ -174,7 +180,7 @@ func validBool(value string) error {
 }
 
 func validStr(value string) error {
-	if valid, ok := TargetStrValues[value]; !ok || !valid.Valid {
+	if val := TargetStrValues[value]; val == nil {
 		return ErrInvalidValue
 	}
 	return nil
@@ -333,4 +339,9 @@ func RegisterLatencyMetadata(windowSizes []time.Duration) {
 			RegisterIntValue(latency.MetadataName(size, typ), &IntValue{Path: LatencyPath(size, typ)})
 		}
 	}
+}
+
+// RegisterServerNameMetadata registers the serverName metadata.
+func RegisterServerNameMetadata() {
+	RegisterStrValue(ServerName, &StrValue{InitEmptyStr: false})
 }

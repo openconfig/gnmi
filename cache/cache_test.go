@@ -279,6 +279,25 @@ func TestUpdateMetadata(t *testing.T) {
 	}
 }
 
+func TestUpdateServerNameMetadata(t *testing.T) {
+	serverName := "server-address"
+	c := New([]string{"dev1"}, WithServerName(serverName))
+	c.UpdateMetadata()
+	var got [][]string
+	c.Query("dev1", []string{metadata.Root, metadata.ServerName}, func(path []string, _ *ctree.Leaf, v any) error {
+		got = append(got, path)
+		val := v.(*pb.Notification).Update[0].Val.GetStringVal()
+		if !reflect.DeepEqual(val, serverName) {
+			t.Errorf("got serverName update value: %q, want: %q", val, serverName)
+		}
+		return nil
+	})
+	want := [][]string{{metadata.Root, metadata.ServerName}}
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got update paths: %q\n want: %q", got, want)
+	}
+}
+
 func TestUpdateSize(t *testing.T) {
 	c := New([]string{"dev1"})
 	c.GnmiUpdate(gnmiNotification("dev1", nil, []string{"a", "1"}, 0, string(make([]byte, 1000)), false))

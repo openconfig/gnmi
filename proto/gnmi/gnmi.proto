@@ -37,7 +37,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.9.0";
+option (gnmi_service) = "0.10.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
@@ -337,6 +337,11 @@ message SetRequest {
   repeated Path delete = 2;     // Paths to be deleted from the data tree.
   repeated Update replace = 3;  // Updates specifying elements to be replaced.
   repeated Update update = 4;   // Updates specifying elements to updated.
+  // Updates specifying elements to union and then replace the data tree.  
+  // See the gNMI specification at
+  // https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md
+  // for details.
+  repeated Update union_replace = 6;  
   // Extension messages associated with the SetRequest. See the
   // gNMI extension specification for further definition.
   repeated gnmi_ext.Extension extension = 5;
@@ -369,9 +374,10 @@ message UpdateResult {
   // The operation that was associated with the Path specified.
   enum Operation {
     INVALID = 0;
-    DELETE = 1;   // The result relates to a delete of Path.
-    REPLACE = 2;  // The result relates to a replace of Path.
-    UPDATE = 3;   // The result relates to an update of Path.
+    DELETE = 1;         // The result relates to a delete of Path.
+    REPLACE = 2;        // The result relates to a replace of Path.
+    UPDATE = 3;         // The result relates to an update of Path.
+    UNION_REPLACE = 4;  // The result of a union_replace of Path or CLI origin.
   }
   // Deprecated timestamp for the UpdateResult, this field has been
   // replaced by the timestamp within the SetResponse message, since

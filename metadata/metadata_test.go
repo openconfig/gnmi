@@ -323,3 +323,15 @@ func TestRegisterLatencyMetadata(t *testing.T) {
 		}
 	}
 }
+
+func TestRegisterServerNameMetadata(t *testing.T) {
+	if path := Path(ServerName); path != nil {
+		t.Fatalf("Path(%q) returned %v for invalid value.", ServerName, path)
+	}
+	RegisterServerNameMetadata()
+	path := Path(ServerName)
+	want := []string{Root, ServerName}
+	if diff := cmp.Diff(want, path); diff != "" {
+		t.Fatalf("Path(%q) returned diff (+got-want): %v", ServerName, diff)
+	}
+}

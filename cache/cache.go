@@ -75,6 +75,7 @@ type options struct {
 	// calculated and exported as metadata.
 	latencyWindows      []time.Duration
 	avgLatencyPrecision time.Duration
+	serverName          string
 }
 
 // Option defines the function prototype to set options for creating a Cache.
@@ -105,6 +106,14 @@ func WithAvgLatencyPrecision(avgLatencyPrecision time.Duration) Option {
 	}
 }
 
+// WithServerName returns an Option to set a name that can identify the Cache
+// server.
+func WithServerName(serverName string) Option {
+	return func(o *options) {
+		o.serverName = serverName
+	}
+}
+
 // Cache is a structure holding state information for multiple targets.
 type Cache struct {
 	opts    options
@@ -126,6 +135,9 @@ func New(targets []string, opts ...Option) *Cache {
 		}
 	}
 	metadata.RegisterLatencyMetadata(c.opts.latencyWindows)
+	if c.opts.serverName != "" {
+		metadata.RegisterServerNameMetadata()
+	}
 
 	for _, t := range targets {
 		c.Add(t)
@@ -249,6 +261,7 @@ func (c *Cache) Add(target string) *Target {
 		client: c.client,
 		lat:    latency.New(c.opts.latencyWindows, latOpts),
 	}
+	t.meta.SetStr(metadata.ServerName, c.opts.serverName)
 	c.targets[target] = t
 	return t
 }
