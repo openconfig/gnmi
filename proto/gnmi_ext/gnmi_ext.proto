@@ -21,6 +21,8 @@ syntax = "proto3";
 // extensions defined outside of this package.
 package gnmi_ext;
 
+import "google/protobuf/duration.proto";
+
 option go_package = "github.com/openconfig/gnmi/proto/gnmi_ext";
 
 // The Extension message contains a single gNMI extension.
@@ -30,6 +32,7 @@ message Extension {
     // Well known extensions.
     MasterArbitration master_arbitration = 2;  // Master arbitration extension.
     History history = 3;                       // History extension.
+    CommitConfirmed commit_confirmed = 4;      // Commit Confirmed extension.
   }
 }
 
@@ -88,4 +91,48 @@ message History {
 message TimeRange {
   int64 start = 1; // Nanoseconds since the epoch
   int64 end = 2;   // Nanoseconds since the epoch
+}
+
+// The CommitID is returned by the gNMI server to indicate the ID of a commit.
+// It is returned in response to the Set Request with the CommitConfirm message
+// that had COMMIT_CONFIRMED_ACTION_START set.
+// The CommitID is used in the subsequent SetRequest/CommitConfirm messages
+// to identify commit to be confirmed, reset or rejected.
+message CommitID {
+  string id = 1;
+}
+
+// The CommitConfirmed allows automatic rollback of a commit
+// if Set changes are not confirmed within the specified timeout.
+// The document about gNMI commit confirmed can be found at
+// https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-commit-confirmed.md
+message CommitConfirmed {
+  CommitConfirmedAction action = 1;
+  // rollback timeout duration expressed in seconds and nanoseconds.
+  // If timeout is not set (or seconds and ns are both 0), then
+  // the default gNMI server's rollback timeout duration is used.
+  google.protobuf.Duration timeout = 2;
+  // CommitID from commit for ACCEPT or REJECT
+  CommitID commit_id = 3;
+}
+
+// A COMMIT_CONFIRMED_ACTION_START starts a commit with a configured rollback
+// timeout and will return the CommitID assigned by the server. The CommitID is
+// used to identify the current commit. The COMMIT_CONFIRMED_ACTION_CONFIRM and
+// COMMIT_CONFIRMED_ACTION_REJECT confirms or cancels a commit using the
+// commit_id.
+enum CommitConfirmedAction {
+  // gNMI server should return InvalidArgument error if the action is not
+  // specified for a CommitConfirmed extension.
+  COMMIT_CONFIRMED_ACTION_UNSPECIFIED = 0;
+  // Starts a commit with a specified rollback timeout
+  // or resets the timeout for the commit that has confirmation pending.
+  COMMIT_CONFIRMED_ACTION_START = 1;
+  // Confirm a commit identified by CommitID.
+  COMMIT_CONFIRMED_ACTION_CONFIRM = 2;
+  // Reject a commit identified by CommitID
+  // for which rollback timeout has not expired.
+  // If no active commit with the non expired rollback timeout is found,
+  // gNMI server should return InvalidArgument error.
+  COMMIT_CONFIRMED_ACTION_REJECT = 3;
 }
