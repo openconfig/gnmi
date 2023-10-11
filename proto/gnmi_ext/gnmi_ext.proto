@@ -21,6 +21,8 @@ syntax = "proto3";
 // extensions defined outside of this package.
 package gnmi_ext;
 
+import "google/protobuf/duration.proto";
+
 option go_package = "github.com/openconfig/gnmi/proto/gnmi_ext";
 
 // The Extension message contains a single gNMI extension.
@@ -30,6 +32,7 @@ message Extension {
     // Well known extensions.
     MasterArbitration master_arbitration = 2;  // Master arbitration extension.
     History history = 3;                       // History extension.
+    Commit commit = 4;                         // Commit confirmed extension.
   }
 }
 
@@ -88,4 +91,24 @@ message History {
 message TimeRange {
   int64 start = 1; // Nanoseconds since the epoch
   int64 end = 2;   // Nanoseconds since the epoch
+}
+
+// Commit confirmed extension allows automated revert of a configuration after
+// certain duration if an explicit confirmation is not issued. This duration can
+// be used for testing the network device to verify the configuration.
+// It also allows explicit cancellation of the commit during the rollback duration
+// time window if client determine that the configuration needs to be reverted.
+// The document about gNMI commit confirmed can be found at
+// https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-commit-confirmed.md
+message Commit {
+  // Maximum duration to wait for a confirmaton before reverting the commit.
+  google.protobuf.Duration rollback_duration = 1;
+  oneof id {
+    // commit_id indicates that this is a new commit request with given ID.
+    string commit_id = 2;
+    // confirm_id indicates that this is a confirmaton request for the given ID.
+    string confirm_id = 3;
+    // cancel_id indicates that this is a cancellation request for the given ID.
+    string cancel_id = 4;
+  }
 }
