@@ -95,20 +95,35 @@ message TimeRange {
 
 // Commit confirmed extension allows automated revert of a configuration after
 // certain duration if an explicit confirmation is not issued. This duration can
-// be used for testing the network device to verify the configuration.
-// It also allows explicit cancellation of the commit during the rollback duration
-// time window if client determine that the configuration needs to be reverted.
+// be used to verify the configuration.
+// It also allows explicit cancellation of the commit during the time window of rollback
+// duration if client determine that the configuration needs to be reverted.
 // The document about gNMI commit confirmed can be found at
 // https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-commit-confirmed.md
 message Commit {
-  // Maximum duration to wait for a confirmaton before reverting the commit.
-  google.protobuf.Duration rollback_duration = 1;
-  oneof id {
-    // commit_id indicates that this is a new commit request with given ID.
-    string commit_id = 2;
-    // confirm_id indicates that this is a confirmaton request for the given ID.
-    string confirm_id = 3;
-    // cancel_id indicates that this is a cancellation request for the given ID.
-    string cancel_id = 4;
+  oneof action {
+    CommitRequest commit = 1;
+    CommitConfirm confirm = 2;
+    CommitCancel cancel = 3;
   }
+}
+
+// Create a new commit request.
+message CommitRequest {
+  // Commit id for the request.
+  string id = 1;
+  // Maximum duration to wait for a confirmaton before reverting the commit.
+  google.protobuf.Duration rollback_duration = 2;
+}
+
+// Confirm an on-going commit.
+message CommitConfirm {
+  // Commit id that requires confirmation.
+  string id = 1;
+}
+
+// Cancel an on-going commit.
+message CommitCancel {
+  // Commit id that requires cancellation.
+  string id = 1;
 }
