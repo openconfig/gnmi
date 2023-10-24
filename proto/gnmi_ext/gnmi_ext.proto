@@ -130,7 +130,7 @@ enum CommitConfirmedAction {
   COMMIT_CONFIRMED_ACTION_START = 1;
   // Confirm a commit identified by CommitID.
   COMMIT_CONFIRMED_ACTION_CONFIRM = 2;
-  // Reject a commit identified by CommitID
+  // Reject and rollback a commit identified by CommitID
   // for which rollback timeout has not expired.
   // If no active commit with the non expired rollback timeout is found,
   // gNMI server should return InvalidArgument error.
