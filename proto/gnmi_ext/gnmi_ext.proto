@@ -93,38 +93,41 @@ message TimeRange {
   int64 end = 2;   // Nanoseconds since the epoch
 }
 
-// Commit confirmed extension allows automated revert of a configuration after
-// certain duration if an explicit confirmation is not issued. This duration can
-// be used to verify the configuration.
-// It also allows explicit cancellation of the commit during the time window of rollback
-// duration if client determine that the configuration needs to be reverted.
+// Commit confirmed extension allows automated revert of the configuration after
+// certain duration if an explicit confirmation is not issued. It allows explicit
+// cancellation of the commit during the rollback window. There cannot be more
+// than one commit active at a given time.
 // The document about gNMI commit confirmed can be found at
 // https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-commit-confirmed.md
 message Commit {
+  // ID is provided by the client during the commit request. During confirm and cancel
+  // actions the provided ID should match the ID provided during commit.
+  // If ID is not passed in any actions server shall return error.
+  // Required.
+  string id = 1;
   oneof action {
-    CommitRequest commit = 1;
-    CommitConfirm confirm = 2;
-    CommitCancel cancel = 3;
+    // commit action creates a new commit. If a commit is on-going, server returns error.
+    CommitRequest commit = 2;
+    // confirm action will confirm an on-going commit, the ID provided during confirm
+    // should match the on-going commit ID.
+    CommitConfirm confirm = 3;
+    // cancel action will cancel an on-going commit, the ID provided during cancel
+    // should match the on-going commit ID.
+    CommitCancel cancel = 4;
   }
 }
 
-// Create a new commit confirmed request.
+// CommitRequest is used to create a new confirmed commit. It hold additional
+// parameter requried for commit action.
 message CommitRequest {
-  // Commit id for the request. ID must be generated at the client side, it can be used
-  // to confirm or cancel the request without the rollback_duration interval.
-  string id = 1;
   // Maximum duration to wait for a confirmaton before reverting the commit.
-  google.protobuf.Duration rollback_duration = 2;
+  google.protobuf.Duration rollback_duration = 1;
 }
 
-// Confirm an on-going commit.
-message CommitConfirm {
-  // Commit id of the on-going commit that requires confirmation.
-  string id = 1;
-}
+// CommitConfirm is used to confirm an on-going commit. It hold additional
+// parameter requried for confirm action.
+message CommitConfirm {}
 
-// Cancel an on-going commit.
-message CommitCancel {
-  // Commit id of the on-going commit that requires cancellation.
-  string id = 1;
-}
+// CommitCancel is used to cancel an on-going commit. It hold additional
+// parameter requried for cancel action.
+message CommitCancel {}
