@@ -21,6 +21,8 @@ syntax = "proto3";
 // extensions defined outside of this package.
 package gnmi_ext;
 
+import "google/protobuf/duration.proto";
+
 option go_package = "github.com/openconfig/gnmi/proto/gnmi_ext";
 
 // The Extension message contains a single gNMI extension.
@@ -30,6 +32,7 @@ message Extension {
     // Well known extensions.
     MasterArbitration master_arbitration = 2;  // Master arbitration extension.
     History history = 3;                       // History extension.
+    Commit commit = 4;                         // Commit confirmed extension.
   }
 }
 
@@ -89,3 +92,42 @@ message TimeRange {
   int64 start = 1; // Nanoseconds since the epoch
   int64 end = 2;   // Nanoseconds since the epoch
 }
+
+// Commit confirmed extension allows automated revert of the configuration after
+// certain duration if an explicit confirmation is not issued. It allows explicit
+// cancellation of the commit during the rollback window. There cannot be more
+// than one commit active at a given time.
+// The document about gNMI commit confirmed can be found at
+// https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-commit-confirmed.md
+message Commit {
+  // ID is provided by the client during the commit request. During confirm and cancel
+  // actions the provided ID should match the ID provided during commit.
+  // If ID is not passed in any actions server shall return error.
+  // Required.
+  string id = 1;
+  oneof action {
+    // commit action creates a new commit. If a commit is on-going, server returns error.
+    CommitRequest commit = 2;
+    // confirm action will confirm an on-going commit, the ID provided during confirm
+    // should match the on-going commit ID.
+    CommitConfirm confirm = 3;
+    // cancel action will cancel an on-going commit, the ID provided during cancel
+    // should match the on-going commit ID.
+    CommitCancel cancel = 4;
+  }
+}
+
+// CommitRequest is used to create a new confirmed commit. It hold additional
+// parameter requried for commit action.
+message CommitRequest {
+  // Maximum duration to wait for a confirmaton before reverting the commit.
+  google.protobuf.Duration rollback_duration = 1;
+}
+
+// CommitConfirm is used to confirm an on-going commit. It hold additional
+// parameter requried for confirm action.
+message CommitConfirm {}
+
+// CommitCancel is used to cancel an on-going commit. It hold additional
+// parameter requried for cancel action.
+message CommitCancel {}
