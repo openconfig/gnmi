@@ -33,6 +33,7 @@ message Extension {
     MasterArbitration master_arbitration = 2;  // Master arbitration extension.
     History history = 3;                       // History extension.
     Commit commit = 4;                         // Commit confirmed extension.
+    Depth depth = 5;                           // Depth extension.
   }
 }
 
@@ -141,4 +142,18 @@ message CommitCancel {}
 message CommitSetRollbackDuration {
   // Maximum duration to wait for a confirmaton before reverting the commit.
   google.protobuf.Duration rollback_duration = 1;
+}
+
+// Depth extension allows clients to specify the depth of the subtree to be
+// returned in the response. The depth is specified as the number of levels
+// below the specified path. The depth is applied to all paths in the request.
+// The document about gNMI depth can be found at
+// TODO:add link to the reference doc
+message Depth {
+  // The level of the subtree to be returned in the response.
+  // Value of 0 means no depth limit and behaves the same as if the extension
+  // was not specified.
+  // Value of 1 means only the specified path and its direct children will be
+  // returned.
+  int32 level = 1;
 }
