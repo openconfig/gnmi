@@ -146,7 +146,8 @@ message CommitSetRollbackDuration {
 
 // Depth extension allows clients to specify the depth of the subtree to be
 // returned in the response. The depth is specified as the number of levels
-// below the specified path. The depth is applied to all paths in the request.
+// below the specified path.
+// The depth is applied to all paths in the Get or Subscribe request.
 // The document about gNMI depth can be found at
 // TODO:add link to the reference doc
 message Depth {
