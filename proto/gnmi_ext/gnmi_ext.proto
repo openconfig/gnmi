@@ -156,5 +156,5 @@ message Depth {
   // was not specified.
   // Value of 1 means only the specified path and its direct children will be
   // returned.
-  int32 level = 1;
+  uint32 level = 1;
 }
