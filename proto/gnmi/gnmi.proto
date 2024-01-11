@@ -206,8 +206,7 @@ message Decimal64 {
 // ScalarArray is used to encode a mixed-type array of values.
 message ScalarArray {
   // The set of elements within the array. Each TypedValue message should
-  // specify only elements that have a field identifier of 1-5 (i.e., the
-  // values are not deprecated scalar values).
+  // specify only elements that are not deprecated scalar values.
   repeated TypedValue element = 1;
 }
 
