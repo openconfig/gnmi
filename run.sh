@@ -9,18 +9,30 @@
 
 set -o errexit
 set -o pipefail
+set -e
 
 # container image tag, to see all available tags go to
 # https://github.com/srl-labs/protoc-container/pkgs/container/protoc
-IMAGE_TAG="22.1__1.28.1"
+IMAGE_TAG="24.4__1.31.0"
 
-DOCKER_CMD="docker run -v $(pwd):/in \
+DOCKER_CMD="sudo docker run -v $(pwd):/in \
   -v $(pwd)/proto:/in/github.com/openconfig/gnmi/proto \
   ghcr.io/srl-labs/protoc:${IMAGE_TAG}"
 
-DOCKER_TERM_CMD="docker run -it -v $(pwd):/in \
+DOCKER_TERM_CMD="sudo docker run -it -v $(pwd):/in \
   -v $(pwd)/proto:/in/github.com/openconfig/gnmi/proto \
   ghcr.io/srl-labs/protoc:${IMAGE_TAG}"
+
+# Check if Docker is installed and running
+function check_docker {
+  if ! command -v docker &> /dev/null
+  then
+    echo "Docker could not be found. Please install/start Docker."
+    exit
+  fi
+}
+
+check_docker
 
 # import path ".:/usr/include" includes the current working dir (/in) and the installed protobuf .proto files that reside in /usr/include
 PROTOC_GO_CMD='protoc -I ".:/protobuf/include" --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false'
@@ -39,7 +51,7 @@ function compile-all {
   compile-go-testing-fake &
   compile-go-gnmi-ext &
   compile-go-target &
-  
+
   # python compliations
   compile-py-gnmi &
   compile-py-collector &
@@ -57,7 +69,7 @@ function compile-all {
 function compile-go-gnmi {
     ${DOCKER_CMD} ash -c "${PROTOC_GO_CMD} proto/gnmi/gnmi.proto"
     echo "finished Go compilation for gnmi.proto"
-    
+
 }
 
 # generating proto/collector/collector.proto
@@ -118,5 +130,3 @@ function compile-py-collector {
 
 TIMEFORMAT=$'\nTask completed in %3lR'
 time "${@:-help}"
-
-set -e
