@@ -133,11 +133,21 @@ message CommitConfirm {}
 // parameter requried for cancel action.
 message CommitCancel {}
 
-// ConfigSubscription is used to indicate to a target that for a given set
+// ConfigSubscription extension allows clients to subscribe to configuration
+// schema nodes only.
+message ConfigSubscription {
+  oneof action {
+    // ConfigSubscriptionStart is sent by the server in the SubscribeRequest
+    ConfigSubscriptionStart start = 1;
+    // ConfigSubscriptionSyncDone is sent by the server in the SubscribeResponse
+    ConfigSubscriptionSyncDone sync_done = 2;
+  }
+}
+
+// ConfigSubscriptionStart is used to indicate to a target that for a given set
 // of paths in the SubscribeRequest, the client wishes to receive updates
 // for the configuration schema nodes only.
-message ConfigSubscription {
-}
+message ConfigSubscriptionStart {}
 
 // ConfigSubscriptionSyncDone is sent by the server in the SubscribeResponse
 // after all the updates for the configuration schema nodes have been sent.
