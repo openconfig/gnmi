@@ -28,11 +28,12 @@ option go_package = "github.com/openconfig/gnmi/proto/gnmi_ext";
 // The Extension message contains a single gNMI extension.
 message Extension {
   oneof ext {
-    RegisteredExtension registered_ext = 1;    // A registered extension.
+    RegisteredExtension registered_ext = 1;     // A registered extension.
     // Well known extensions.
-    MasterArbitration master_arbitration = 2;  // Master arbitration extension.
-    History history = 3;                       // History extension.
-    Commit commit = 4;                         // Commit confirmed extension.
+    MasterArbitration master_arbitration = 2;   // Master arbitration extension.
+    History history = 3;                        // History extension.
+    Commit commit = 4;                          // Commit confirmed extension.
+    ConfigSubscription config_subscription = 6; // Config Subscription extension.
   }
 }
 
@@ -131,3 +132,20 @@ message CommitConfirm {}
 // CommitCancel is used to cancel an on-going commit. It hold additional
 // parameter requried for cancel action.
 message CommitCancel {}
+
+// ConfigSubscription is used to indicate to a target that for a given set
+// of paths in the SubscribeRequest, the client wishes to receive updates
+// for the configuration schema nodes only.
+message ConfigSubscription {
+}
+
+// ConfigSubscriptionSyncDone is sent by the server in the SubscribeResponse
+// after all the updates for the configuration schema nodes have been sent.
+message ConfigSubscriptionSyncDone {
+  // ID of a commit confirm operation as assigned by the client
+  // see Commit Confirm extension for more details.
+  string commit_confirm_id = 1;
+  // ID of a commit as might be assigned by the server
+  // when registering a commit operation.
+  string server_commit_id = 2;
+}
