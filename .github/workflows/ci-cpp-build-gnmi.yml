@@ -13,6 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       BAZEL: bazelisk-linux-amd64
+      USE_BAZEL_VERSION: 6.4.0
     steps:
     - uses: actions/checkout@v2
       with:
