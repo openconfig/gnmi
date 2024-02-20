@@ -26,7 +26,7 @@ proto_imports_go=".:${protobufsrc}:${googleapis}:${GOPATH}/src"
 protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false testing/fake/proto/fake.proto
 protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/gnmi/gnmi.proto
 protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative,require_unimplemented_servers=false proto/collector/collector.proto
-protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative proto/gnmi_ext/gnmi_ext.proto
+protoc -I=$proto_imports_go --go_out=${GOPATH}/src --go_opt=paths=source_relative github.com/openconfig/gnmi/proto/gnmi_ext/gnmi_ext.proto
 protoc -I=$proto_imports_go --go_out=. --go_opt=paths=source_relative proto/target/target.proto
 
 # Python
