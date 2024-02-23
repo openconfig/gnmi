@@ -114,6 +114,10 @@ message Commit {
     // cancel action will cancel an on-going commit, the ID provided during cancel
     // should match the on-going commit ID.
     CommitCancel cancel = 4;
+    // set rollback duration action sets the rollback duration of an on-going commit
+    // to a new value.
+    // The ID provided with the Commit message should match the on-going commit ID.
+    CommitSetRollbackDuration set_rollback_duration = 5;
   }
 }
 
@@ -131,3 +135,10 @@ message CommitConfirm {}
 // CommitCancel is used to cancel an on-going commit. It hold additional
 // parameter requried for cancel action.
 message CommitCancel {}
+
+// CommitSetRollbackDuration is used to set the existing rollback duration value
+// of an on-going commit to a new desired value.
+message CommitSetRollbackDuration {
+  // Maximum duration to wait for a confirmaton before reverting the commit.
+  google.protobuf.Duration rollback_duration = 1;
+}
