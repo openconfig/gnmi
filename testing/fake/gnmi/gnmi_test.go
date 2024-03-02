@@ -269,7 +269,7 @@ func TestClientCreate(t *testing.T) {
 	}
 }
 
-func festClientSend(t *testing.T) {
+func TestClientSend(t *testing.T) {
 	defaultConfig := &fpb.Config{
 		Target: "arista",
 		Port:   -1,
