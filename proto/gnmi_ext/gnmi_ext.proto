@@ -106,7 +106,9 @@ message Commit {
   // Required.
   string id = 1;
   oneof action {
-    // commit action creates a new commit. If a commit is on-going, server returns error.
+    // commit action creates a new commit. If a commit is on-going, server resets
+    // the rollback duration to a new provided value or sets the default value
+    // if one is omitted.
     CommitRequest commit = 2;
     // confirm action will confirm an on-going commit, the ID provided during confirm
     // should match the on-going commit ID.
