@@ -14,7 +14,7 @@ _sym_db = _symbol_database.Default()
 from google.protobuf import duration_pb2 as google_dot_protobuf_dot_duration__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1dproto/gnmi_ext/gnmi_ext.proto\x12\x08gnmi_ext\x1a\x1egoogle/protobuf/duration.proto\"\xd0\x01\n\tExtension\x12\x37\n\x0eregistered_ext\x18\x01 \x01(\x0b\x32\x1d.gnmi_ext.RegisteredExtensionH\x00\x12\x39\n\x12master_arbitration\x18\x02 \x01(\x0b\x32\x1b.gnmi_ext.MasterArbitrationH\x00\x12$\n\x07history\x18\x03 \x01(\x0b\x32\x11.gnmi_ext.HistoryH\x00\x12\"\n\x06\x63ommit\x18\x04 \x01(\x0b\x32\x10.gnmi_ext.CommitH\x00\x42\x05\n\x03\x65xt\"E\n\x13RegisteredExtension\x12!\n\x02id\x18\x01 \x01(\x0e\x32\x15.gnmi_ext.ExtensionID\x12\x0b\n\x03msg\x18\x02 \x01(\x0c\"Y\n\x11MasterArbitration\x12\x1c\n\x04role\x18\x01 \x01(\x0b\x32\x0e.gnmi_ext.Role\x12&\n\x0b\x65lection_id\x18\x02 \x01(\x0b\x32\x11.gnmi_ext.Uint128\"$\n\x07Uint128\x12\x0c\n\x04high\x18\x01 \x01(\x04\x12\x0b\n\x03low\x18\x02 \x01(\x04\"\x12\n\x04Role\x12\n\n\x02id\x18\x01 \x01(\t\"S\n\x07History\x12\x17\n\rsnapshot_time\x18\x01 \x01(\x03H\x00\x12$\n\x05range\x18\x02 \x01(\x0b\x32\x13.gnmi_ext.TimeRangeH\x00\x42\t\n\x07request\"\'\n\tTimeRange\x12\r\n\x05start\x18\x01 \x01(\x03\x12\x0b\n\x03\x65nd\x18\x02 \x01(\x03\"\xe5\x01\n\x06\x43ommit\x12\n\n\x02id\x18\x01 \x01(\t\x12)\n\x06\x63ommit\x18\x02 \x01(\x0b\x32\x17.gnmi_ext.CommitRequestH\x00\x12*\n\x07\x63onfirm\x18\x03 \x01(\x0b\x32\x17.gnmi_ext.CommitConfirmH\x00\x12(\n\x06\x63\x61ncel\x18\x04 \x01(\x0b\x32\x16.gnmi_ext.CommitCancelH\x00\x12\x44\n\x15set_rollback_duration\x18\x05 \x01(\x0b\x32#.gnmi_ext.CommitSetRollbackDurationH\x00\x42\x08\n\x06\x61\x63tion\"E\n\rCommitRequest\x12\x34\n\x11rollback_duration\x18\x01 \x01(\x0b\x32\x19.google.protobuf.Duration\"\x0f\n\rCommitConfirm\"\x0e\n\x0c\x43ommitCancel\"Q\n\x19\x43ommitSetRollbackDuration\x12\x34\n\x11rollback_duration\x18\x01 \x01(\x0b\x32\x19.google.protobuf.Duration*3\n\x0b\x45xtensionID\x12\r\n\tEID_UNSET\x10\x00\x12\x15\n\x10\x45ID_EXPERIMENTAL\x10\xe7\x07\x42+Z)github.com/openconfig/gnmi/proto/gnmi_extb\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x1dproto/gnmi_ext/gnmi_ext.proto\x12\x08gnmi_ext\x1a\x1egoogle/protobuf/duration.proto\"\xf2\x01\n\tExtension\x12\x37\n\x0eregistered_ext\x18\x01 \x01(\x0b\x32\x1d.gnmi_ext.RegisteredExtensionH\x00\x12\x39\n\x12master_arbitration\x18\x02 \x01(\x0b\x32\x1b.gnmi_ext.MasterArbitrationH\x00\x12$\n\x07history\x18\x03 \x01(\x0b\x32\x11.gnmi_ext.HistoryH\x00\x12\"\n\x06\x63ommit\x18\x04 \x01(\x0b\x32\x10.gnmi_ext.CommitH\x00\x12 \n\x05\x64\x65pth\x18\x05 \x01(\x0b\x32\x0f.gnmi_ext.DepthH\x00\x42\x05\n\x03\x65xt\"E\n\x13RegisteredExtension\x12!\n\x02id\x18\x01 \x01(\x0e\x32\x15.gnmi_ext.ExtensionID\x12\x0b\n\x03msg\x18\x02 \x01(\x0c\"Y\n\x11MasterArbitration\x12\x1c\n\x04role\x18\x01 \x01(\x0b\x32\x0e.gnmi_ext.Role\x12&\n\x0b\x65lection_id\x18\x02 \x01(\x0b\x32\x11.gnmi_ext.Uint128\"$\n\x07Uint128\x12\x0c\n\x04high\x18\x01 \x01(\x04\x12\x0b\n\x03low\x18\x02 \x01(\x04\"\x12\n\x04Role\x12\n\n\x02id\x18\x01 \x01(\t\"S\n\x07History\x12\x17\n\rsnapshot_time\x18\x01 \x01(\x03H\x00\x12$\n\x05range\x18\x02 \x01(\x0b\x32\x13.gnmi_ext.TimeRangeH\x00\x42\t\n\x07request\"\'\n\tTimeRange\x12\r\n\x05start\x18\x01 \x01(\x03\x12\x0b\n\x03\x65nd\x18\x02 \x01(\x03\"\xe5\x01\n\x06\x43ommit\x12\n\n\x02id\x18\x01 \x01(\t\x12)\n\x06\x63ommit\x18\x02 \x01(\x0b\x32\x17.gnmi_ext.CommitRequestH\x00\x12*\n\x07\x63onfirm\x18\x03 \x01(\x0b\x32\x17.gnmi_ext.CommitConfirmH\x00\x12(\n\x06\x63\x61ncel\x18\x04 \x01(\x0b\x32\x16.gnmi_ext.CommitCancelH\x00\x12\x44\n\x15set_rollback_duration\x18\x05 \x01(\x0b\x32#.gnmi_ext.CommitSetRollbackDurationH\x00\x42\x08\n\x06\x61\x63tion\"E\n\rCommitRequest\x12\x34\n\x11rollback_duration\x18\x01 \x01(\x0b\x32\x19.google.protobuf.Duration\"\x0f\n\rCommitConfirm\"\x0e\n\x0c\x43ommitCancel\"Q\n\x19\x43ommitSetRollbackDuration\x12\x34\n\x11rollback_duration\x18\x01 \x01(\x0b\x32\x19.google.protobuf.Duration\"\x16\n\x05\x44\x65pth\x12\r\n\x05level\x18\x01 \x01(\r*3\n\x0b\x45xtensionID\x12\r\n\tEID_UNSET\x10\x00\x12\x15\n\x10\x45ID_EXPERIMENTAL\x10\xe7\x07\x42+Z)github.com/openconfig/gnmi/proto/gnmi_extb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -22,30 +22,32 @@ _builder.BuildTopDescriptorsAndMessages(DESCRIPTOR, 'proto.gnmi_ext.gnmi_ext_pb2
 if _descriptor._USE_C_DESCRIPTORS == False:
   DESCRIPTOR._options = None
   DESCRIPTOR._serialized_options = b'Z)github.com/openconfig/gnmi/proto/gnmi_ext'
-  _globals['_EXTENSIONID']._serialized_start=1051
-  _globals['_EXTENSIONID']._serialized_end=1102
+  _globals['_EXTENSIONID']._serialized_start=1109
+  _globals['_EXTENSIONID']._serialized_end=1160
   _globals['_EXTENSION']._serialized_start=76
-  _globals['_EXTENSION']._serialized_end=284
-  _globals['_REGISTEREDEXTENSION']._serialized_start=286
-  _globals['_REGISTEREDEXTENSION']._serialized_end=355
-  _globals['_MASTERARBITRATION']._serialized_start=357
-  _globals['_MASTERARBITRATION']._serialized_end=446
-  _globals['_UINT128']._serialized_start=448
-  _globals['_UINT128']._serialized_end=484
-  _globals['_ROLE']._serialized_start=486
-  _globals['_ROLE']._serialized_end=504
-  _globals['_HISTORY']._serialized_start=506
-  _globals['_HISTORY']._serialized_end=589
-  _globals['_TIMERANGE']._serialized_start=591
-  _globals['_TIMERANGE']._serialized_end=630
-  _globals['_COMMIT']._serialized_start=633
-  _globals['_COMMIT']._serialized_end=862
-  _globals['_COMMITREQUEST']._serialized_start=864
-  _globals['_COMMITREQUEST']._serialized_end=933
-  _globals['_COMMITCONFIRM']._serialized_start=935
-  _globals['_COMMITCONFIRM']._serialized_end=950
-  _globals['_COMMITCANCEL']._serialized_start=952
-  _globals['_COMMITCANCEL']._serialized_end=966
-  _globals['_COMMITSETROLLBACKDURATION']._serialized_start=968
-  _globals['_COMMITSETROLLBACKDURATION']._serialized_end=1049
+  _globals['_EXTENSION']._serialized_end=318
+  _globals['_REGISTEREDEXTENSION']._serialized_start=320
+  _globals['_REGISTEREDEXTENSION']._serialized_end=389
+  _globals['_MASTERARBITRATION']._serialized_start=391
+  _globals['_MASTERARBITRATION']._serialized_end=480
+  _globals['_UINT128']._serialized_start=482
+  _globals['_UINT128']._serialized_end=518
+  _globals['_ROLE']._serialized_start=520
+  _globals['_ROLE']._serialized_end=538
+  _globals['_HISTORY']._serialized_start=540
+  _globals['_HISTORY']._serialized_end=623
+  _globals['_TIMERANGE']._serialized_start=625
+  _globals['_TIMERANGE']._serialized_end=664
+  _globals['_COMMIT']._serialized_start=667
+  _globals['_COMMIT']._serialized_end=896
+  _globals['_COMMITREQUEST']._serialized_start=898
+  _globals['_COMMITREQUEST']._serialized_end=967
+  _globals['_COMMITCONFIRM']._serialized_start=969
+  _globals['_COMMITCONFIRM']._serialized_end=984
+  _globals['_COMMITCANCEL']._serialized_start=986
+  _globals['_COMMITCANCEL']._serialized_end=1000
+  _globals['_COMMITSETROLLBACKDURATION']._serialized_start=1002
+  _globals['_COMMITSETROLLBACKDURATION']._serialized_end=1083
+  _globals['_DEPTH']._serialized_start=1085
+  _globals['_DEPTH']._serialized_end=1107
 # @@protoc_insertion_point(module_scope)
