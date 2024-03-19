@@ -1523,9 +1523,15 @@ type Subscription struct {
 	// Indicates whether values that have not changed should be sent in a SAMPLE
 	// subscription.
 	SuppressRedundant bool `protobuf:"varint,4,opt,name=suppress_redundant,json=suppressRedundant,proto3" json:"suppress_redundant,omitempty"`
-	// Specifies the maximum allowable silent period in nanoseconds when
-	// suppress_redundant is in use. The target should send a value at least once
-	// in the period specified.
+	// 1. A heartbeat interval MAY be specified along with an “on change”
+	// subscription - in this case, the value of the data item(s) MUST be re-sent
+	// once per heartbeat interval regardless of whether the value has changed or
+	// not.
+	// 2. A heartbeat_interval MAY be specified to modify the behavior of
+	// suppress_redundant in a sampled subscription. In this case, the
+	// target MUST generate one telemetry update per heartbeat interval,
+	// regardless of whether the suppress_redundant flag is set to true.
+	// This value is specified as an unsigned 64-bit integer in nanoseconds
 	HeartbeatInterval uint64 `protobuf:"varint,5,opt,name=heartbeat_interval,json=heartbeatInterval,proto3" json:"heartbeat_interval,omitempty"`
 }
 

@@ -116,6 +116,8 @@ type Destination struct {
 	Extra map[string]string
 	// TunnelConn follows the net.Conn interface.
 	TunnelConn *tunnel.Conn
+	// Encoding is the subscription response encoding value.
+	Encoding gpb.Encoding
 }
 
 // Validate validates the fields of Destination.
@@ -180,6 +182,8 @@ type Query struct {
 	SubReq *gpb.SubscribeRequest
 	// TunnelConn follows the net.Conn interface.
 	TunnelConn *tunnel.Conn
+	// Encoding is the subscription response encoding value.
+	Encoding gpb.Encoding
 }
 
 // Destination extracts a Destination instance out of Query fields.
@@ -259,7 +263,7 @@ func NewQuery(sr *gpb.SubscribeRequest) (Query, error) {
 		q.Queries = append(q.Queries, path.ToStrings(su.Path, false))
 	}
 	q.SubReq = sr
-
+	q.Encoding = s.Subscribe.Encoding
 	return q, nil
 }
 

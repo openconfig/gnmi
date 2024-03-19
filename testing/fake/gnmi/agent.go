@@ -50,8 +50,9 @@ type Agent struct {
 	state  fpb.State
 	config *fpb.Config
 	// cMu protects client.
-	cMu    sync.Mutex
-	client *Client
+	cMu     sync.Mutex
+	client  *Client
+	clients []*Client
 }
 
 // New returns an initialized fake agent.
@@ -68,10 +69,11 @@ func New(config *fpb.Config, opts []grpc.ServerOption) (*Agent, error) {
 // NewFromServer returns a new initialized fake agent from provided server.
 func NewFromServer(s *grpc.Server, config *fpb.Config) (*Agent, error) {
 	a := &Agent{
-		s:      s,
-		state:  fpb.State_INIT,
-		config: config,
-		target: config.Target,
+		s:       s,
+		state:   fpb.State_INIT,
+		config:  config,
+		target:  config.Target,
+		clients: []*Client{},
 	}
 	var err error
 	if a.config.Port < 0 {
@@ -164,15 +166,22 @@ func (a *Agent) Close() {
 	a.mu.Lock()
 	defer a.mu.Unlock()
 	a.state = fpb.State_STOPPED
-	if a.s == nil {
-		return
+	if a.s != nil {
+		a.s.Stop()
+		for _, l := range a.lis {
+			l.Close()
+		}
+		a.s = nil
+		a.lis = nil
 	}
-	a.s.Stop()
-	for _, l := range a.lis {
-		l.Close()
+	a.cMu.Lock()
+	defer a.cMu.Unlock()
+	if a.clients != nil {
+		for _, c := range a.clients {
+			c.Close()
+		}
 	}
-	a.s = nil
-	a.lis = nil
+	log.V(1).Infof("successfully stopped agent")
 }
 
 // Subscribe implements the gNMI Subscribe RPC.
@@ -182,9 +191,14 @@ func (a *Agent) Subscribe(stream gnmipb.GNMI_SubscribeServer) error {
 
 	a.cMu.Lock()
 	a.client = c
+	a.clients = append(a.clients, c)
 	a.cMu.Unlock()
 
-	return c.Run(stream)
+	if err := c.Run(stream); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // Requests returns the subscribe requests received by the most recently created client.

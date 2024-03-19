@@ -271,6 +271,7 @@ func subscribe(q client.Query) (*gpb.SubscribeRequest, error) {
 		}
 		s.Subscribe.Subscription = append(s.Subscribe.Subscription, &gpb.Subscription{Path: pp})
 	}
+	s.Subscribe.Encoding = q.Encoding
 	return &gpb.SubscribeRequest{Request: s}, nil
 }
 
@@ -292,11 +293,16 @@ func noti(prefix []string, pp *gpb.Path, ts time.Time, u *gpb.Update) (client.No
 		}
 		return client.Update{Path: p, TS: ts, Val: val, Dups: u.Duplicates}, nil
 	}
-	switch v := u.Value; v.Type {
+	v := u.Value
+	// Empty path update ignore the value.
+	if v == nil {
+		return nil, nil
+	}
+	switch v.Type {
 	case gpb.Encoding_BYTES:
 		return client.Update{Path: p, TS: ts, Val: v.Value, Dups: u.Duplicates}, nil
 	case gpb.Encoding_JSON, gpb.Encoding_JSON_IETF:
-		var val interface{}
+		var val any
 		if err := json.Unmarshal(v.Value, &val); err != nil {
 			return nil, fmt.Errorf("json.Unmarshal(%q, val): %v", v, err)
 		}

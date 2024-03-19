@@ -53,6 +53,9 @@ const (
 	// StaleCount is the total number of leaf updates that had timestamp older
 	// than that cached.
 	StaleCount = "targetLeavesStale"
+	// FutureCount is the total number of leaf updates that are rejected because
+	// of having timestamp too far in the future.
+	FutureCount = "targetLeavesFuture"
 	// SuppressedCount is the total number of leaf updates that were suppressed
 	// because the update had the same value as already cached.
 	SuppressedCount = "targetLeavesSuppressed"
@@ -95,6 +98,11 @@ func RegisterStrValue(name string, val *StrValue) {
 	TargetStrValues[name] = val
 }
 
+// UnregisterStrValue unregisters a string type metadata.
+func UnregisterStrValue(name string) {
+	delete(TargetStrValues, name)
+}
+
 var (
 	// TargetBoolValues is the list of all bool metadata fields.
 	TargetBoolValues = map[string]bool{
@@ -110,6 +118,7 @@ var (
 		LeafCount:       {[]string{Root, LeafCount}, true},
 		UpdateCount:     {[]string{Root, UpdateCount}, true},
 		StaleCount:      {[]string{Root, StaleCount}, true},
+		FutureCount:     {[]string{Root, FutureCount}, true},
 		SuppressedCount: {[]string{Root, SuppressedCount}, true},
 		Size:            {[]string{Root, Size}, true},
 		LatestTimestamp: {[]string{Root, LatestTimestamp}, true},
@@ -344,4 +353,9 @@ func RegisterLatencyMetadata(windowSizes []time.Duration) {
 // RegisterServerNameMetadata registers the serverName metadata.
 func RegisterServerNameMetadata() {
 	RegisterStrValue(ServerName, &StrValue{InitEmptyStr: false})
+}
+
+// UnregisterServerNameMetadata registers the serverName metadata.
+func UnregisterServerNameMetadata() {
+	UnregisterStrValue(ServerName)
 }
