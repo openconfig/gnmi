@@ -14,7 +14,7 @@ require (
 	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/net v0.0.0-20210805182204-aaa1db679c0d
 	google.golang.org/grpc v1.40.0
-	google.golang.org/protobuf v1.28.0
+	google.golang.org/protobuf v1.33.0
 )
 
 require (
