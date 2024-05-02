@@ -437,6 +437,52 @@ func newFakeConnection(t *testing.T) *fakeConnection {
 	}
 }
 
+func TestMonitorError(t *testing.T) {
+	addr, stop := newDevice(t, &fakeServer{})
+	defer stop()
+	origSubscribeClient := subscribeClient
+	defer func() { subscribeClient = origSubscribeClient }()
+	fc := newFakeSubscribeClient()
+	subscribeClient = func(ctx context.Context, conn *grpc.ClientConn) (gpb.GNMI_SubscribeClient, error) {
+		return fc, nil
+	}
+	monitorErrorCalled := make(chan struct{})
+	m, err := NewManager(Config{
+		Credentials:       &fakeCreds{},
+		ConnectionManager: newFakeConnection(t),
+		Timeout:           time.Minute,
+		MonitorError: func(string, error) {
+			select {
+			case <-monitorErrorCalled:
+			default:
+				close(monitorErrorCalled)
+			}
+		}})
+	if err != nil {
+		t.Fatal("could not initialize Manager")
+	}
+	name := "device1"
+
+	err = m.Add(name, &tpb.Target{Addresses: []string{addr}}, validSubscribeRequest)
+	if err != nil {
+		t.Fatalf("got error adding: %v, want no error", err)
+	}
+	assertTargets(t, m, 1)
+	mTarget, ok := m.targets[name]
+	if !ok {
+		t.Fatalf("missing internal target")
+	}
+
+	fc.sendRecvErr() // Simulate stream closure.
+	select {
+	case <-monitorErrorCalled:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("MonitorError is not called")
+	}
+	m.Remove(name)
+	<-mTarget.finished
+}
+
 func TestRetrySubscribe(t *testing.T) {
 	origBaseDelay, origMaxDelay := RetryBaseDelay, RetryMaxDelay
 	defer func() { RetryBaseDelay, RetryMaxDelay = origBaseDelay, origMaxDelay }()
