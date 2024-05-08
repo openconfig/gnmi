@@ -22,6 +22,9 @@ package target;
 import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
 
 option go_package = "github.com/openconfig/gnmi/proto/target";
+option java_multiple_files = true;
+option java_outer_classname = "TargetProto";
+option java_package = "com.github.openconfig.gnmi.proto.target";
 
 // Configuration holds all information necessary for a caching gNMI collector
 // to establish subscriptions to a list of gNMI targets.
