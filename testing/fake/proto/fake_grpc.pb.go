@@ -11,6 +11,7 @@ import (
 
 // This is a compile-time assertion to ensure that this generated file
 // is compatible with the grpc package it is being compiled against.
+// Requires gRPC-Go v1.32.0 or later.
 const _ = grpc.SupportPackageIsVersion7
 
 // AgentManagerClient is the client API for AgentManager service.
@@ -93,8 +94,8 @@ type UnsafeAgentManagerServer interface {
 	mustEmbedUnimplementedAgentManagerServer()
 }
 
-func RegisterAgentManagerServer(s *grpc.Server, srv AgentManagerServer) {
-	s.RegisterService(&_AgentManager_serviceDesc, srv)
+func RegisterAgentManagerServer(s grpc.ServiceRegistrar, srv AgentManagerServer) {
+	s.RegisterService(&AgentManager_ServiceDesc, srv)
 }
 
 func _AgentManager_Add_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -151,7 +152,10 @@ func _AgentManager_Status_Handler(srv interface{}, ctx context.Context, dec func
 	return interceptor(ctx, in, info, handler)
 }
 
-var _AgentManager_serviceDesc = grpc.ServiceDesc{
+// AgentManager_ServiceDesc is the grpc.ServiceDesc for AgentManager service.
+// It's only intended for direct use with grpc.RegisterService,
+// and not to be introspected or modified (even as a copy)
+var AgentManager_ServiceDesc = grpc.ServiceDesc{
 	ServiceName: "gnmi.fake.AgentManager",
 	HandlerType: (*AgentManagerServer)(nil),
 	Methods: []grpc.MethodDesc{

@@ -79,8 +79,10 @@ type Config struct {
 	Update func(string, *gpb.Notification)
 	// ConnectionManager is used to create gRPC connections.
 	ConnectionManager ConnectionManager
-	// ConnectError record error from subcribe connections.
+	// ConnectError records connecting errors from subscribe connections.
 	ConnectError func(string, error)
+	// MonitorError handles errors from subscribe connections.
+	MonitorError func(string, error)
 }
 
 type target struct {
@@ -97,9 +99,9 @@ type target struct {
 // Manager provides functionality for making gNMI subscriptions to targets and
 // handling updates.
 type Manager struct {
-	backoff           *backoff.ExponentialBackOff
 	connect           func(string)
 	connectError      func(string, error)
+	monitorError      func(string, error)
 	connectionManager ConnectionManager
 	cred              CredentialsClient
 	reset             func(string)
@@ -125,16 +127,10 @@ func NewManager(cfg Config) (*Manager, error) {
 	if cfg.ConnectionManager == nil {
 		return nil, errors.New("nil Config.ConnectionManager supplied")
 	}
-	e := backoff.NewExponentialBackOff()
-	e.MaxElapsedTime = 0 // Retry target connections indefinitely.
-	e.InitialInterval = RetryBaseDelay
-	e.MaxInterval = RetryMaxDelay
-	e.RandomizationFactor = RetryRandomization
-	e.Reset()
 	return &Manager{
-		backoff:           e,
 		connect:           cfg.Connect,
 		connectError:      cfg.ConnectError,
+		monitorError:      cfg.MonitorError,
 		connectionManager: cfg.ConnectionManager,
 		cred:              cfg.Credentials,
 		reset:             cfg.Reset,
@@ -301,6 +297,12 @@ func (m *Manager) retryMonitor(ctx context.Context, ta *target) {
 		m.Reconnect(ta.name)
 	}()
 
+	e := backoff.NewExponentialBackOff()
+	e.MaxElapsedTime = 0 // Retry target connections indefinitely.
+	e.InitialInterval = RetryBaseDelay
+	e.MaxInterval = RetryMaxDelay
+	e.RandomizationFactor = RetryRandomization
+	e.Reset()
 	// Create a subcontext that can be independently cancelled to force reconnect.
 	sCtx := m.reconnectCtx(ctx, ta)
 	for {
@@ -317,10 +319,13 @@ func (m *Manager) retryMonitor(ctx context.Context, ta *target) {
 			}
 			t0 := time.Now()
 			err := m.monitor(sCtx, ta)
-			if time.Since(t0) > 2*RetryMaxDelay {
-				m.backoff.Reset()
+			if err != nil && m.monitorError != nil {
+				m.monitorError(ta.name, err)
 			}
-			delay := m.backoff.NextBackOff()
+			if time.Since(t0) > 2*RetryMaxDelay {
+				e.Reset()
+			}
+			delay := e.NextBackOff()
 			log.Errorf("Retrying monitoring of %q in %v due to error: %v", ta.name, delay, err)
 			timer.Reset(delay)
 		}

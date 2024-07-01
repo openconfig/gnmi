@@ -26,6 +26,7 @@ package(
 proto_library(
     name = "gnmi_ext_proto",
     srcs = ["gnmi_ext.proto"],
+    deps = ["@com_google_protobuf//:duration_proto" ],
     import_prefix = "github.com/openconfig/gnmi",
 )
 
