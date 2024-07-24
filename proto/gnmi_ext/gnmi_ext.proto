@@ -165,7 +165,7 @@ message Depth {
 // schema nodes only.
 message ConfigSubscription {
   oneof action {
-    // ConfigSubscriptionStart is sent by the server in the SubscribeRequest
+    // ConfigSubscriptionStart is sent by the client in the SubscribeRequest
     ConfigSubscriptionStart start = 1;
     // ConfigSubscriptionSyncDone is sent by the server in the SubscribeResponse
     ConfigSubscriptionSyncDone sync_done = 2;
