@@ -208,8 +208,8 @@ message Value {
     uint64 uint_val = 2;
     string string_val = 3;
     bool bool_val = 4;
-    float float_val = 5;
-    ValueList list_val = 6;  // List of values of any type
+    double double_val = 5;
+    ValueList list_val = 6;
   }
 }
 
