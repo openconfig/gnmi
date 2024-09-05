@@ -417,6 +417,9 @@ func (f *fakeConnection) Connection(ctx context.Context, addr, dialer string) (c
 		f.failNext = false
 		return nil, func() {}, errors.New("could not connect")
 	}
+	if addr == "bad address" {
+		return nil, func() {}, errors.New("bad address")
+	}
 	return f.m.Connection(ctx, addr, dialer)
 }
 
@@ -432,6 +435,52 @@ func newFakeConnection(t *testing.T) *fakeConnection {
 	return &fakeConnection{
 		m: m,
 	}
+}
+
+func TestMonitorError(t *testing.T) {
+	addr, stop := newDevice(t, &fakeServer{})
+	defer stop()
+	origSubscribeClient := subscribeClient
+	defer func() { subscribeClient = origSubscribeClient }()
+	fc := newFakeSubscribeClient()
+	subscribeClient = func(ctx context.Context, conn *grpc.ClientConn) (gpb.GNMI_SubscribeClient, error) {
+		return fc, nil
+	}
+	monitorErrorCalled := make(chan struct{})
+	m, err := NewManager(Config{
+		Credentials:       &fakeCreds{},
+		ConnectionManager: newFakeConnection(t),
+		Timeout:           time.Minute,
+		MonitorError: func(string, error) {
+			select {
+			case <-monitorErrorCalled:
+			default:
+				close(monitorErrorCalled)
+			}
+		}})
+	if err != nil {
+		t.Fatal("could not initialize Manager")
+	}
+	name := "device1"
+
+	err = m.Add(name, &tpb.Target{Addresses: []string{addr}}, validSubscribeRequest)
+	if err != nil {
+		t.Fatalf("got error adding: %v, want no error", err)
+	}
+	assertTargets(t, m, 1)
+	mTarget, ok := m.targets[name]
+	if !ok {
+		t.Fatalf("missing internal target")
+	}
+
+	fc.sendRecvErr() // Simulate stream closure.
+	select {
+	case <-monitorErrorCalled:
+	case <-time.After(10 * time.Second):
+		t.Fatalf("MonitorError is not called")
+	}
+	m.Remove(name)
+	<-mTarget.finished
 }
 
 func TestRetrySubscribe(t *testing.T) {
@@ -573,10 +622,11 @@ func TestReceiveTimeout(t *testing.T) {
 	}
 
 	r := record{}
+	defaultRecvTimeout := 2 * time.Second
 	m, err := NewManager(Config{
 		Credentials:    &fakeCreds{},
 		Timeout:        time.Minute,
-		ReceiveTimeout: 2 * time.Second,
+		ReceiveTimeout: defaultRecvTimeout,
 		Connect: func(s string) {
 			r.connects = append(r.connects, s)
 		},
@@ -612,9 +662,12 @@ func TestReceiveTimeout(t *testing.T) {
 	}
 	defer m.Remove(name)
 
-	_, ok := m.targets[name]
+	ta, ok := m.targets[name]
 	if !ok {
 		t.Fatalf("missing internal target")
+	}
+	if ta.receiveTimeout != defaultRecvTimeout {
+		t.Errorf("receiveTime out for %q: got %v, want %v", name, ta.receiveTimeout, defaultRecvTimeout)
 	}
 
 	<-handleUpdateDoneOnce // receive has timed out
@@ -633,6 +686,80 @@ func TestReceiveTimeout(t *testing.T) {
 	}
 	r.assertLast(t, "updates sent after reconnect", nil, nil, nil, updateCount)
 	assertTargets(t, m, 1)
+}
+
+func TestReceiveTimeoutOverride(t *testing.T) {
+	f := newFakeConnection(t)
+	addr, stop := newDevice(t, &fakeServer{})
+	defer stop()
+
+	origSubscribeClient := subscribeClient
+	defer func() { subscribeClient = origSubscribeClient }()
+	fc := newFakeSubscribeClient()
+	subscribeClient = func(ctx context.Context, conn *grpc.ClientConn) (gpb.GNMI_SubscribeClient, error) {
+		return fc, nil
+	}
+
+	for _, tc := range []struct {
+		desc        string
+		defTimeout  time.Duration
+		metaTimeout string
+		want        time.Duration
+	}{{
+		desc:        "wrong receive timeout specified - use non-zero default",
+		defTimeout:  5 * time.Minute,
+		metaTimeout: "1x",
+		want:        5 * time.Minute,
+	}, {
+		desc:        "wrong receive timeout specified - use zero default",
+		defTimeout:  0,
+		metaTimeout: "zz",
+		want:        0,
+	}, {
+		desc:        "override to disable non-zero default",
+		defTimeout:  5 * time.Minute,
+		metaTimeout: "0",
+		want:        0,
+	}, {
+		desc:        "override non-zero default",
+		defTimeout:  5 * time.Minute,
+		metaTimeout: "2m",
+		want:        2 * time.Minute,
+	}, {
+		desc:        "override zero default",
+		defTimeout:  0,
+		metaTimeout: "10m",
+		want:        10 * time.Minute,
+	}} {
+		name := "device1"
+		t.Run(tc.desc, func(t *testing.T) {
+			m, err := NewManager(Config{
+				Credentials:       &fakeCreds{},
+				Timeout:           time.Minute,
+				ConnectionManager: f,
+				ReceiveTimeout:    tc.defTimeout,
+			})
+			if err != nil {
+				t.Fatal("could not initialize Manager")
+			}
+			err = m.Add(name, &tpb.Target{
+				Addresses: []string{addr},
+				Meta:      map[string]string{metaReceiveTimeout: tc.metaTimeout},
+			}, validSubscribeRequest)
+			if err != nil {
+				t.Fatalf("got error adding: %v, want no error", err)
+			}
+			defer m.Remove(name)
+
+			ta, ok := m.targets[name]
+			if !ok {
+				t.Fatalf("missing internal target")
+			}
+			if ta.receiveTimeout != tc.want {
+				t.Errorf("receiveTime out for %q: got %v, want %v", name, ta.receiveTimeout, tc.want)
+			}
+		})
+	}
 }
 
 func TestRemoveDuringBackoff(t *testing.T) {
@@ -711,7 +838,7 @@ func TestCancelSubscribe(t *testing.T) {
 		t.Fatalf("error creating connection: %v", err)
 	}
 	defer done()
-	if err := m.subscribe(cCtx, "device", conn, &gpb.SubscribeRequest{}); err == nil {
+	if err := m.subscribe(cCtx, &target{name: "device", sr: &gpb.SubscribeRequest{}}, conn); err == nil {
 		t.Fatalf("got no error, want error")
 	}
 }
@@ -827,6 +954,7 @@ func TestCustomizeRequest(t *testing.T) {
 
 func TestCreateConn(t *testing.T) {
 	addr, stop := newDevice(t, &fakeServer{})
+	badAddr := "bad address"
 	defer stop()
 
 	tests := []struct {
@@ -856,13 +984,60 @@ func TestCreateConn(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			desc: "valid",
+			desc: "single valid address",
 			ta: &tpb.Target{
 				Addresses: []string{addr},
 			},
 			makeCtx: func() context.Context {
 				return context.Background()
 			},
+		},
+		{
+			desc: "duplicate valid address",
+			ta: &tpb.Target{
+				Addresses: []string{addr, addr},
+			},
+			makeCtx: func() context.Context {
+				return context.Background()
+			},
+		},
+		{
+			desc: "first valid address",
+			ta: &tpb.Target{
+				Addresses: []string{addr, badAddr},
+			},
+			makeCtx: func() context.Context {
+				return context.Background()
+			},
+		},
+		{
+			desc: "second valid address",
+			ta: &tpb.Target{
+				Addresses: []string{badAddr, addr},
+			},
+			makeCtx: func() context.Context {
+				return context.Background()
+			},
+		},
+		{
+			desc: "bad address",
+			ta: &tpb.Target{
+				Addresses: []string{badAddr},
+			},
+			makeCtx: func() context.Context {
+				return context.Background()
+			},
+			wantErr: true,
+		},
+		{
+			desc: "multiple bad addresses",
+			ta: &tpb.Target{
+				Addresses: []string{badAddr, badAddr},
+			},
+			makeCtx: func() context.Context {
+				return context.Background()
+			},
+			wantErr: true,
 		},
 	}
 

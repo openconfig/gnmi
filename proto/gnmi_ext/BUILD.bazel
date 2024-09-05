@@ -14,6 +14,10 @@
 #
 # Supporting infrastructure for implementing and testing PINS.
 #
+
+load("@io_bazel_rules_go//go:def.bzl", "go_library")
+load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
@@ -22,10 +26,23 @@ package(
 proto_library(
     name = "gnmi_ext_proto",
     srcs = ["gnmi_ext.proto"],
+    deps = ["@com_google_protobuf//:duration_proto" ],
     import_prefix = "github.com/openconfig/gnmi",
 )
 
 cc_proto_library(
     name = "gnmi_ext_cc_proto",
     deps = [":gnmi_ext_proto"],
+)
+
+go_proto_library(
+    name = "gnmi_ext_go_proto",
+    importpath = "github.com/openconfig/gnmi_ext",
+    proto = ":gnmi_ext_proto",
+)
+
+go_library(
+    name = "gnmi_ext",
+    embed = [":gnmi_ext_go_proto"],
+    importpath = "github.com/openconfig/gnmi_ext",
 )

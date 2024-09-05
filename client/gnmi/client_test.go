@@ -138,8 +138,7 @@ func TestClient(t *testing.T) {
 			client.Sync{},
 		},
 	}, {
-		desc:       "stream query with updates and deletes",
-		disableEOF: true,
+		desc: "stream query with updates and deletes",
 		q: client.Query{
 			Target:  "dev",
 			Type:    client.Stream,

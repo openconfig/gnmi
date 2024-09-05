@@ -22,9 +22,9 @@ import (
 	"sync"
 
 	log "github.com/golang/glog"
-	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/encoding/prototext"
 	"github.com/openconfig/gnmi/testing/fake/queue"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -33,21 +33,23 @@ import (
 
 // Client contains information about a client that has connected to the fake.
 type Client struct {
-	errors    int64
-	config    *fpb.Config
-	polled    chan struct{}
-	mu        sync.RWMutex
-	canceled  bool
-	q         queue.Queue
-	subscribe *gpb.SubscriptionList
-	requests  []*gpb.SubscribeRequest
+	errors     int64
+	config     *fpb.Config
+	polled     chan struct{}
+	mu         sync.RWMutex
+	canceled   bool
+	canceledCh chan struct{}
+	q          queue.Queue
+	subscribe  *gpb.SubscriptionList
+	requests   []*gpb.SubscribeRequest
 }
 
 // NewClient returns a new initialized client.
 func NewClient(config *fpb.Config) *Client {
 	return &Client{
-		config: config,
-		polled: make(chan struct{}),
+		config:     config,
+		polled:     make(chan struct{}),
+		canceledCh: make(chan struct{}, 1),
 	}
 }
 
@@ -85,7 +87,7 @@ func (c *Client) Run(stream gpb.GNMI_SubscribeServer) (err error) {
 		return grpc.Errorf(grpc.Code(err), "received error from client")
 	}
 	c.requests = append(c.requests, query)
-	log.V(1).Infof("Client %s recieved initial query: %v", c, query)
+	log.V(1).Infof("Client %s received initial query: %v", c, query)
 
 	c.subscribe = query.GetSubscribe()
 	if c.subscribe == nil {
@@ -107,6 +109,14 @@ func (c *Client) Run(stream gpb.GNMI_SubscribeServer) (err error) {
 func (c *Client) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+	if c.config.DisableEof {
+		// If the cancel signal has already been sent by a previous close, then we
+		// do not need to resend it.
+		select {
+		case c.canceledCh <- struct{}{}:
+		default:
+		}
+	}
 	c.canceled = true
 }
 
@@ -170,6 +180,7 @@ func (c *Client) processQueue(stream gpb.GNMI_SubscribeServer) error {
 		if canceled {
 			return fmt.Errorf("client canceled")
 		}
+
 		event, err := q.Next()
 		if err != nil {
 			c.errors++
@@ -182,7 +193,9 @@ func (c *Client) processQueue(stream gpb.GNMI_SubscribeServer) error {
 				log.V(1).Infof("Client %s received poll", c)
 				return nil
 			case c.config.DisableEof:
-				return fmt.Errorf("send exiting due to disabled EOF")
+				// Not an error, we ran out of values, but DisableEof asks us to hold open
+				// the subscription.
+				return nil
 			}
 			return fmt.Errorf("end of updates")
 		}
@@ -209,7 +222,6 @@ func (c *Client) processQueue(stream gpb.GNMI_SubscribeServer) error {
 				}
 			}
 		}
-		log.V(1).Infof("Client %s sending:\n%v", c, resp)
 		err = stream.Send(resp)
 		if err != nil {
 			c.errors++
@@ -224,6 +236,12 @@ func (c *Client) send(stream gpb.GNMI_SubscribeServer) {
 	for {
 		if err := c.processQueue(stream); err != nil {
 			log.Errorf("Client %s error: %v", c, err)
+			return
+		}
+		if c.config.DisableEof {
+			log.V(1).Infof("Client %s: holding open connection to be shut down", c)
+			<-c.canceledCh
+			log.V(1).Infof("Client %s: cancelled by channel", c)
 			return
 		}
 	}
@@ -241,7 +259,7 @@ func (c *Client) SetConfig(config *fpb.Config) {
 func (c *Client) reset() error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	log.V(1).Infof("Client %s using config:\n%s", c, pretty.Sprint(c.config))
+	log.V(1).Infof("Client %s using config:\n%s", c, prototext.Format(c.config))
 	switch {
 	default:
 		q := queue.New(c.config.GetEnableDelay(), c.config.Seed, c.config.Values)

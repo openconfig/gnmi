@@ -53,6 +53,9 @@ const (
 	// StaleCount is the total number of leaf updates that had timestamp older
 	// than that cached.
 	StaleCount = "targetLeavesStale"
+	// FutureCount is the total number of leaf updates that are rejected because
+	// of having timestamp too far in the future.
+	FutureCount = "targetLeavesFuture"
 	// SuppressedCount is the total number of leaf updates that were suppressed
 	// because the update had the same value as already cached.
 	SuppressedCount = "targetLeavesSuppressed"
@@ -64,6 +67,8 @@ const (
 	LatestTimestamp = "latestTimestamp"
 	// ConnectError is the error related to connection failure.
 	ConnectError = "connectError"
+	// ServerName is an optional metadata used to identify the server to clients.
+	ServerName = "serverName"
 )
 
 // IntValue contains the path and other options for an int64 metadata.
@@ -85,8 +90,17 @@ func UnregisterIntValue(name string) {
 
 // StrValue contains the valid and the option to reset to emptry string.
 type StrValue struct {
-	Valid        bool
 	InitEmptyStr bool // Whether to initiate to "".
+}
+
+// RegisterStrValue registers a string type metadata.
+func RegisterStrValue(name string, val *StrValue) {
+	TargetStrValues[name] = val
+}
+
+// UnregisterStrValue unregisters a string type metadata.
+func UnregisterStrValue(name string) {
+	delete(TargetStrValues, name)
 }
 
 var (
@@ -104,6 +118,7 @@ var (
 		LeafCount:       {[]string{Root, LeafCount}, true},
 		UpdateCount:     {[]string{Root, UpdateCount}, true},
 		StaleCount:      {[]string{Root, StaleCount}, true},
+		FutureCount:     {[]string{Root, FutureCount}, true},
 		SuppressedCount: {[]string{Root, SuppressedCount}, true},
 		Size:            {[]string{Root, Size}, true},
 		LatestTimestamp: {[]string{Root, LatestTimestamp}, true},
@@ -111,8 +126,8 @@ var (
 
 	// TargetStrValues is the list of all string metadata fields.
 	TargetStrValues = map[string]*StrValue{
-		ConnectedAddr: {Valid: true, InitEmptyStr: true},
-		ConnectError:  {Valid: true, InitEmptyStr: false},
+		ConnectedAddr: {InitEmptyStr: true},
+		ConnectError:  {InitEmptyStr: false},
 	}
 )
 
@@ -132,7 +147,7 @@ func Path(value string) []string {
 	if TargetBoolValues[value] {
 		return []string{Root, value}
 	}
-	if val, ok := TargetStrValues[value]; ok && val.Valid {
+	if val := TargetStrValues[value]; val != nil {
 		return []string{Root, value}
 	}
 
@@ -174,7 +189,7 @@ func validBool(value string) error {
 }
 
 func validStr(value string) error {
-	if valid, ok := TargetStrValues[value]; !ok || !valid.Valid {
+	if val := TargetStrValues[value]; val == nil {
 		return ErrInvalidValue
 	}
 	return nil
@@ -333,4 +348,14 @@ func RegisterLatencyMetadata(windowSizes []time.Duration) {
 			RegisterIntValue(latency.MetadataName(size, typ), &IntValue{Path: LatencyPath(size, typ)})
 		}
 	}
+}
+
+// RegisterServerNameMetadata registers the serverName metadata.
+func RegisterServerNameMetadata() {
+	RegisterStrValue(ServerName, &StrValue{InitEmptyStr: false})
+}
+
+// UnregisterServerNameMetadata registers the serverName metadata.
+func UnregisterServerNameMetadata() {
+	UnregisterStrValue(ServerName)
 }

@@ -260,6 +260,7 @@ func TestUpdateMetadata(t *testing.T) {
 		{metadata.Root, metadata.UpdateCount},
 		{metadata.Root, metadata.DelCount},
 		{metadata.Root, metadata.EmptyCount},
+		{metadata.Root, metadata.FutureCount},
 		{metadata.Root, metadata.StaleCount},
 		{metadata.Root, metadata.SuppressedCount},
 		{metadata.Root, metadata.Connected},
@@ -274,6 +275,57 @@ func TestUpdateMetadata(t *testing.T) {
 	})
 	sort.Slice(got, func(i, j int) bool { return less(got[i], got[j]) })
 	sort.Slice(want, func(i, j int) bool { return less(want[i], want[j]) })
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got update paths: %q\n want: %q", got, want)
+	}
+}
+
+func TestCacheWithExcludedMeta(t *testing.T) {
+	c := New([]string{"dev1"}, WithExcludedMeta([]string{
+		metadata.Sync,
+		metadata.Connected,
+		metadata.ConnectedAddr,
+		metadata.SuppressedCount,
+	}))
+	c.UpdateMetadata()
+	want := [][]string{
+		{metadata.Root, metadata.LatestTimestamp},
+		{metadata.Root, metadata.LeafCount},
+		{metadata.Root, metadata.AddCount},
+		{metadata.Root, metadata.UpdateCount},
+		{metadata.Root, metadata.DelCount},
+		{metadata.Root, metadata.EmptyCount},
+		{metadata.Root, metadata.FutureCount},
+		{metadata.Root, metadata.StaleCount},
+		{metadata.Root, metadata.Size},
+	}
+	var got [][]string
+	c.Query("dev1", []string{metadata.Root}, func(path []string, _ *ctree.Leaf, _ any) error {
+		got = append(got, path)
+		return nil
+	})
+	sort.Slice(got, func(i, j int) bool { return less(got[i], got[j]) })
+	sort.Slice(want, func(i, j int) bool { return less(want[i], want[j]) })
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got update paths: %q\n want: %q", got, want)
+	}
+}
+
+func TestUpdateServerNameMetadata(t *testing.T) {
+	serverName := "server-address"
+	c := New([]string{"dev1"}, WithServerName(serverName))
+	defer metadata.UnregisterServerNameMetadata()
+	c.UpdateMetadata()
+	var got [][]string
+	c.Query("dev1", []string{metadata.Root, metadata.ServerName}, func(path []string, _ *ctree.Leaf, v any) error {
+		got = append(got, path)
+		val := v.(*pb.Notification).Update[0].Val.GetStringVal()
+		if !reflect.DeepEqual(val, serverName) {
+			t.Errorf("got serverName update value: %q, want: %q", val, serverName)
+		}
+		return nil
+	})
+	want := [][]string{{metadata.Root, metadata.ServerName}}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got update paths: %q\n want: %q", got, want)
 	}
@@ -992,10 +1044,15 @@ func TestGNMIUpdate(t *testing.T) {
 		deleted   bool
 		prefix    []string
 		path      []string
-		timestamp int
+		timestamp int64
 		val       string
 	}
-
+	futureThreshold := 30 * time.Minute
+	nowTime := time.Unix(1, 0)
+	Now = func() time.Time { return nowTime }
+	defer func() {
+		Now = time.Now
+	}()
 	dev := "dev1"
 	prefix := []string{"prefix1"}
 	path1 := []string{"path1"}
@@ -1007,9 +1064,11 @@ func TestGNMIUpdate(t *testing.T) {
 		notification      *pb.Notification
 		want              []state
 		wantConnectedAddr string
-		wantUpdates       int
-		wantSuppressed    int
-		wantStale         int
+		wantUpdates       int64
+		wantSuppressed    int64
+		wantStale         int64
+		wantFuture        int64
+		wantLatestTS      int64
 		wantErr           bool
 	}{
 		{
@@ -1048,6 +1107,7 @@ func TestGNMIUpdate(t *testing.T) {
 			wantUpdates:    1,
 			wantSuppressed: 1,
 			wantErr:        false,
+			wantLatestTS:   1,
 		}, {
 			desc: "no duplicates",
 			initial: notificationBundle(dev, prefix, 0, []update{
@@ -1081,7 +1141,8 @@ func TestGNMIUpdate(t *testing.T) {
 					timestamp: 1,
 				},
 			},
-			wantUpdates: 2,
+			wantUpdates:  2,
+			wantLatestTS: 1,
 		}, {
 			desc: "duplicate update with deletes",
 			initial: notificationBundle(dev, prefix, 0, []update{
@@ -1126,6 +1187,7 @@ func TestGNMIUpdate(t *testing.T) {
 			},
 			wantUpdates:    2,
 			wantSuppressed: 1,
+			wantLatestTS:   1,
 			wantErr:        false,
 		}, {
 			desc: "stale updates - same timestamp",
@@ -1160,8 +1222,9 @@ func TestGNMIUpdate(t *testing.T) {
 					timestamp: 0,
 				},
 			},
-			wantStale: 2,
-			wantErr:   true,
+			wantStale:    2,
+			wantLatestTS: 0,
+			wantErr:      true,
 		}, {
 			desc: "error updates - same timestamp",
 			initial: notificationBundle(dev, prefix, 0, []update{
@@ -1195,9 +1258,10 @@ func TestGNMIUpdate(t *testing.T) {
 					timestamp: 0,
 				},
 			},
-			wantUpdates: 1,
-			wantStale:   1,
-			wantErr:     true,
+			wantUpdates:  1,
+			wantStale:    1,
+			wantLatestTS: 0,
+			wantErr:      true,
 		}, {
 			desc: "error updates - same timestamp - different order",
 			initial: notificationBundle(dev, prefix, 0, []update{
@@ -1231,9 +1295,10 @@ func TestGNMIUpdate(t *testing.T) {
 					timestamp: 0,
 				},
 			},
-			wantUpdates: 1,
-			wantStale:   1,
-			wantErr:     true,
+			wantUpdates:  1,
+			wantStale:    1,
+			wantLatestTS: 0,
+			wantErr:      true,
 		}, {
 			desc: "stale updates - later timestamp",
 			initial: notificationBundle(dev, prefix, 1, []update{
@@ -1267,8 +1332,115 @@ func TestGNMIUpdate(t *testing.T) {
 					timestamp: 1,
 				},
 			},
-			wantStale: 2,
-			wantErr:   true,
+			wantStale:    2,
+			wantLatestTS: 1,
+			wantErr:      true,
+		}, {
+			desc: "rejected future updates > threshold",
+			initial: notificationBundle(dev, prefix, 1, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, nowTime.Add(futureThreshold).UnixNano()+1, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "22",
+				},
+			}),
+			want: []state{
+				{
+					prefix:    prefix,
+					path:      path1,
+					val:       "1",
+					timestamp: 1,
+				}, {
+					prefix:    prefix,
+					path:      path2,
+					val:       "2",
+					timestamp: 1,
+				},
+			},
+			wantFuture:   2,
+			wantLatestTS: 1,
+			wantErr:      true,
+		}, {
+			desc: "accept future updates > threshold if starting with timestamps in the future (clock not synced)",
+			initial: notificationBundle(dev, prefix, nowTime.Add(futureThreshold).UnixNano()+1, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, nowTime.Add(futureThreshold).UnixNano()+30000000000, []update{
+				{
+					path: path1,
+					val:  "11",
+				}, {
+					path: path2,
+					val:  "22",
+				},
+			}),
+			want: []state{
+				{
+					prefix:    prefix,
+					path:      path1,
+					val:       "11",
+					timestamp: nowTime.Add(futureThreshold).UnixNano() + 30000000000,
+				}, {
+					prefix:    prefix,
+					path:      path2,
+					val:       "22",
+					timestamp: nowTime.Add(futureThreshold).UnixNano() + 30000000000,
+				},
+			},
+			wantLatestTS: nowTime.Add(futureThreshold).UnixNano() + 30000000000,
+			wantUpdates:  2,
+		}, {
+			desc: "accepted future updates <= threshold",
+			initial: notificationBundle(dev, prefix, 1, []update{
+				{
+					path: path1,
+					val:  "1",
+				}, {
+					path: path2,
+					val:  "2",
+				},
+			}),
+			notification: notificationBundle(dev, prefix, nowTime.Add(futureThreshold).UnixNano(), []update{
+				{
+					path: path1,
+					val:  "11",
+				}, {
+					path: path2,
+					val:  "22",
+				},
+			}),
+			want: []state{
+				{
+					prefix:    prefix,
+					path:      path1,
+					val:       "11",
+					timestamp: nowTime.Add(futureThreshold).UnixNano(),
+				}, {
+					prefix:    prefix,
+					path:      path2,
+					val:       "22",
+					timestamp: nowTime.Add(futureThreshold).UnixNano(),
+				},
+			},
+			wantUpdates:  2,
+			wantLatestTS: nowTime.Add(futureThreshold).UnixNano(),
 		}, {
 			desc: "meta connectedAddress reset",
 			initial: notificationBundle(dev, nil, 0, []update{
@@ -1280,6 +1452,7 @@ func TestGNMIUpdate(t *testing.T) {
 			notification:      notificationBundle(dev, prefix, 1, []update{}),
 			want:              []state{},
 			wantConnectedAddr: "", // Value is cleared and copied to the cache.
+			wantLatestTS:      time.Time{}.UnixNano(),
 		}, {
 			desc:    "meta connectedAddress update",
 			initial: notificationBundle(dev, prefix, 0, []update{}),
@@ -1291,16 +1464,19 @@ func TestGNMIUpdate(t *testing.T) {
 			}),
 			wantConnectedAddr: "127.1.1.1:8080",
 			wantUpdates:       1,
+			wantLatestTS:      time.Time{}.UnixNano(),
 		},
 	}
 
 	suppressedPath := metadata.Path(metadata.SuppressedCount)
 	updatePath := metadata.Path(metadata.UpdateCount)
 	stalePath := metadata.Path(metadata.StaleCount)
+	futurePath := metadata.Path(metadata.FutureCount)
+	latestTSPath := metadata.Path(metadata.LatestTimestamp)
 	connectedAddrPath := metadata.Path(metadata.ConnectedAddr)
 
 	for _, tt := range tests {
-		c := New([]string{dev})
+		c := New([]string{dev}, WithFutureThreshold(futureThreshold))
 		if err := c.GnmiUpdate(tt.initial); err != nil {
 			t.Fatalf("%v: Could not initialize cache: %v ", tt.desc, err)
 		}
@@ -1318,10 +1494,10 @@ func TestGNMIUpdate(t *testing.T) {
 			continue
 		}
 
-		checkMetaInt := func(desc string, path []string, want int) {
+		checkMetaInt := func(desc string, path []string, want int64) {
 			c.Query(dev, path, func(_ []string, _ *ctree.Leaf, v interface{}) error {
 				got := v.(*pb.Notification).Update[0].Val.GetIntVal()
-				if got != int64(want) {
+				if got != want {
 					t.Errorf("%v: got %v = %d, want %d", desc, path, got, want)
 				}
 				return nil
@@ -1365,6 +1541,8 @@ func TestGNMIUpdate(t *testing.T) {
 		checkMetaInt(tt.desc, suppressedPath, tt.wantSuppressed)
 		checkMetaInt(tt.desc, updatePath, tt.wantUpdates)
 		checkMetaInt(tt.desc, stalePath, tt.wantStale)
+		checkMetaInt(tt.desc, futurePath, tt.wantFuture)
+		checkMetaInt(tt.desc, latestTSPath, tt.wantLatestTS)
 		checkMetaString(tt.desc, connectedAddrPath, tt.wantConnectedAddr)
 	}
 }

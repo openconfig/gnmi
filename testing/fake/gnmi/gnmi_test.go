@@ -269,23 +269,12 @@ func TestClientCreate(t *testing.T) {
 	}
 }
 
-func festClientSend(t *testing.T) {
-	defaultConfig := &fpb.Config{
-		Target: "arista",
-		Port:   -1,
-		Values: []*fpb.Value{},
-	}
+func TestClientSend(t *testing.T) {
 	tests := []struct {
 		config  *fpb.Config
 		wantErr string
 		events  []event
 	}{{
-		config:  defaultConfig,
-		wantErr: "invalid configuration",
-		events: []event{
-			&receiveEvent{d: "Send"},
-		},
-	}, {
 		config: &fpb.Config{
 			Target: "arista",
 			Port:   -1,

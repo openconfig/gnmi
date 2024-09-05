@@ -17,6 +17,7 @@ syntax = "proto3";
 
 import "google/protobuf/any.proto";
 import "google/protobuf/descriptor.proto";
+
 import "github.com/openconfig/gnmi/proto/gnmi_ext/gnmi_ext.proto";
 
 // Package gNMI defines a service specification for the gRPC Network Management
@@ -37,7 +38,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.9.0";
+option (gnmi_service) = "0.10.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
@@ -303,9 +304,15 @@ message Subscription {
   // Indicates whether values that have not changed should be sent in a SAMPLE
   // subscription.
   bool suppress_redundant = 4;
-  // Specifies the maximum allowable silent period in nanoseconds when
-  // suppress_redundant is in use. The target should send a value at least once
-  // in the period specified.
+  // 1. A heartbeat interval MAY be specified along with an “on change”
+  // subscription - in this case, the value of the data item(s) MUST be re-sent
+  // once per heartbeat interval regardless of whether the value has changed or
+  // not.
+  // 2. A heartbeat_interval MAY be specified to modify the behavior of
+  // suppress_redundant in a sampled subscription. In this case, the
+  // target MUST generate one telemetry update per heartbeat interval,
+  // regardless of whether the suppress_redundant flag is set to true.
+  // This value is specified as an unsigned 64-bit integer in nanoseconds
   uint64 heartbeat_interval = 5;
 }
 
@@ -337,6 +344,11 @@ message SetRequest {
   repeated Path delete = 2;     // Paths to be deleted from the data tree.
   repeated Update replace = 3;  // Updates specifying elements to be replaced.
   repeated Update update = 4;   // Updates specifying elements to updated.
+  // Updates specifying elements to union and then replace the data tree.
+  // See the gNMI specification at
+  // https://github.com/openconfig/reference/blob/master/rpc/gnmi/gnmi-specification.md
+  // for details.
+  repeated Update union_replace = 6;
   // Extension messages associated with the SetRequest. See the
   // gNMI extension specification for further definition.
   repeated gnmi_ext.Extension extension = 5;
@@ -369,9 +381,10 @@ message UpdateResult {
   // The operation that was associated with the Path specified.
   enum Operation {
     INVALID = 0;
-    DELETE = 1;   // The result relates to a delete of Path.
-    REPLACE = 2;  // The result relates to a replace of Path.
-    UPDATE = 3;   // The result relates to an update of Path.
+    DELETE = 1;         // The result relates to a delete of Path.
+    REPLACE = 2;        // The result relates to a replace of Path.
+    UPDATE = 3;         // The result relates to an update of Path.
+    UNION_REPLACE = 4;  // The result of a union_replace of Path or CLI origin.
   }
   // Deprecated timestamp for the UpdateResult, this field has been
   // replaced by the timestamp within the SetResponse message, since

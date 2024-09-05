@@ -5,6 +5,7 @@ go 1.21
 toolchain go1.22.5
 
 require (
+	bitbucket.org/creachadair/stringset v0.0.14
 	github.com/cenkalti/backoff/v4 v4.1.1
 	github.com/golang/glog v1.2.1
 	github.com/google/go-cmp v0.6.0

@@ -38,6 +38,14 @@ const (
 	Username  = "username"
 )
 
+func addrChains(addrs []string) [][]string {
+	ac := make([][]string, len(addrs))
+	for idx, addrLine := range addrs {
+		ac[idx] = strings.Split(addrLine, AddrSeparator)
+	}
+	return ac
+}
+
 func gRPCMeta(ctx context.Context, name string, t *tpb.Target, cred CredentialsClient) (metadata.MD, error) {
 	meta := metadata.MD{}
 	c := t.GetCredentials()

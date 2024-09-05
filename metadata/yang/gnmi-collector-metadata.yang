@@ -184,12 +184,21 @@ module gnmi-collector-metadata {
         periodically so it may lag behind the actual target updates.";
     }
 
-     leaf connectError {
+    leaf connectError {
       type string;
       description
         "connectError is the error related to connection failure.";
     }
 
+    leaf serverName {
+      type string;
+      description
+        "serverName is an optional string metadata used to identify the server
+        hosting the cache to the clients. It is useful in situations where a
+        client is connected to a cache server behind a frontend system or a
+        load-balancing system and the client wants to know exactly which cache
+        server it is connected to";
+    }
   }
 
   grouping meta-latency-window-state {
