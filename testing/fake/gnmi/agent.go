@@ -205,5 +205,8 @@ func (a *Agent) Subscribe(stream gnmipb.GNMI_SubscribeServer) error {
 func (a *Agent) Requests() []*gnmipb.SubscribeRequest {
 	a.cMu.Lock()
 	defer a.cMu.Unlock()
-	return a.client.requests
+	if a.client == nil {
+		return nil
+	}
+	return a.client.Requests()
 }

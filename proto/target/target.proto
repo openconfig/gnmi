@@ -19,6 +19,7 @@ syntax = "proto3";
 // collector to connect to multiple gNMI targets.
 package target;
 
+import "storage/datapol/annotations/proto/semantic_annotations.proto";
 import "github.com/openconfig/gnmi/proto/gnmi/gnmi.proto";
 
 option go_package = "github.com/openconfig/gnmi/proto/target";
@@ -47,7 +48,6 @@ message Configuration {
   // guarantee. Consumers should account for atomicity constraints of their
   // environment and any custom encoding.
   int64 revision = 536870911;
-
 }
 
 // Target is the information necessary to establish a single gNMI Subscribe RPC
@@ -72,7 +72,7 @@ message Target {
 // the target.
 message Credentials {
   string username = 1;
-  string password = 2;
+  string password = 2 [(datapol.semantic_type) = ST_ACCOUNT_CREDENTIAL];
   // Password lookup ID.
   string password_id = 3;
 }
