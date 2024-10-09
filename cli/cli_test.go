@@ -71,6 +71,7 @@ func TestSendQueryAndDisplay(t *testing.T) {
 	display := func(b []byte) {
 		displayOut += string(b) + "\n"
 	}
+	now := time.Unix(300, 0)
 	tests := []struct {
 		desc    string
 		updates []*fpb.Value
@@ -78,6 +79,7 @@ func TestSendQueryAndDisplay(t *testing.T) {
 		cfg     Config
 		want    string
 		sort    bool
+		since   func(time.Time) time.Duration
 	}{{
 		desc: "single target single output with provided layout",
 		updates: []*fpb.Value{
@@ -271,6 +273,84 @@ func TestSendQueryAndDisplay(t *testing.T) {
 		want: `dev1/a/b, 5
 dev1/a/c, 5
 dev1/a/c, <nil>
+`,
+	}, {
+		desc: "single target single output with FilterMinLatency",
+		updates: []*fpb.Value{
+			{Path: []string{"a", "b"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: now.Add(-62 * time.Second).UnixNano()}},
+			{Path: []string{"a", "c"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: now.Add(-59 * time.Second).UnixNano()}},
+			{Path: []string{"a", "d"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 7}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: now.Add(-61 * time.Second).UnixNano()}},
+			{Path: []string{"a", "e"}, Value: &fpb.Value_Delete{Delete: &fpb.DeleteValue{}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: now.Add(-60 * time.Second).UnixNano()}},
+			{Path: []string{"a", "f"}, Value: &fpb.Value_Delete{Delete: &fpb.DeleteValue{}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: now.Add(-59 * time.Second).UnixNano()}},
+			{Value: &fpb.Value_Sync{Sync: 1}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: now.Add(-59 * time.Second).UnixNano()}},
+		},
+		query: client.Query{
+			Target:  "dev1",
+			Queries: []client.Path{{"a"}},
+			Type:    client.Once,
+			TLS:     &tls.Config{InsecureSkipVerify: true},
+		},
+		cfg: Config{
+			Delimiter:        "/",
+			Display:          display,
+			DisplayPrefix:    "",
+			DisplayIndent:    "  ",
+			DisplayType:      "single",
+			FilterMinLatency: time.Minute,
+		},
+		since: func(ts time.Time) time.Duration { return now.Sub(ts) },
+		want: `dev1/a/b, 5
+dev1/a/d, 7
+dev1/a/e, <nil>
+`,
+	}, {
+		desc: "single target single output with FilterDeletes",
+		updates: []*fpb.Value{
+			{Path: []string{"a", "b"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 100}},
+			{Path: []string{"a", "c"}, Value: &fpb.Value_Delete{Delete: &fpb.DeleteValue{}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 101}},
+			{Path: []string{"a", "d"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 7}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 102}},
+			{Value: &fpb.Value_Sync{Sync: 1}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 103}},
+		},
+		query: client.Query{
+			Target:  "dev1",
+			Queries: []client.Path{{"a"}},
+			Type:    client.Once,
+			TLS:     &tls.Config{InsecureSkipVerify: true},
+		},
+		cfg: Config{
+			Delimiter:     "/",
+			Display:       display,
+			DisplayPrefix: "",
+			DisplayIndent: "  ",
+			DisplayType:   "single",
+			FilterDeletes: true,
+		},
+		want: `dev1/a/b, 5
+dev1/a/d, 7
+`,
+	}, {
+		desc: "single target single output with FilterUpdates",
+		updates: []*fpb.Value{
+			{Path: []string{"a", "b"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 5}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 100}},
+			{Path: []string{"a", "c"}, Value: &fpb.Value_Delete{Delete: &fpb.DeleteValue{}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 101}},
+			{Path: []string{"a", "d"}, Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 7}}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 102}},
+			{Value: &fpb.Value_Sync{Sync: 1}, Repeat: 1, Timestamp: &fpb.Timestamp{Timestamp: 103}},
+		},
+		query: client.Query{
+			Target:  "dev1",
+			Queries: []client.Path{{"a"}},
+			Type:    client.Once,
+			TLS:     &tls.Config{InsecureSkipVerify: true},
+		},
+		cfg: Config{
+			Delimiter:     "/",
+			Display:       display,
+			DisplayPrefix: "",
+			DisplayIndent: "  ",
+			DisplayType:   "single",
+			FilterUpdates: true,
+		},
+		want: `dev1/a/c, <nil>
 `,
 	}, {
 		desc: "single target multiple paths",
@@ -717,6 +797,10 @@ sync_response: true
 	}
 	for _, tt := range tests {
 		t.Run(tt.desc, func(t *testing.T) {
+			if tt.since != nil {
+				since = tt.since
+				defer func() { since = time.Since }()
+			}
 			displayOut = ""
 			s, err := gnmi.New(
 				&fpb.Config{

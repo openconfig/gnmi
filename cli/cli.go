@@ -47,6 +47,8 @@ var (
 		"p": "PROTO", "proto": "PROTO", "PROTO": "PROTO",
 		"sp": "SHORTPROTO", "shortproto": "SHORTPROTO", "SHORTPROTO": "SHORTPROTO",
 	}
+	// Stub for testing.
+	since = time.Since
 )
 
 // Config is a type to hold parameters that affect how the cli sends and
@@ -66,11 +68,14 @@ type Config struct {
 	// on - human readable timestamp according to layout
 	// raw - int64 nanos since epoch
 	// <FORMAT> - human readable timestamp according to <FORMAT>
-	Timestamp   string // Formatting of timestamp in result output.
-	DisplaySize bool
-	Latency     bool           // Show latency to client
-	ClientTypes []string       // List of client types to try.
-	Location    *time.Location // Location that time formatting uses in lieu of the local time zone.
+	Timestamp        string // Formatting of timestamp in result output.
+	DisplaySize      bool
+	Latency          bool           // Show latency to client. For single DisplayType only.
+	ClientTypes      []string       // List of client types to try.
+	Location         *time.Location // Location that time formatting uses in lieu of the local time zone.
+	FilterDeletes    bool           // Filter out delete results. For single DisplayType only.
+	FilterUpdates    bool           // Filter out update results. For single DisplayType only.
+	FilterMinLatency time.Duration  // Filter out results not meeting minimum latency. For single DisplayType only.
 }
 
 // QueryType returns a client query type for t after trying aliases for the
@@ -160,6 +165,13 @@ func genHandler(cfg *Config) client.NotificationHandler {
 	var buf bytes.Buffer // Reuse the same buffer in either case.
 	iDisplay := func(p client.Path, v interface{}, ts time.Time) {
 		buf.Reset()
+		var latency time.Duration
+		if cfg.Latency || cfg.FilterMinLatency > 0 {
+			latency = since(ts)
+		}
+		if cfg.FilterMinLatency > 0 && latency < cfg.FilterMinLatency {
+			return
+		}
 		buf.WriteString(strings.Join(p, cfg.Delimiter))
 		buf.WriteString(fmt.Sprintf(", %v", v))
 		t := formatTime(ts, cfg)
@@ -167,7 +179,7 @@ func genHandler(cfg *Config) client.NotificationHandler {
 			buf.WriteString(fmt.Sprintf(", %v", t))
 		}
 		if cfg.Latency {
-			buf.WriteString(fmt.Sprintf(", %s", time.Since(ts)))
+			buf.WriteString(fmt.Sprintf(", %s", latency))
 		}
 		cfg.Display(buf.Bytes())
 	}
@@ -176,9 +188,13 @@ func genHandler(cfg *Config) client.NotificationHandler {
 		default:
 			return fmt.Errorf("invalid type: %#v", v)
 		case client.Update:
-			iDisplay(v.Path, v.Val, v.TS)
+			if !cfg.FilterUpdates {
+				iDisplay(v.Path, v.Val, v.TS)
+			}
 		case client.Delete:
-			iDisplay(v.Path, v.Val, v.TS)
+			if !cfg.FilterDeletes {
+				iDisplay(v.Path, v.Val, v.TS)
+			}
 		case client.Sync, client.Connected:
 		case client.Error:
 			return v

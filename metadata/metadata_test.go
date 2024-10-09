@@ -74,7 +74,7 @@ func TestGetBool(t *testing.T) {
 func TestGetStr(t *testing.T) {
 	m := New()
 	for k, val := range TargetStrValues {
-		if !val.InitEmptyStr {
+		if val.ResetAction == Delete {
 			m.SetStr(k, "")
 		}
 		v, err := m.GetStr(k)
@@ -225,7 +225,7 @@ func TestResetEntry(t *testing.T) {
 		m.ResetEntry(k)
 		v, err := m.GetStr(k)
 
-		if !val.InitEmptyStr {
+		if val.ResetAction == Delete {
 			if err == nil {
 				t.Errorf("ResetEntry for %q failed. Expect not exist, but found.", k)
 			}
@@ -239,6 +239,16 @@ func TestResetEntry(t *testing.T) {
 		}
 
 	}
+
+	RegisterServerNameMetadata()
+	m.SetStr(ServerName, "yy")
+	m.ResetEntry(ServerName)
+	if n, err := m.GetStr(ServerName); err != nil {
+		t.Errorf("ResetEntry for %q failed with error: %v", ServerName, err)
+	} else if n != "yy" {
+		t.Errorf("ResetEntry for %q failed. got %q, want %q", ServerName, n, "yy")
+	}
+	UnregisterServerNameMetadata()
 
 	if err := m.ResetEntry("unsupported"); err == nil {
 		t.Errorf("ResetEntry expected error, but got nil")
@@ -278,7 +288,7 @@ func TestClear(t *testing.T) {
 
 	for k, val := range TargetStrValues {
 		v, err := m.GetStr(k)
-		if !val.InitEmptyStr {
+		if val.ResetAction == Delete {
 			if err == nil {
 				t.Errorf("ResetEntry for %q failed. Expect not exist, but found.", k)
 			}
@@ -333,5 +343,9 @@ func TestRegisterServerNameMetadata(t *testing.T) {
 	want := []string{Root, ServerName}
 	if diff := cmp.Diff(want, path); diff != "" {
 		t.Fatalf("Path(%q) returned diff (+got-want): %v", ServerName, diff)
+	}
+	strVal := TargetStrValues[ServerName]
+	if strVal.ResetAction != Keep {
+		t.Fatalf("The serverName's TargetStrValues[%q] = %v, want noAction", ServerName, TargetStrValues[ServerName])
 	}
 }

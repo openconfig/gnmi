@@ -26,10 +26,12 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/kylelemons/godebug/pretty"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc"
+	"google.golang.org/protobuf/testing/protocmp"
 	"github.com/openconfig/gnmi/testing/fake/testing/grpc/config"
 
 	gnmipb "github.com/openconfig/gnmi/proto/gnmi"
@@ -443,6 +445,83 @@ func TestNewAgent(t *testing.T) {
 			if got, want := a.State(), fpb.State_STOPPED; got != want {
 				t.Errorf("New(%q).Close() failed: got %q, want %q", tc.config, got, want)
 			}
+			gotSubscribeRequests := a.Requests()
+			if len(gotSubscribeRequests) != 1 {
+				t.Errorf("New(%q).Requests() failed: got %q, want %q", tc.config, gotSubscribeRequests, []*gnmipb.SubscribeRequest{sub})
+			}
 		})
 	}
+}
+
+func TestAddRequest(t *testing.T) {
+	t.Run("add requests client", func(t *testing.T) {
+		c := NewClient(&fpb.Config{})
+		wantSR := &gnmipb.SubscribeRequest{
+			Request: &gnmipb.SubscribeRequest_Subscribe{
+				Subscribe: &gnmipb.SubscriptionList{},
+			},
+		}
+		c.addRequest(wantSR)
+		if got, want := len(c.Requests()), 1; got != want {
+			t.Errorf("addRequest() failed: got %d, want %d", got, want)
+		}
+		gotReq := c.Requests()[0]
+		if diff := cmp.Diff(gotReq, wantSR, protocmp.Transform()); diff != "" {
+			t.Errorf("addRequest() failed: got %v, want %v, diff %s", gotReq, wantSR, diff)
+		}
+	})
+	t.Run("nil client, agent requests", func(t *testing.T) {
+		config := &fpb.Config{}
+		a, err := New(config, nil)
+		if err != nil {
+			t.Fatalf("New() returned unexpected error: %v", err)
+		}
+		requests := a.Requests()
+		if requests != nil {
+			t.Errorf("Received non-nil return from agent requests: %v, want nil", requests)
+		}
+	})
+}
+
+type fakeQueue struct {
+	val any
+	err error
+}
+
+func (f *fakeQueue) Next() (any, error) {
+	return f.val, f.err
+}
+
+func TestClientQueue(t *testing.T) {
+	t.Run("nil queue client", func(t *testing.T) {
+		c := NewClient(nil)
+		if _, err := c.nextInQueue(); err == nil {
+			t.Errorf("expected error from nextInQueue, but received nil")
+		}
+	})
+
+	t.Run("queue request after cancelled", func(t *testing.T) {
+		c := NewClient(nil)
+		f := &fakeQueue{}
+		c.setQueue(f)
+		if _, err := c.nextInQueue(); err != nil {
+			t.Fatalf("unexpected error from nextInQueue: %v", err)
+		}
+		c.Close()
+		if _, err := c.nextInQueue(); err == nil {
+			t.Errorf("nextInQueue processed, despite client being canceled")
+		}
+	})
+
+	t.Run("queue next unexpected err", func(t *testing.T) {
+		c := NewClient(nil)
+		f := &fakeQueue{err: fmt.Errorf("unexpected err")}
+		c.setQueue(f)
+		if _, err := c.nextInQueue(); err == nil {
+			t.Errorf("error not returned from nextInQueue, despite queue.Next() returning err")
+		}
+		if c.errors == 0 {
+			t.Errorf("expected error count to increment, but got 0")
+		}
+	})
 }

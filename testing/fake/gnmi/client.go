@@ -25,6 +25,7 @@ import (
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc"
 	"google.golang.org/protobuf/encoding/prototext"
+	"google.golang.org/protobuf/proto"
 	"github.com/openconfig/gnmi/testing/fake/queue"
 
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
@@ -34,14 +35,19 @@ import (
 // Client contains information about a client that has connected to the fake.
 type Client struct {
 	errors     int64
-	config     *fpb.Config
-	polled     chan struct{}
-	mu         sync.RWMutex
-	canceled   bool
-	canceledCh chan struct{}
-	q          queue.Queue
 	subscribe  *gpb.SubscriptionList
-	requests   []*gpb.SubscribeRequest
+	polled     chan struct{}
+	canceledCh chan struct{}
+
+	mu       sync.RWMutex // mutex for read/write access to config and canceled values
+	config   *fpb.Config
+	canceled bool
+
+	qMu sync.Mutex // mutex for accessing the queue
+	q   queue.Queue
+
+	rMu      sync.Mutex // mutex for accessing requests
+	requests []*gpb.SubscribeRequest
 }
 
 // NewClient returns a new initialized client.
@@ -56,6 +62,13 @@ func NewClient(config *fpb.Config) *Client {
 // String returns the target the client is querying.
 func (c *Client) String() string {
 	return c.config.Target
+}
+
+// addRequest adds a subscribe request to the list of requests received by the client.
+func (c *Client) addRequest(req *gpb.SubscribeRequest) {
+	c.rMu.Lock()
+	defer c.rMu.Unlock()
+	c.requests = append(c.requests, req)
 }
 
 // Run starts the client. The first message received must be a
@@ -86,7 +99,7 @@ func (c *Client) Run(stream gpb.GNMI_SubscribeServer) (err error) {
 		}
 		return grpc.Errorf(grpc.Code(err), "received error from client")
 	}
-	c.requests = append(c.requests, query)
+	c.addRequest(query)
 	log.V(1).Infof("Client %s received initial query: %v", c, query)
 
 	c.subscribe = query.GetSubscribe()
@@ -109,7 +122,7 @@ func (c *Client) Run(stream gpb.GNMI_SubscribeServer) (err error) {
 func (c *Client) Close() {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	if c.config.DisableEof {
+	if c.config != nil && c.config.DisableEof {
 		// If the cancel signal has already been sent by a previous close, then we
 		// do not need to resend it.
 		select {
@@ -143,7 +156,7 @@ func (c *Client) recv(stream gpb.GNMI_SubscribeServer) {
 			log.V(1).Infof("Client %s received io.EOF", c)
 			return
 		case nil:
-			c.requests = append(c.requests, event)
+			c.addRequest(event)
 		}
 		if c.subscribe.Mode == gpb.SubscriptionList_POLL {
 			log.V(1).Infof("Client %s received Poll event: %v", c, event)
@@ -163,29 +176,55 @@ func (c *Client) recv(stream gpb.GNMI_SubscribeServer) {
 	}
 }
 
+// Requests returns the subscribe requests received by the client.
+func (c *Client) Requests() []*gpb.SubscribeRequest {
+	c.rMu.Lock()
+	defer c.rMu.Unlock()
+	return c.requests
+}
+
+// isCanceled returned whether the client has canceled.
+func (c *Client) isCanceled() bool {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+	return c.canceled
+}
+
+// setQueue sets the client's queue to the provided value.
+func (c *Client) setQueue(q queue.Queue) {
+	c.qMu.Lock()
+	defer c.qMu.Unlock()
+	c.q = q
+}
+
+// nextInQueue returns the next event in the client's queue, unless the client is canceled.
+func (c *Client) nextInQueue() (any, error) {
+	c.qMu.Lock()
+	defer c.qMu.Unlock()
+	if c.q == nil {
+		return nil, fmt.Errorf("nil client queue: nothing to do")
+	}
+	if c.isCanceled() {
+		return nil, fmt.Errorf("client canceled")
+	}
+	n, err := c.q.Next()
+	if err != nil {
+		c.errors++
+		return nil, fmt.Errorf("unexpected queue Next(): %v", err)
+	}
+	return n, nil
+}
+
 // processQueue makes a copy of q then will process values in the queue until
 // the queue is complete or an error.  Each value is converted into a gNMI
 // notification and sent on stream.
 func (c *Client) processQueue(stream gpb.GNMI_SubscribeServer) error {
-	c.mu.RLock()
-	q := c.q
-	c.mu.RUnlock()
-	if q == nil {
-		return fmt.Errorf("nil client queue nothing to do")
-	}
 	for {
-		c.mu.RLock()
-		canceled := c.canceled
-		c.mu.RUnlock()
-		if canceled {
-			return fmt.Errorf("client canceled")
+		event, err := c.nextInQueue()
+		if err != nil {
+			return err
 		}
 
-		event, err := q.Next()
-		if err != nil {
-			c.errors++
-			return fmt.Errorf("unexpected queue Next(): %v", err)
-		}
 		if event == nil {
 			switch {
 			case c.subscribe.Mode == gpb.SubscriptionList_POLL:
@@ -207,7 +246,8 @@ func (c *Client) processQueue(stream gpb.GNMI_SubscribeServer) error {
 				return err
 			}
 		case *gpb.SubscribeResponse:
-			resp = v
+			// Copy into resp to not modify the original.
+			resp = proto.Clone(v).(*gpb.SubscribeResponse)
 		}
 		// If the subscription request specified a target explicitly...
 		if sp := c.subscribe.GetPrefix(); sp != nil {
@@ -271,14 +311,14 @@ func (c *Client) reset() error {
 				Value:     &fpb.Value_Sync{uint64(1)},
 			})
 		}
-		c.q = q
+		c.setQueue(q)
 	case c.config.GetFixed() != nil:
 		q := queue.NewFixed(c.config.GetFixed().Responses, c.config.EnableDelay)
 		// Inject sync message after latest provided update in the config.
 		if !c.config.DisableSync {
 			q.Add(syncResp)
 		}
-		c.q = q
+		c.setQueue(q)
 	}
 	return nil
 }

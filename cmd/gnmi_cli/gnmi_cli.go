@@ -101,6 +101,9 @@ func init() {
 	flag.StringVar(&cfg.Timestamp, "timestamp", "", "Specify timestamp formatting in output.  One of (<empty string>, on, raw, <FORMAT>) where <empty string> is disabled, on is human readable, raw is int64 nanos since epoch, and <FORMAT> is according to golang time.Format(<FORMAT>)")
 	flag.BoolVar(&cfg.DisplaySize, "display_size", false, "Display the total size of query response.")
 	flag.BoolVar(&cfg.Latency, "latency", false, "Display the latency for receiving each update (Now - update timestamp).")
+	flag.DurationVar(&cfg.FilterMinLatency, "filter_min_latency", 0, "Filter out results with latency < the specified minium latency. No filtering if 0. Works with single display type only.")
+	flag.BoolVar(&cfg.FilterDeletes, "filter_deletes", false, "Filter out delete results. Works with single display type only.")
+	flag.BoolVar(&cfg.FilterUpdates, "filter_updates", false, "Filter out update results. Works with single display type only.")
 	flag.StringVar(&q.TLS.ServerName, "server_name", "", "When set, CLI will use this hostname to verify server certificate during TLS handshake.")
 	flag.BoolVar(&q.TLS.InsecureSkipVerify, "tls_skip_verify", false, "When set, CLI will not verify the server certificate during TLS handshake.")
 
@@ -118,6 +121,9 @@ func init() {
 	flag.DurationVar(&cfg.PollingInterval, "pi", cfg.PollingInterval, "Short for polling_interval.")
 	flag.BoolVar(&cfg.DisplaySize, "ds", cfg.DisplaySize, "Short for display_size.")
 	flag.BoolVar(&cfg.Latency, "l", cfg.Latency, "Short for latency.")
+	flag.DurationVar(&cfg.FilterMinLatency, "flml", 0, "Short for filter_min_latency.")
+	flag.BoolVar(&cfg.FilterDeletes, "fld", false, "Short for filter_deletes.")
+	flag.BoolVar(&cfg.FilterUpdates, "flu", false, "Short for filter_updates.")
 	flag.StringVar(reqProto, "p", *reqProto, "Short for request proto.")
 }
 

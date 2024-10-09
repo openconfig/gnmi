@@ -216,6 +216,54 @@ func TestMetadataSuppressed(t *testing.T) {
 	}
 }
 
+func TestMetadataSuppressedWithEventDrivenDisabled(t *testing.T) {
+	c := New([]string{"dev1"}, DisableEventDrivenEmulation())
+	// Unique values not suppressed.
+	for i := 0; i < 10; i++ {
+		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), strconv.Itoa(i), false))
+		c.GetTarget("dev1").updateMeta(nil)
+		path := metadata.Path(metadata.SuppressedCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v any) error {
+			suppressedCount := v.(*pb.Notification).Update[0].Val.GetIntVal()
+			if suppressedCount != 0 {
+				t.Errorf("got suppressedCount = %d, want 0", suppressedCount)
+			}
+			return nil
+		})
+		path = metadata.Path(metadata.UpdateCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v any) error {
+			updates := v.(*pb.Notification).Update[0].Val.GetIntVal()
+			if updates != int64(i+1) {
+				t.Errorf("got updates %d, want %d", updates, i+1)
+			}
+			return nil
+		})
+	}
+	c.Reset("dev1")
+
+	// Duplicate values also not suppressed.
+	for i := 0; i < 10; i++ {
+		c.GnmiUpdate(gnmiNotification("dev1", []string{"prefix", "path"}, []string{"update", "path"}, int64(i), "same value", false))
+		c.GetTarget("dev1").updateMeta(nil)
+		path := metadata.Path(metadata.SuppressedCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v any) error {
+			suppressedCount := v.(*pb.Notification).Update[0].Val.GetIntVal()
+			if suppressedCount != 0 {
+				t.Errorf("got suppressedCount = %d, want 0", suppressedCount)
+			}
+			return nil
+		})
+		path = metadata.Path(metadata.UpdateCount)
+		c.Query("dev1", path, func(_ []string, _ *ctree.Leaf, v any) error {
+			updates := v.(*pb.Notification).Update[0].Val.GetIntVal()
+			if updates != int64(i+1) {
+				t.Errorf("got updates %d, want %d", updates, i+1)
+			}
+			return nil
+		})
+	}
+}
+
 func TestMetadataLatency(t *testing.T) {
 	window := 2 * time.Second
 	opt, _ := WithLatencyWindows([]string{"2s"}, 2*time.Second)

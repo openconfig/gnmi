@@ -47,7 +47,6 @@ message Configuration {
   // guarantee. Consumers should account for atomicity constraints of their
   // environment and any custom encoding.
   int64 revision = 536870911;
-
 }
 
 // Target is the information necessary to establish a single gNMI Subscribe RPC

@@ -67,6 +67,7 @@ type Target struct {
 	ts              time.Time          // latest timestamp for an update
 	excludedMeta    stringset.Set      // set of metadata not to generate update for
 	futureThreshold time.Duration      // how far in the future an update can be accepted
+	eventDriven     bool               // whether to emulate event driven
 }
 
 // Name returns the name of the target.
@@ -83,6 +84,7 @@ type options struct {
 	serverName          string
 	excludedUpdateMeta  stringset.Set
 	futureThreshold     time.Duration
+	DisableEventDriven  bool
 }
 
 // Option defines the function prototype to set options for creating a Cache.
@@ -136,6 +138,16 @@ func WithExcludedMeta(excluded []string) Option {
 func WithFutureThreshold(futureThreshold time.Duration) Option {
 	return func(o *options) {
 		o.futureThreshold = futureThreshold
+	}
+}
+
+// DisableEventDrivenEmulation returns an Option to disable event-driven
+// emulation. Note that it only disables event-driven emulation. If the
+// input data to Cache is already event-driven, this won't be able to
+// disable the event-driven nature of the original data.
+func DisableEventDrivenEmulation() Option {
+	return func(o *options) {
+		o.DisableEventDriven = true
 	}
 }
 
@@ -287,6 +299,7 @@ func (c *Cache) Add(target string) *Target {
 		lat:             latency.New(c.opts.latencyWindows, latOpts),
 		excludedMeta:    c.opts.excludedUpdateMeta,
 		futureThreshold: c.opts.futureThreshold,
+		eventDriven:     !c.opts.DisableEventDriven,
 	}
 	t.meta.SetStr(metadata.ServerName, c.opts.serverName)
 	c.targets[target] = t
@@ -556,7 +569,7 @@ func (t *Target) gnmiUpdate(n *pb.Notification) (*ctree.Leaf, error) {
 		}
 		oldval.Update(n)
 		// Simulate event-driven for all non-atomic updates.
-		if !n.Atomic && value.Equal(old.Update[0].Val, n.Update[0].Val) {
+		if !n.Atomic && value.Equal(old.Update[0].Val, n.Update[0].Val) && t.eventDriven {
 			t.meta.AddInt(metadata.SuppressedCount, 1)
 			return nil, nil
 		}

@@ -71,6 +71,20 @@ const (
 	ServerName = "serverName"
 )
 
+// ResetAction indicates which action to take for a metadata field when Reset
+// is called.
+type ResetAction int
+
+const (
+	// DefaultValue will initialize the field's value to the default value of that
+	// type on Reset.
+	DefaultValue ResetAction = iota
+	// Delete will delete the field on Reset.
+	Delete
+	// Keep will leave the field's value as is on Reset.
+	Keep
+)
+
 // IntValue contains the path and other options for an int64 metadata.
 type IntValue struct {
 	Path     []string // Path of the int64 metadata
@@ -90,7 +104,7 @@ func UnregisterIntValue(name string) {
 
 // StrValue contains the valid and the option to reset to emptry string.
 type StrValue struct {
-	InitEmptyStr bool // Whether to initiate to "".
+	ResetAction ResetAction
 }
 
 // RegisterStrValue registers a string type metadata.
@@ -126,8 +140,8 @@ var (
 
 	// TargetStrValues is the list of all string metadata fields.
 	TargetStrValues = map[string]*StrValue{
-		ConnectedAddr: {InitEmptyStr: true},
-		ConnectError:  {InitEmptyStr: false},
+		ConnectedAddr: {ResetAction: DefaultValue},
+		ConnectError:  {ResetAction: Delete},
 	}
 )
 
@@ -217,9 +231,9 @@ func (m *Metadata) ResetEntry(entry string) error {
 
 	if validStr(entry) == nil {
 		val := TargetStrValues[entry]
-		if val.InitEmptyStr {
+		if val.ResetAction == DefaultValue {
 			m.SetStr(entry, "")
-		} else {
+		} else if val.ResetAction == Delete {
 			m.mu.Lock()
 			delete(m.valuesStr, entry)
 			m.mu.Unlock()
@@ -352,7 +366,10 @@ func RegisterLatencyMetadata(windowSizes []time.Duration) {
 
 // RegisterServerNameMetadata registers the serverName metadata.
 func RegisterServerNameMetadata() {
-	RegisterStrValue(ServerName, &StrValue{InitEmptyStr: false})
+	// We don't want the serverName to be deleted or initialized to an empty
+	// string on clear, because it won't be reset automatically. The serverName
+	// should not change, so it will not be cleared (i.e., no action).
+	RegisterStrValue(ServerName, &StrValue{ResetAction: Keep})
 }
 
 // UnregisterServerNameMetadata registers the serverName metadata.
