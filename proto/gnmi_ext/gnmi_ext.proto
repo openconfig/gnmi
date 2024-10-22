@@ -34,6 +34,7 @@ message Extension {
     History history = 3;                       // History extension.
     Commit commit = 4;                         // Commit confirmed extension.
     Depth depth = 5;                           // Depth extension.
+    Where where = 7;                           // Where extension.
   }
 }
 
@@ -158,4 +159,99 @@ message Depth {
   // Value of 1 means only the specified path and its direct children will be
   // returned.
   uint32 level = 1;
+}
+
+// Where allows clients to specify a condition on a path.
+// the condition must evaluate to true for its children to be included in 
+// the response.
+// The Where extension can be included in a PathElem part of:
+// - Path or Prefix in a GetRequest message or
+// - Prefix in a SubscriptionList message or
+// - Path in a Subscription message.
+message Where {
+  oneof op {
+    // Expression defines the condition that needs to be evaluated.
+    // It is composed of an operation (one of WhereOp) and 2 operands 
+    // (left and right).
+    Expression expr  = 1;
+    // Path is a relative path that begins from the Path element to which the 
+    // 'where' message was appended.
+    Path       path  = 2;
+    // Value is a list of values to be evaluated against a path.
+    Value      value = 3;
+  }
+}
+
+// Expression defines a message for an operator node in a binary expression
+// tree.
+// It defines the condition that needs to be evaluated.
+// It is composed of an operation (one of WhereOp) and 2 operands 
+// (left and right).
+message Expression {
+  WhereOp op    = 1;
+  Where   left  = 2;
+  Where   right = 3;
+}
+
+// Path defines a message for a path node in the binary expression tree.
+// It is a relative path that begins at the Path element to which the 
+// 'Where' message was appended.
+message Path {
+  repeated string path  = 1;
+}
+
+// Value defines a message for a value node in the binary expression tree.
+// one or multiple values can be specified based on the WhereOp value.
+message Value {
+  oneof value_type {
+    int64 int_val = 1;
+    uint64 uint_val = 2;
+    string string_val = 3;
+    bool bool_val = 4;
+    double double_val = 5;
+    ValueList list_val = 6;
+  }
+}
+
+message ValueList {
+  repeated Value values = 1;
+}
+
+// WhereOp defines the list of supported operations.
+enum WhereOp  {
+  // Must be treated as an error
+  UNSPECIFIED           =  0;
+  // The AND operation returns true only if both operands are true,
+  // otherwise it returns false.
+  AND                   =  1;
+  // The OR operation returns true if at least one of the operands is true,
+  // otherwise it returns false.
+  OR                    =  2;
+  // The NOT operation returns true if the operand is false,
+  // and false if the operand is true. It inverts the boolean value.
+  NOT                   =  3;
+  // The EQUAL operation returns true if both operands are equal,
+  // otherwise it returns false.
+  EQUAL                 =  4;
+  // The NotEqual operation returns true if the operands are not equal,
+  // otherwise it returns false.
+  NOT_EQUAL             =  5;
+  // The LessThan operation returns true if the left operand is less than
+  // the right operand, otherwise it returns false.
+  LESS_THAN             =  6;
+  // The GreaterThan operation returns true if the left operand is greater
+  // than the right operand, otherwise it returns false.
+  GREATER_THAN          =  7;
+  // The LessThanOrEqual operation returns true if the left operand is less
+  // than or equal to the right operand, otherwise it returns false.
+  LESS_THAN_OR_EQUAL    =  8;
+  // The GreaterThanOrEqual operation returns true if the left operand is
+  // greater than or equal to the right operand, otherwise it returns false.
+  GREATER_THAN_OR_EQUAL =  9;
+  // The IN operation returns true if the left operand is found within the
+  // collection specified by the right operand, otherwise it returns false.
+  IN                    = 10;
+  // The NOT_IN operation returns true if the left operand is not found within
+  // the collection specified by the right operand, otherwise it returns false.
+  NOT_IN                = 11;
 }
