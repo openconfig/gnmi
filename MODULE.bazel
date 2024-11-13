@@ -1,0 +1,26 @@
+module(
+    name = "gnmi",
+)
+
+bazel_dep(name = "grpc", version = "1.66.0.bcr.3")
+bazel_dep(name = "protobuf", version = "28.0")
+bazel_dep(name = "rules_go", version = "0.50.1")
+bazel_dep(name = "rules_proto", version = "6.0.2")
+bazel_dep(name = "rules_proto_grpc", version = "5.0.0")
+bazel_dep(name = "rules_proto_grpc_cpp", version = "5.0.0")
+bazel_dep(name = "toolchains_protoc", version = "0.3.3")
+
+protoc = use_extension("@toolchains_protoc//protoc:extensions.bzl", "protoc")
+
+# protoc toolchain version must match version of `protobuf` bazel_dep above; see
+# https://protobuf.dev/support/cross-version-runtime-guarantee/#cpp for more
+# info
+protoc.toolchain(
+    google_protobuf = "com_google_protobuf",
+    version = "v28.0",
+)
+
+go_sdk = use_extension("@rules_go//go:extensions.bzl", "go_sdk")
+
+# Should match version listed in go.mod
+go_sdk.download(version = "1.22.0")

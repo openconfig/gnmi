@@ -15,9 +15,9 @@
 # Supporting infrastructure for implementing and testing PINS.
 #
 
-load("@com_github_grpc_grpc//bazel:cc_grpc_library.bzl", "cc_grpc_library")
-load("@io_bazel_rules_go//go:def.bzl", "go_library")
-load("@io_bazel_rules_go//proto:def.bzl", "go_proto_library")
+load("@rules_proto_grpc_cpp//:defs.bzl", "cpp_grpc_library")
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -30,22 +30,15 @@ proto_library(
     import_prefix = "github.com/openconfig/gnmi",
     deps = [
         "//proto/gnmi_ext:gnmi_ext_proto",
-        "@com_google_protobuf//:any_proto",
-        "@com_google_protobuf//:descriptor_proto",
+        "@protobuf//:any_proto",
+        "@protobuf//:descriptor_proto",
     ],
 )
 
-cc_proto_library(
-    name = "gnmi_cc_proto",
-    deps = [":gnmi_proto"],
-)
-
-cc_grpc_library(
+cpp_grpc_library(
     name = "gnmi_cc_grpc_proto",
-    srcs = [":gnmi_proto"],
-    generate_mocks = True,
-    grpc_only = True,
-    deps = [":gnmi_cc_proto"],
+    protos = [":gnmi_proto"],
+    deps = ["//proto/gnmi_ext:gnmi_ext_cc_proto"],
 )
 
 go_proto_library(

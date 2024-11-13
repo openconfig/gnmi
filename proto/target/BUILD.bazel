@@ -15,7 +15,9 @@
 # Supporting infrastructure for implementing and testing PINS.
 #
 
-load("@com_github_grpc_grpc//bazel:cc_grpc_library.bzl", "cc_grpc_library")
+load("@rules_proto_grpc_cpp//:defs.bzl", "cpp_proto_library")
+load("@rules_go//go:def.bzl", "go_library")
+load("@rules_go//proto:def.bzl", "go_proto_library")
 
 package(
     default_visibility = ["//visibility:public"],
@@ -30,7 +32,28 @@ proto_library(
     ],
 )
 
-cc_proto_library(
+cpp_proto_library(
     name = "target_cc_proto",
-    deps = [":target_proto"],
+    protos = [":target_proto"],
+    deps = [
+        "//proto/gnmi:gnmi_cc_grpc_proto",
+    ],
+)
+
+go_proto_library(
+    name = "target_go_proto",
+    importpath = "github.com/openconfig/gnmi/proto/target",
+    proto = ":target_proto",
+    deps = [
+        "//proto/gnmi:gnmi_go_proto",
+    ],
+)
+
+go_library(
+    name = "target",
+    embed = [":target_go_proto"],
+    importpath = "github.com/openconfig/gnmi/proto/target",
+    deps = [
+        "//proto/gnmi",
+    ],
 )
