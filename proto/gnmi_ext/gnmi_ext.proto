@@ -187,6 +187,6 @@ message ConfigSubscriptionSyncDone {
   // when registering a commit operation.
   string server_commit_id = 2;
   // If true indicates that the server is done processing the updates related to the
-  // commit_confirmed_id and/or server_commit_id.
+  // commit_confirm_id and/or server_commit_id.
   bool done = 3;
 }
