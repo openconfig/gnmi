@@ -1,0 +1,18 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "flags",
+    srcs = [
+        "intmap.go",
+        "stringlist.go",
+        "stringmap.go",
+    ],
+    importpath = "github.com/openconfig/gnmi/client/flags",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "flags_test",
+    srcs = ["flags_test.go"],
+    embed = [":flags"],
+)

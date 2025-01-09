@@ -1,0 +1,23 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library")
+
+go_library(
+    name = "fake_server_lib",
+    srcs = ["server.go"],
+    importpath = "github.com/openconfig/gnmi/testing/fake/gnmi/cmd/fake_server",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//testing/fake/gnmi",
+        "//testing/fake/proto",
+        "@com_github_golang_glog//:glog",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//credentials",
+        "@org_golang_google_protobuf//encoding/prototext",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_binary(
+    name = "fake_server",
+    embed = [":fake_server_lib"],
+    visibility = ["//visibility:public"],
+)

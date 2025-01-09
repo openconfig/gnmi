@@ -1,0 +1,20 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "value",
+    srcs = ["value.go"],
+    importpath = "github.com/openconfig/gnmi/value",
+    visibility = ["//visibility:public"],
+    deps = ["//proto/gnmi"],
+)
+
+go_test(
+    name = "value_test",
+    srcs = ["value_test.go"],
+    embed = [":value"],
+    deps = [
+        "//proto/gnmi",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//types/known/anypb",
+    ],
+)

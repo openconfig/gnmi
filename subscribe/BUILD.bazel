@@ -1,0 +1,45 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "subscribe",
+    srcs = [
+        "stats.go",
+        "subscribe.go",
+    ],
+    importpath = "github.com/openconfig/gnmi/subscribe",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//cache",
+        "//coalesce",
+        "//ctree",
+        "//match",
+        "//path",
+        "//proto/gnmi",
+        "@com_github_golang_glog//:glog",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//peer",
+        "@org_golang_google_grpc//status",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "subscribe_test",
+    srcs = ["subscribe_test.go"],
+    embed = [":subscribe"],
+    deps = [
+        "//cache",
+        "//client",
+        "//client/gnmi",
+        "//ctree",
+        "//path",
+        "//proto/gnmi",
+        "//testing/fake/testing/grpc/config",
+        "//value",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_google_go_cmp//cmp/cmpopts",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//peer",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

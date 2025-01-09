@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "tls",
+    srcs = ["tls.go"],
+    importpath = "github.com/openconfig/gnmi/testing/fake/testing/tls",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "tls_test",
+    srcs = ["tls_test.go"],
+    embed = [":tls"],
+)

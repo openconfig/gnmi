@@ -1,0 +1,25 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "target",
+    srcs = ["target.go"],
+    importpath = "github.com/openconfig/gnmi/target",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//proto/gnmi",
+        "//proto/target",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "target_test",
+    srcs = ["target_test.go"],
+    embed = [":target"],
+    deps = [
+        "//proto/gnmi",
+        "//proto/target",
+        "@com_github_google_go_cmp//cmp",
+        "@org_golang_google_protobuf//testing/protocmp",
+    ],
+)

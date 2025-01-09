@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cache",
+    srcs = ["cache.go"],
+    importpath = "github.com/openconfig/gnmi/cache",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ctree",
+        "//errlist",
+        "//latency",
+        "//metadata",
+        "//path",
+        "//proto/gnmi",
+        "//value",
+        "@com_github_golang_glog//:glog",
+        "@org_bitbucket_creachadair_stringset//:stringset",
+        "@org_golang_google_protobuf//encoding/prototext",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "cache_test",
+    srcs = ["cache_test.go"],
+    embed = [":cache"],
+    deps = [
+        "//ctree",
+        "//errdiff",
+        "//latency",
+        "//metadata",
+        "//proto/gnmi",
+        "//value",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_google_go_cmp//cmp/cmpopts",
+        "@org_golang_google_protobuf//encoding/prototext",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_google_protobuf//testing/protocmp",
+    ],
+)

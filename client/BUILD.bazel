@@ -1,0 +1,40 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "client",
+    srcs = [
+        "cache.go",
+        "client.go",
+        "notification.go",
+        "query.go",
+        "reconnect.go",
+        "register.go",
+        "values.go",
+    ],
+    importpath = "github.com/openconfig/gnmi/client",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//ctree",
+        "//errlist",
+        "//path",
+        "//proto/gnmi",
+        "@com_github_cenkalti_backoff_v4//:backoff",
+        "@com_github_golang_glog//:glog",
+        "@com_github_openconfig_grpctunnel//tunnel",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "client_test",
+    srcs = [
+        "cache_test.go",
+        "client_test.go",
+        "reconnect_test.go",
+    ],
+    deps = [
+        ":client",
+        "//client/fake",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

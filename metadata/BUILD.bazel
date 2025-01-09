@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "metadata",
+    srcs = ["metadata.go"],
+    importpath = "github.com/openconfig/gnmi/metadata",
+    visibility = ["//visibility:public"],
+    deps = ["//latency"],
+)
+
+go_test(
+    name = "metadata_test",
+    srcs = ["metadata_test.go"],
+    embed = [":metadata"],
+    deps = [
+        "//latency",
+        "@com_github_google_go_cmp//cmp",
+    ],
+)

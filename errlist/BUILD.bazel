@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "errlist",
+    srcs = ["errlist.go"],
+    importpath = "github.com/openconfig/gnmi/errlist",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "errlist_test",
+    srcs = ["errlist_test.go"],
+    deps = [":errlist"],
+)

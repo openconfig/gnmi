@@ -1,0 +1,19 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "config",
+    srcs = ["server_option.go"],
+    importpath = "github.com/openconfig/gnmi/testing/fake/testing/grpc/config",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//testing/fake/testing/tls",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//credentials",
+    ],
+)
+
+go_test(
+    name = "config_test",
+    srcs = ["config_test.go"],
+    embed = [":config"],
+)
