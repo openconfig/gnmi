@@ -13,14 +13,16 @@ go_sdk.download(version = "1.23.4")
 go_deps = use_extension("@bazel_gazelle//:extensions.bzl", "go_deps")
 go_deps.from_file(go_mod = "//:go.mod")
 use_repo(go_deps, "com_github_cenkalti_backoff_v4", "com_github_golang_glog", "com_github_google_go_cmp", "com_github_kylelemons_godebug", "com_github_openconfig_grpctunnel", "com_github_openconfig_ygot", "com_github_protocolbuffers_txtpbfmt", "org_bitbucket_creachadair_stringset", "org_golang_google_grpc", "org_golang_google_grpc_cmd_protoc_gen_go_grpc", "org_golang_google_protobuf", "org_golang_x_crypto", "org_golang_x_net")
-go_deps.gazelle_override(
+
+go_deps_dev = use_extension("@bazel_gazelle//:extensions.bzl", "go_deps", dev_dependency = True)
+go_deps_dev.gazelle_override(
     directives = [
         "gazelle:proto disable",  # keep
         "gazelle:resolve go github.com/openconfig/gnmi/errlist @openconfig_gnmi//errlist:errlist",  # keep
     ],
     path = "github.com/openconfig/grpctunnel",
 )
-go_deps.gazelle_override(
+go_deps_dev.gazelle_override(
     directives = [
         "gazelle:resolve go github.com/openconfig/gnmi/proto/gnmi @openconfig_gnmi//proto/gnmi:gnmi",  # keep
         "gazelle:resolve go github.com/openconfig/gnmi/errlist @openconfig_gnmi//errlist:errlist",  # keep
