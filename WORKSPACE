@@ -52,10 +52,9 @@ load("@com_github_grpc_grpc//bazel:grpc_deps.bzl", "grpc_deps")
 
 grpc_deps()
 
+# Required by grpc
 load("@build_bazel_apple_support//lib:repositories.bzl", "apple_support_dependencies")
 load("@build_bazel_rules_apple//apple:repositories.bzl", "apple_rules_dependencies")
-
-# Required by grpc
 load("@rules_python//python:repositories.bzl", "py_repositories")
 
 py_repositories()
