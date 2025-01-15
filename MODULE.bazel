@@ -1,5 +1,6 @@
 module(
     name = "openconfig_gnmi",
+    version = "0.13.0",
 )
 
 bazel_dep(name = "gazelle", version = "0.41.0", repo_name = "bazel_gazelle")
