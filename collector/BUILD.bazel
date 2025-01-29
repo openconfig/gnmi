@@ -1,0 +1,21 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "collector",
+    srcs = ["collector.go"],
+    importpath = "github.com/openconfig/gnmi/collector",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//proto/collector",
+        "@com_github_golang_glog//:glog",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//status",
+    ],
+)
+
+go_test(
+    name = "collector_test",
+    srcs = ["collector_test.go"],
+    embed = [":collector"],
+    deps = ["//proto/collector"],
+)

@@ -14,9 +14,31 @@
 #
 # Supporting infrastructure for implementing and testing PINS.
 
+load("@bazel_gazelle//:def.bzl", "gazelle", "gazelle_test")
+
 package(
     default_visibility = ["//visibility:public"],
     licenses = ["notice"],
 )
 
 exports_files(["LICENSE"])
+
+# gazelle:go_grpc_compilers @io_bazel_rules_go//proto:go_grpc_v2, @io_bazel_rules_go//proto:go_proto
+# gazelle:proto_import_prefix github.com/openconfig/gnmi
+# gazelle:prefix github.com/openconfig/gnmi
+gazelle(name = "gazelle")
+
+gazelle(
+    name = "gazelle_update_repos",
+    args = [
+        "-from_file=go.mod",
+        "-to_macro=gnmi_go_deps.bzl%gnmi_go_deps",
+        "-prune",
+    ],
+    command = "update-repos",
+)
+
+gazelle_test(
+    name = "gazelle_test",
+    workspace = "//:BUILD.bazel",
+)

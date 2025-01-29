@@ -1,0 +1,14 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "errdiff",
+    srcs = ["errdiff.go"],
+    importpath = "github.com/openconfig/gnmi/errdiff",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "errdiff_test",
+    srcs = ["errdiff_test.go"],
+    embed = [":errdiff"],
+)

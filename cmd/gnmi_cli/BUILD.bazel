@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "gnmi_cli_lib",
+    srcs = ["gnmi_cli.go"],
+    importpath = "github.com/openconfig/gnmi/cmd/gnmi_cli",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//cli",
+        "//client",
+        "//client/flags",
+        "//client/gnmi",
+        "//proto/gnmi",
+        "@com_github_golang_glog//:glog",
+        "@org_golang_google_protobuf//encoding/prototext",
+        "@org_golang_x_crypto//ssh/terminal",
+    ],
+)
+
+go_binary(
+    name = "gnmi_cli",
+    embed = [":gnmi_cli_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "gnmi_cli_test",
+    srcs = ["gnmi_cli_test.go"],
+    embed = [":gnmi_cli_lib"],
+)

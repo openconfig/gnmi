@@ -1,0 +1,30 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "cli",
+    srcs = ["cli.go"],
+    importpath = "github.com/openconfig/gnmi/cli",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//client",
+        "//ctree",
+        "//proto/gnmi",
+        "@com_github_protocolbuffers_txtpbfmt//parser",
+        "@org_golang_google_protobuf//encoding/prototext",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "cli_test",
+    srcs = ["cli_test.go"],
+    embed = [":cli"],
+    deps = [
+        "//client",
+        "//client/gnmi",
+        "//testing/fake/gnmi",
+        "//testing/fake/proto",
+        "//testing/fake/testing/grpc/config",
+        "@org_golang_google_grpc//:grpc",
+    ],
+)

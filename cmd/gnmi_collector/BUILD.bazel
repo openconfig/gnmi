@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_binary", "go_library", "go_test")
+
+go_library(
+    name = "gnmi_collector_lib",
+    srcs = ["gnmi_collector.go"],
+    importpath = "github.com/openconfig/gnmi/cmd/gnmi_collector",
+    visibility = ["//visibility:private"],
+    deps = [
+        "//cache",
+        "//collector",
+        "//connection",
+        "//manager",
+        "//proto/collector",
+        "//proto/gnmi",
+        "//proto/target",
+        "//subscribe",
+        "//target",
+        "@com_github_golang_glog//:glog",
+        "@com_github_openconfig_grpctunnel//dialer",
+        "@com_github_openconfig_grpctunnel//proto/tunnel",
+        "@com_github_openconfig_grpctunnel//tunnel",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//credentials",
+        "@org_golang_google_protobuf//encoding/prototext",
+    ],
+)
+
+go_binary(
+    name = "gnmi_collector",
+    embed = [":gnmi_collector_lib"],
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "gnmi_collector_test",
+    srcs = ["gnmi_collector_test.go"],
+    data = glob(["testdata/**"]),
+    embed = [":gnmi_collector_lib"],
+)

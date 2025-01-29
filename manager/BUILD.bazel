@@ -1,0 +1,39 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "manager",
+    srcs = [
+        "manager.go",
+        "meta.go",
+    ],
+    importpath = "github.com/openconfig/gnmi/manager",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//proto/gnmi",
+        "//proto/target",
+        "@com_github_cenkalti_backoff_v4//:backoff",
+        "@com_github_golang_glog//:glog",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//metadata",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "manager_test",
+    srcs = [
+        "manager_test.go",
+        "meta_test.go",
+    ],
+    embed = [":manager"],
+    deps = [
+        "//connection",
+        "//proto/gnmi",
+        "//proto/target",
+        "@com_github_golang_glog//:glog",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//credentials",
+        "@org_golang_google_grpc//metadata",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

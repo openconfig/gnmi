@@ -1,0 +1,43 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "gnmi",
+    srcs = [
+        "agent.go",
+        "client.go",
+    ],
+    importpath = "github.com/openconfig/gnmi/testing/fake/gnmi",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//proto/gnmi",
+        "//testing/fake/proto",
+        "//testing/fake/queue",
+        "@com_github_golang_glog//:glog",
+        "@com_github_openconfig_grpctunnel//proto/tunnel",
+        "@com_github_openconfig_grpctunnel//tunnel",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//reflection",
+        "@org_golang_google_protobuf//encoding/prototext",
+        "@org_golang_google_protobuf//proto",
+        "@org_golang_x_net//context",
+    ],
+)
+
+go_test(
+    name = "gnmi_test",
+    srcs = ["gnmi_test.go"],
+    embed = [":gnmi"],
+    deps = [
+        "//proto/gnmi",
+        "//testing/fake/proto",
+        "//testing/fake/testing/grpc/config",
+        "@com_github_google_go_cmp//cmp",
+        "@com_github_kylelemons_godebug//pretty",
+        "@org_golang_google_grpc//:grpc",
+        "@org_golang_google_grpc//codes",
+        "@org_golang_google_grpc//credentials",
+        "@org_golang_google_protobuf//testing/protocmp",
+        "@org_golang_x_net//context",
+    ],
+)

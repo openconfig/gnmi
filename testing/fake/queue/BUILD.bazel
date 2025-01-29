@@ -1,0 +1,29 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "queue",
+    srcs = [
+        "fixed_queue.go",
+        "queue.go",
+    ],
+    importpath = "github.com/openconfig/gnmi/testing/fake/queue",
+    visibility = ["//visibility:public"],
+    deps = [
+        "//proto/gnmi",
+        "//testing/fake/proto",
+        "@org_golang_google_protobuf//proto",
+    ],
+)
+
+go_test(
+    name = "queue_test",
+    srcs = ["queue_test.go"],
+    embed = [":queue"],
+    deps = [
+        "//errdiff",
+        "//proto/gnmi",
+        "//testing/fake/proto",
+        "@com_github_google_go_cmp//cmp",
+        "@org_golang_google_protobuf//proto",
+    ],
+)

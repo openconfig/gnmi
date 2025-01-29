@@ -1,0 +1,15 @@
+load("@io_bazel_rules_go//go:def.bzl", "go_library", "go_test")
+
+go_library(
+    name = "ctree",
+    srcs = ["tree.go"],
+    importpath = "github.com/openconfig/gnmi/ctree",
+    visibility = ["//visibility:public"],
+)
+
+go_test(
+    name = "ctree_test",
+    srcs = ["tree_test.go"],
+    embed = [":ctree"],
+    deps = ["@com_github_kylelemons_godebug//pretty"],
+)
