@@ -1,6 +1,6 @@
 module github.com/openconfig/gnmi
 
-go 1.23.4
+go 1.22.0
 
 require (
 	bitbucket.org/creachadair/stringset v0.0.14
