@@ -21,9 +21,9 @@ def gnmi_deps():
     if not native.existing_rule("bazel_features"):
         http_archive(
             name = "bazel_features",
-            sha256 = "af3d4fb1cf4f25942cb4a933b1ad93a0ea9fe9ee70c2af7f369fb72a67c266e5",
-            strip_prefix = "bazel_features-1.21.0",
-            url = "https://github.com/bazel-contrib/bazel_features/releases/download/v1.21.0/bazel_features-v1.21.0.tar.gz",
+            sha256 = "8b1c9b7558498000f5adebbc584b7bf15b6b2bf181448a66f6b2fc5b4c84231c",
+            strip_prefix = "bazel_features-1.23.0",
+            url = "https://github.com/bazel-contrib/bazel_features/releases/download/v1.23.0/bazel_features-v1.23.0.tar.gz",
         )
     if not native.existing_rule("bazel_gazelle"):
         http_archive(
@@ -37,9 +37,9 @@ def gnmi_deps():
     if not native.existing_rule("com_github_grpc_grpc"):
         http_archive(
             name = "com_github_grpc_grpc",
-            url = "https://github.com/grpc/grpc/archive/refs/tags/v1.69.0.tar.gz",
-            strip_prefix = "grpc-1.69.0",
-            sha256 = "cd256d91781911d46a57506978b3979bfee45d5086a1b6668a3ae19c5e77f8dc",
+            url = "https://github.com/grpc/grpc/archive/refs/tags/v1.73.1.tar.gz",
+            strip_prefix = "grpc-1.73.1",
+            sha256 = "e11fd9b963c617de53d08a84f41359164b123f2e8e4180644706688fc9de43d9",
         )
     if not native.existing_rule("com_google_googleapis"):
         http_archive(
@@ -51,9 +51,9 @@ def gnmi_deps():
     if not native.existing_rule("com_google_protobuf"):
         http_archive(
             name = "com_google_protobuf",
-            url = "https://github.com/protocolbuffers/protobuf/archive/refs/tags/v29.3.zip",
-            strip_prefix = "protobuf-29.3",
-            sha256 = "85803e01f347141e16a2f770213a496f808fff9f0138c7c0e0c9dfa708b0da92",
+            url = "https://github.com/protocolbuffers/protobuf/archive/refs/tags/v31.1.zip",
+            strip_prefix = "protobuf-31.1",
+            sha256 = "fc6289aa4450bdb70626aceaaebebdd7d3d4725c288a9cbb138a26defe5d9987",
             repo_mapping = {
                 "@proto_bazel_features": "@bazel_features",
             },
