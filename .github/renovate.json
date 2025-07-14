@@ -1,0 +1,20 @@
+{
+  "extends": ["config:recommended", "schedule:weekdays", ":semanticCommitsDisabled"],
+  "postUpdateOptions": ["gomodTidy"],
+  "commitMessagePrefix": "chore(all): ",
+  "commitMessageAction": "update",
+  "groupName": "deps",
+  "ignoreDeps": ["com_google_googleapis"],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Synchronize Go Version: MODULE.bazel go_sdk",
+      "managerFilePatterns": ["MODULE.bazel"],
+      "matchStrings": [
+        "go_sdk\\.download\\(version\\s*=\\s*\"(?<currentValue>[\\d\\.]+)\"\\)"
+      ],
+      "depNameTemplate": "golang",
+      "datasourceTemplate": "golang-version"
+    }
+  ]
+}
