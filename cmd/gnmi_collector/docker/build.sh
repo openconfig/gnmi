@@ -14,6 +14,6 @@
 # This file builds a simple docker image for the gnmi_collector
 # based on Alpine Linux.
 
-(cd $GOPATH/src/github.com/openconfig/gnmi/cmd/gnmi_collector && CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo .)
-cp $GOPATH/src/github.com/openconfig/gnmi/cmd/gnmi_collector/gnmi_collector .
+cd "$(dirname "$0")"
+CGO_ENABLED=0 GOOS=linux go build github.com/openconfig/gnmi/cmd/gnmi_collector
 docker build -t gnmi_collector -f Dockerfile .
