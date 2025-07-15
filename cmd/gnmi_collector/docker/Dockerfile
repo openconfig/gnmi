@@ -12,9 +12,8 @@
 # Build a simple Docker image with supervisord which runs the gnmi_collector
 # binary.
 
-FROM alpine:3.7
-RUN apk update && apk add -u python py-pip
-RUN pip install supervisor
+FROM alpine:3.22
+RUN apk update && apk add -u supervisor
 ADD supervisord.conf /etc/supervisord.conf
 ADD gnmi_collector /
 
