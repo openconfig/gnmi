@@ -75,8 +75,8 @@ github.com/openconfig/grpctunnel v0.0.0-20220819142823-6f5422b8ca70/go.mod h1:Om
 github.com/openconfig/grpctunnel v0.1.0 h1:EN99qtlExZczgQgp5ANnHRC/Rs62cAG+Tz2BQ5m/maM=
 github.com/openconfig/grpctunnel v0.1.0/go.mod h1:G04Pdu0pml98tdvXrvLaU+EBo3PxYfI9MYqpvdaEHLo=
 github.com/openconfig/ygot v0.6.0/go.mod h1:o30svNf7O0xK+R35tlx95odkDmZWS9JyWWQSmIhqwAs=
-github.com/openconfig/ygot v0.32.0 h1:zGYVk/T7hgcMuxhxH5bN5tFxy3VhHlLN6ZabSeTATtk=
-github.com/openconfig/ygot v0.32.0/go.mod h1:sMTAECRlEmETQ36XaAbWav5AFrR6EZlNNcHyZ7KHBDE=
+github.com/openconfig/ygot v0.33.0 h1:AHvMYdQpTHImpSvoPvzZkdsTAegX2yi0IpsLLuzohgY=
+github.com/openconfig/ygot v0.33.0/go.mod h1:sMTAECRlEmETQ36XaAbWav5AFrR6EZlNNcHyZ7KHBDE=
 github.com/pborman/getopt v1.1.0/go.mod h1:FxXoW1Re00sQG/+KIkuSqRL/LwQgSkv7uyac+STFsbk=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 h1:Jamvg5psRIccs7FGNTlIRMkT8wgtp5eCXdBlqhYGL6U=
