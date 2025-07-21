@@ -11,7 +11,7 @@ require (
 	github.com/google/go-cmp v0.7.0
 	github.com/kylelemons/godebug v1.1.0
 	github.com/openconfig/grpctunnel v0.1.0
-	github.com/openconfig/ygot v0.32.0
+	github.com/openconfig/ygot v0.33.0
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20250627152318-f293424e46b5
 	golang.org/x/crypto v0.40.0
 	golang.org/x/net v0.42.0
