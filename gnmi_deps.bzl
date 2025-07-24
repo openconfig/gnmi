@@ -37,9 +37,9 @@ def gnmi_deps():
     if not native.existing_rule("com_github_grpc_grpc"):
         http_archive(
             name = "com_github_grpc_grpc",
-            url = "https://github.com/grpc/grpc/archive/refs/tags/v1.73.1.tar.gz",
-            strip_prefix = "grpc-1.73.1",
-            sha256 = "e11fd9b963c617de53d08a84f41359164b123f2e8e4180644706688fc9de43d9",
+            url = "https://github.com/grpc/grpc/archive/refs/tags/v1.74.0.tar.gz",
+            strip_prefix = "grpc-1.74.0",
+            sha256 = "dd6a2fa311ba8441bbefd2764c55b99136ff10f7ea42954be96006a2723d33fc",
         )
     if not native.existing_rule("com_google_googleapis"):
         http_archive(
