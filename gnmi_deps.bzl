@@ -21,9 +21,9 @@ def gnmi_deps():
     if not native.existing_rule("bazel_features"):
         http_archive(
             name = "bazel_features",
-            sha256 = "07bd2b18764cdee1e0d6ff42c9c0a6111ffcbd0c17f0de38e7f44f1519d1c0cd",
-            strip_prefix = "bazel_features-1.32.0",
-            url = "https://github.com/bazel-contrib/bazel_features/releases/download/v1.32.0/bazel_features-v1.32.0.tar.gz",
+            sha256 = "c41853e3b636c533b86bf5ab4658064e6cc9db0a3bce52cbff0629e094344ca9",
+            strip_prefix = "bazel_features-1.33.0",
+            url = "https://github.com/bazel-contrib/bazel_features/releases/download/v1.33.0/bazel_features-v1.33.0.tar.gz",
         )
     if not native.existing_rule("bazel_gazelle"):
         http_archive(
@@ -70,9 +70,9 @@ def gnmi_deps():
     if not native.existing_rule("io_bazel_rules_go"):
         http_archive(
             name = "io_bazel_rules_go",
-            sha256 = "9d72f7b8904128afb98d46bbef82ad7223ec9ff3718d419afb355fddd9f9484a",
+            sha256 = "94643c4ce02f3b62f3be7d13d527a5c780a568073b7562606e78399929005f98",
             urls = [
-                "https://github.com/bazelbuild/rules_go/releases/download/v0.55.1/rules_go-v0.55.1.zip",
+                "https://github.com/bazelbuild/rules_go/releases/download/v0.56.0/rules_go-v0.56.0.zip",
             ],
         )
     if not native.existing_rule("rules_proto"):
