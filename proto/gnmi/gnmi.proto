@@ -38,7 +38,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.10.0";
+option (gnmi_service) = "0.11.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
@@ -303,16 +303,11 @@ message Subscription {
   uint64 sample_interval = 3;  // ns between samples in SAMPLE mode.
   // Indicates whether values that have not changed should be sent in a SAMPLE
   // subscription.
-  bool suppress_redundant = 4;
-  // 1. A heartbeat interval MAY be specified along with an “on change”
+  bool suppress_redundant = 4 [deprecated = true];
+  // A heartbeat interval MAY be specified along with an “on change”
   // subscription - in this case, the value of the data item(s) MUST be re-sent
   // once per heartbeat interval regardless of whether the value has changed or
   // not.
-  // 2. A heartbeat_interval MAY be specified to modify the behavior of
-  // suppress_redundant in a sampled subscription. In this case, the
-  // target MUST generate one telemetry update per heartbeat interval,
-  // regardless of whether the suppress_redundant flag is set to true.
-  // This value is specified as an unsigned 64-bit integer in nanoseconds
   uint64 heartbeat_interval = 5;
 }
 
