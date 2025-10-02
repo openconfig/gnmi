@@ -302,7 +302,8 @@ message Subscription {
   SubscriptionMode mode = 2;   // Subscription mode to be used.
   uint64 sample_interval = 3;  // ns between samples in SAMPLE mode.
   // Indicates whether values that have not changed should be sent in a SAMPLE
-  // subscription.
+  // subscription.  NOTE: This field has been deprecated as of gNMI service
+  // version 0.11.0.
   bool suppress_redundant = 4 [deprecated = true];
   // A heartbeat interval MAY be specified along with an “on change”
   // subscription - in this case, the value of the data item(s) MUST be re-sent
