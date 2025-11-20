@@ -6,8 +6,7 @@ toolchain go1.25.1
 
 require (
 	bitbucket.org/creachadair/stringset v0.0.14
-	github.com/cenkalti/backoff/v4 v4.1.1
-	github.com/cenkalti/backoff/v5 v5.0.3
+	github.com/cenkalti/backoff/v4 v4.3.0
 	github.com/golang/glog v1.2.5
 	github.com/google/go-cmp v0.7.0
 	github.com/kylelemons/godebug v1.1.0
