@@ -21,8 +21,8 @@ import "google/protobuf/descriptor.proto";
 import "github.com/openconfig/gnmi/proto/gnmi_ext/gnmi_ext.proto";
 
 // Package gNMI defines a service specification for the gRPC Network Management
-// Interface. This interface is defined to be a standard interface via which
-// a network management system ("client") can subscribe to state values,
+// Interface. This interface is defined to be a standard interface that
+// a network management system ("client") can use to subscribe to state values,
 // retrieve snapshots of state information, and manipulate the state of a data
 // tree supported by a device ("target").
 //
@@ -48,7 +48,7 @@ option java_package = "com.github.gnmi.proto";
 
 service gNMI {
   // Capabilities allows the client to retrieve the set of capabilities that
-  // is supported by the target. This allows the target to validate the
+  // are supported by the target. This allows the client to validate the
   // service version that is implemented and retrieve the set of models that
   // the target supports. The models can then be specified in subsequent RPCs
   // to restrict the set of data that is utilized.
@@ -61,11 +61,11 @@ service gNMI {
   // Reference: gNMI Specification Section 3.3
   rpc Get(GetRequest) returns (GetResponse);
   // Set allows the client to modify the state of data on the target. The
-  // paths to modified along with the new values that the client wishes
-  // to set the value to.
+  // paths to be modified along with the new values that the client wishes
+  // to set the values to.
   // Reference: gNMI Specification Section 3.4
   rpc Set(SetRequest) returns (SetResponse);
-  // Subscribe allows a client to request the target to send it values
+  // Subscribe allows a client to request the target to send the client values
   // of particular paths within the data tree. These values may be streamed
   // at a particular cadence (STREAM), sent one off on a long-lived channel
   // (POLL), or sent as a one-off retrieval (ONCE).
@@ -73,7 +73,7 @@ service gNMI {
   rpc Subscribe(stream SubscribeRequest) returns (stream SubscribeResponse);
 }
 
-// Notification is a re-usable message that is used to encode data from the
+// Notification is a reusable message that is used to encode data from the
 // target to the client. A Notification carries two types of changes to the data
 // tree:
 //  - Deleted values (delete) - a set of paths that have been removed from the
@@ -82,7 +82,7 @@ service gNMI {
 //    whose value has changed in the data tree.
 // Reference: gNMI Specification Section 2.1
 message Notification {
-  int64 timestamp = 1;         // Timestamp in nanoseconds since Epoch.
+  int64 timestamp = 1;         // Timestamp in nanoseconds since UnixEpoch.
   Path prefix = 2;             // Prefix used for paths in the message.
   repeated Update update = 4;  // Data elements that have changed values.
   repeated Path delete = 5;    // Data elements that have been deleted.
@@ -94,8 +94,8 @@ message Notification {
   reserved 3;
 }
 
-// Update is a re-usable message that is used to store a particular Path,
-// Value pair.
+// Update is a reusable message that is used to store a particular Path / Value
+// pair.
 // Reference: gNMI Specification Section 2.1
 message Update {
   Path path = 1;                        // The path (key) for the update.
@@ -143,7 +143,7 @@ message Path {
   // Elements of the path are no longer encoded as a string, but rather within
   // the elem field as a PathElem message.
   repeated string element = 1 [deprecated = true];
-  string origin = 2;           // Label to disambiguate path.
+  string origin = 2;           // Label to disambiguate paths.
   repeated PathElem elem = 3;  // Elements of the path.
   string target = 4;           // The name of the target
                                // (Sec. 2.2.2.1)
@@ -207,8 +207,7 @@ message Decimal64 {
 // ScalarArray is used to encode a mixed-type array of values.
 message ScalarArray {
   // The set of elements within the array. Each TypedValue message should
-  // specify only elements that have a field identifier of 1-7 (i.e., the
-  // values are scalar values).
+  // specify only elements that are not deprecated scalar values.
   repeated TypedValue element = 1;
 }
 
@@ -300,7 +299,7 @@ message SubscriptionList {
 message Subscription {
   Path path = 1;               // The data tree path.
   SubscriptionMode mode = 2;   // Subscription mode to be used.
-  uint64 sample_interval = 3;  // ns between samples in SAMPLE mode.
+  uint64 sample_interval = 3;  // nanoseconds between samples in SAMPLE mode.
   // Indicates whether values that have not changed should be sent in a SAMPLE
   // subscription.
   bool suppress_redundant = 4;
@@ -358,9 +357,8 @@ message SetRequest {
 // client. It reports the result of the modifications to the data tree that were
 // specified by the client. Errors for this RPC should be reported using the
 // https://github.com/googleapis/googleapis/blob/master/google/rpc/status.proto
-// message in the RPC return. The gnmi.Error message can be used to add
-// additional details where required. Reference: gNMI Specification
-// Section 3.4.2
+// message in the RPC return.
+// Reference: gNMI Specification Section 3.4.2
 message SetResponse {
   Path prefix = 1;  // Prefix used for paths.
   // A set of responses specifying the result of the operations specified in
@@ -368,7 +366,7 @@ message SetResponse {
   repeated UpdateResult response = 2;
   Error message = 3
       [deprecated = true];  // The overall status of the transaction.
-  int64 timestamp = 4;      // Timestamp of transaction (ns since epoch).
+  int64 timestamp = 4;      // Timestamp of transaction (nanoseconds since epoch).
   // Extension messages associated with the SetResponse. See the
   // gNMI extension specification for further definition.
   repeated gnmi_ext.Extension extension = 5;
@@ -398,7 +396,7 @@ message UpdateResult {
 
 // GetRequest is sent when a client initiates a Get RPC. It is used to specify
 // the set of data elements for which the target should return a snapshot of
-// data. The use_models field specifies the set of schema modules that are to
+// data. The use_models field specifies the set of schema models that are to
 // be used by the target - where use_models is not specified then the target
 // must use all schema models that it has.
 // Reference: gNMI Specification Section 3.3.1
@@ -456,8 +454,8 @@ message CapabilityResponse {
   repeated gnmi_ext.Extension extension = 4;
 }
 
-// ModelData is used to describe a set of schema modules. It can be used in a
-// CapabilityResponse where a target reports the set of modules that it
+// ModelData is used to describe a set of schema models. It can be used in a
+// CapabilityResponse where a target reports the set of models that it
 // supports, and within the SubscribeRequest and GetRequest messages to specify
 // the set of models from which data tree elements should be reported.
 // Reference: gNMI Specification Section 3.2.3
