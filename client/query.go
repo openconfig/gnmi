@@ -163,7 +163,7 @@ type Query struct {
 	// If Timeout is not set, default is 1 minute.
 	Timeout time.Duration
 	// NotificationHandler is the per notification callback handed to a vendor
-	// specific implementation. For every notificaiton this call back will be
+	// specific implementation. For every notification this callback will be
 	// called.
 	NotificationHandler NotificationHandler
 	// ProtoHandler, if set, will receive all response protos sent by the
