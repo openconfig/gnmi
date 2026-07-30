@@ -433,6 +433,7 @@ message GetResponse {
   // Extension messages associated with the GetResponse. See the
   // gNMI extension specification for further definition.
   repeated gnmi_ext.Extension extension = 3;
+  optional int64 timestamp = 4; // snapshot time when data collection is complete.
 }
 
 // CapabilityRequest is sent by the client in the Capabilities RPC to request
