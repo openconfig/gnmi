@@ -13,7 +13,7 @@ require (
 	github.com/openconfig/grpctunnel v0.1.0
 	github.com/openconfig/ygot v0.34.0
 	github.com/protocolbuffers/txtpbfmt v0.0.0-20260217160748-a481f6a22f94
-	golang.org/x/crypto v0.51.0
+	golang.org/x/crypto v0.52.0
 	golang.org/x/net v0.55.0
 	google.golang.org/grpc v1.82.1
 	google.golang.org/grpc/cmd/protoc-gen-go-grpc v1.6.1
