@@ -13,11 +13,11 @@ jobs:
     env:
       BAZEL: bazelisk-linux-amd64
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           submodules: recursive
       - name: Mount bazel cache
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: "~/.cache/bazel"
           key: bazel-${{ runner.os }}-build-${{ hashFiles('**/*.bzl', '**/*.bazel') }}
