@@ -483,6 +483,92 @@ func TestAddRequest(t *testing.T) {
 	})
 }
 
+func TestStringsToPathElems(t *testing.T) {
+	tests := []struct {
+		desc  string
+		in    []string
+		want  []*gnmipb.PathElem
+	}{{
+		desc: "simple elements without keys",
+		in:   []string{"interfaces", "state", "counters"},
+		want: []*gnmipb.PathElem{
+			{Name: "interfaces"},
+			{Name: "state"},
+			{Name: "counters"},
+		},
+	}, {
+		desc: "element with one key",
+		in:   []string{"interfaces", "interface[name=swp1]", "state"},
+		want: []*gnmipb.PathElem{
+			{Name: "interfaces"},
+			{Name: "interface", Key: map[string]string{"name": "swp1"}},
+			{Name: "state"},
+		},
+	}, {
+		desc: "element with multiple keys",
+		in:   []string{"network-instances", "network-instance[name=default][type=L3VRF]"},
+		want: []*gnmipb.PathElem{
+			{Name: "network-instances"},
+			{Name: "network-instance", Key: map[string]string{"name": "default", "type": "L3VRF"}},
+		},
+	}, {
+		desc: "empty string elements are skipped",
+		in:   []string{"", "interfaces", ""},
+		want: []*gnmipb.PathElem{
+			{Name: "interfaces"},
+		},
+	}, {
+		desc: "nil / empty slice",
+		in:   nil,
+		want: []*gnmipb.PathElem{},
+	}}
+	for _, tt := range tests {
+		t.Run(tt.desc, func(t *testing.T) {
+			got := stringsToPathElems(tt.in)
+			if diff := cmp.Diff(tt.want, got, protocmp.Transform()); diff != "" {
+				t.Errorf("stringsToPathElems(%v) mismatch (-want +got):\n%s", tt.in, diff)
+			}
+		})
+	}
+}
+
+func TestValToRespPathEncoding(t *testing.T) {
+	path := []string{"interfaces", "interface[name=eth0]", "state", "counters", "in-octets"}
+	val := &fpb.Value{
+		Path: path,
+		Timestamp: &fpb.Timestamp{Timestamp: 1000000000},
+		Value: &fpb.Value_IntValue{IntValue: &fpb.IntValue{Value: 42}},
+	}
+	resp, err := valToResp(val)
+	if err != nil {
+		t.Fatalf("valToResp() error: %v", err)
+	}
+	upd := resp.GetUpdate()
+	if upd == nil {
+		t.Fatal("valToResp() returned no Update")
+	}
+	if len(upd.GetUpdate()) != 1 {
+		t.Fatalf("expected 1 update, got %d", len(upd.GetUpdate()))
+	}
+	p := upd.GetUpdate()[0].GetPath()
+	if p == nil {
+		t.Fatal("update path is nil")
+	}
+	// Elem must be populated with the converted path.
+	if len(p.GetElem()) == 0 {
+		t.Error("Path.Elem is empty; want non-empty (deprecated Element was used instead)")
+	}
+	// Element must be empty — we no longer populate the deprecated field.
+	if len(p.GetElement()) != 0 {
+		t.Errorf("Path.Element is non-empty (%v); must be empty after migration to Elem", p.GetElement())
+	}
+	// Verify key extraction: interface[name=eth0] → Elem{Name:"interface", Key:{"name":"eth0"}}
+	wantElems := stringsToPathElems(path)
+	if diff := cmp.Diff(wantElems, p.GetElem(), protocmp.Transform()); diff != "" {
+		t.Errorf("Path.Elem mismatch (-want +got):\n%s", diff)
+	}
+}
+
 type fakeQueue struct {
 	val any
 	err error

@@ -19,6 +19,8 @@ package gnmi
 import (
 	"fmt"
 	"io"
+	"regexp"
+	"strings"
 	"sync"
 
 	log "github.com/golang/glog"
@@ -31,6 +33,32 @@ import (
 	gpb "github.com/openconfig/gnmi/proto/gnmi"
 	fpb "github.com/openconfig/gnmi/testing/fake/proto"
 )
+
+// elemKeyRe matches a path element with optional key(s), e.g. "interface[name=eth0][vlan=100]".
+var elemKeyRe = regexp.MustCompile(`\[([^=\]]+)=([^\]]+)\]`)
+
+// stringsToPathElems converts the old-style []string path (Element field) to
+// the current []*gpb.PathElem (Elem field) so that gnmic and other modern
+// gNMI consumers can resolve the full path from subscription responses.
+func stringsToPathElems(elems []string) []*gpb.PathElem {
+	out := make([]*gpb.PathElem, 0, len(elems))
+	for _, e := range elems {
+		name := elemKeyRe.ReplaceAllString(e, "")
+		pe := &gpb.PathElem{Name: name}
+		for _, m := range elemKeyRe.FindAllStringSubmatch(e, -1) {
+			if pe.Key == nil {
+				pe.Key = make(map[string]string)
+			}
+			pe.Key[m[1]] = m[2]
+		}
+		// guard: skip empty elements that can arise from leading slashes
+		if strings.TrimSpace(pe.Name) == "" && len(pe.Key) == 0 {
+			continue
+		}
+		out = append(out, pe)
+	}
+	return out
+}
 
 // Client contains information about a client that has connected to the fake.
 type Client struct {
@@ -336,7 +364,7 @@ func valToResp(val *fpb.Value) (*gpb.SubscribeResponse, error) {
 			Response: &gpb.SubscribeResponse_Update{
 				Update: &gpb.Notification{
 					Timestamp: val.Timestamp.Timestamp,
-					Delete:    []*gpb.Path{{Element: val.Path}},
+					Delete:    []*gpb.Path{{Elem: stringsToPathElems(val.Path)}},
 				},
 			},
 		}, nil
@@ -361,7 +389,7 @@ func valToResp(val *fpb.Value) (*gpb.SubscribeResponse, error) {
 					Timestamp: val.Timestamp.Timestamp,
 					Update: []*gpb.Update{
 						{
-							Path: &gpb.Path{Element: val.Path},
+							Path: &gpb.Path{Elem: stringsToPathElems(val.Path)},
 							Val:  tv,
 						},
 					},

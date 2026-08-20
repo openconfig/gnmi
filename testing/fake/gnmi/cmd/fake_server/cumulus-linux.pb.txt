@@ -1,0 +1,681 @@
+# Cumulus Linux 5.x gNMI streaming metrics simulation
+# Models a 4-port switch (swp1-swp4) with platform sensors and QoS buffers.
+# Paths match OpenConfig models used by Cumulus Linux 5.16 gNMI agent.
+# See: https://docs.nvidia.com/networking-ethernet-software/cumulus-linux-516/Monitoring-and-Troubleshooting/gNMI-Streaming/#metrics
+
+target: "cumulus-switch-01"
+client_type: GRPC_GNMI
+disable_eof: true
+
+# ─── Interface swp1 ────────────────────────────────────────────────────────────
+
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "oper-status"
+  timestamp: < timestamp: 1000000000 delta_min: 30000000000 delta_max: 30000000000 >
+  string_value: < value: "UP" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "admin-status"
+  timestamp: < timestamp: 1010000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "UP" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "ethernet"
+  path: "state"
+  path: "port-speed"
+  timestamp: < timestamp: 1020000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "SPEED_10GB" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "ethernet"
+  path: "state"
+  path: "negotiated-duplex-mode"
+  timestamp: < timestamp: 1030000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "FULL" >
+>
+# swp1 counters — monotonically increasing (delta_min/delta_max drive cumulative increments)
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "in-pkts"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 5000 delta_max: 50000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "out-pkts"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 4000 delta_max: 45000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "in-octets"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000000000 delta_min: 600000 delta_max: 6000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "out-octets"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000000000 delta_min: 500000 delta_max: 5000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "in-unicast-pkts"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 4800 delta_max: 48000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "out-unicast-pkts"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 3900 delta_max: 43000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "in-multicast-pkts"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 1000000000000 delta_min: 10 delta_max: 500 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "in-broadcast-pkts"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000000 delta_min: 1 delta_max: 50 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "in-errors"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 1000000 delta_min: 0 delta_max: 2 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "out-errors"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 1000000 delta_min: 0 delta_max: 1 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "in-discards"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000 delta_min: 0 delta_max: 5 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "state"
+  path: "counters"
+  path: "out-discards"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000 delta_min: 0 delta_max: 3 > >
+>
+# swp1 Ethernet error counters
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "ethernet"
+  path: "state"
+  path: "counters"
+  path: "in-fcs-errors"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000 delta_min: 0 delta_max: 1 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "ethernet"
+  path: "state"
+  path: "counters"
+  path: "in-mac-pause-frames"
+  timestamp: < timestamp: 1000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000 delta_min: 0 delta_max: 100 > >
+>
+# swp1 rates (fluctuating, not cumulative — no delta_min/delta_max on range)
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "rates"
+  path: "state"
+  path: "in-bits-rate"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 1500000000 range: < minimum: 100000000 maximum: 9000000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "rates"
+  path: "state"
+  path: "out-bits-rate"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 1200000000 range: < minimum: 100000000 maximum: 9000000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "rates"
+  path: "state"
+  path: "in-pkts-rate"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 125000 range: < minimum: 8000 maximum: 750000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp1]"
+  path: "rates"
+  path: "state"
+  path: "out-pkts-rate"
+  timestamp: < timestamp: 1000000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 100000 range: < minimum: 8000 maximum: 750000 > >
+>
+
+# ─── Interface swp2 ────────────────────────────────────────────────────────────
+
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "state"
+  path: "oper-status"
+  timestamp: < timestamp: 1100000000 delta_min: 30000000000 delta_max: 30000000000 >
+  string_value: < value: "UP" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "state"
+  path: "admin-status"
+  timestamp: < timestamp: 1110000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "UP" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "ethernet"
+  path: "state"
+  path: "port-speed"
+  timestamp: < timestamp: 1120000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "SPEED_10GB" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "state"
+  path: "counters"
+  path: "in-pkts"
+  timestamp: < timestamp: 1100000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 3000 delta_max: 30000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "state"
+  path: "counters"
+  path: "out-pkts"
+  timestamp: < timestamp: 1100000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 2500 delta_max: 25000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "state"
+  path: "counters"
+  path: "in-octets"
+  timestamp: < timestamp: 1100000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000000000 delta_min: 400000 delta_max: 4000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "state"
+  path: "counters"
+  path: "out-octets"
+  timestamp: < timestamp: 1100000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000000000 delta_min: 350000 delta_max: 3500000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "state"
+  path: "counters"
+  path: "in-errors"
+  timestamp: < timestamp: 1100000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 1000000 delta_min: 0 delta_max: 1 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "state"
+  path: "counters"
+  path: "out-errors"
+  timestamp: < timestamp: 1100000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 1000000 delta_min: 0 delta_max: 1 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "rates"
+  path: "state"
+  path: "in-bits-rate"
+  timestamp: < timestamp: 1100000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 800000000 range: < minimum: 50000000 maximum: 9000000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp2]"
+  path: "rates"
+  path: "state"
+  path: "out-bits-rate"
+  timestamp: < timestamp: 1100000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 750000000 range: < minimum: 50000000 maximum: 9000000000 > >
+>
+
+# ─── Interface swp3 ────────────────────────────────────────────────────────────
+
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "state"
+  path: "oper-status"
+  timestamp: < timestamp: 1200000000 delta_min: 30000000000 delta_max: 30000000000 >
+  string_value: < value: "UP" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "state"
+  path: "admin-status"
+  timestamp: < timestamp: 1210000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "UP" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "ethernet"
+  path: "state"
+  path: "port-speed"
+  timestamp: < timestamp: 1220000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "SPEED_100GB" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "state"
+  path: "counters"
+  path: "in-pkts"
+  timestamp: < timestamp: 1200000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 50000 delta_max: 500000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "state"
+  path: "counters"
+  path: "out-pkts"
+  timestamp: < timestamp: 1200000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 45000 delta_max: 480000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "state"
+  path: "counters"
+  path: "in-octets"
+  timestamp: < timestamp: 1200000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000000000 delta_min: 5000000 delta_max: 60000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "state"
+  path: "counters"
+  path: "out-octets"
+  timestamp: < timestamp: 1200000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000000000 delta_min: 4500000 delta_max: 55000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "rates"
+  path: "state"
+  path: "in-bits-rate"
+  timestamp: < timestamp: 1200000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 40000000000 range: < minimum: 1000000000 maximum: 95000000000 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp3]"
+  path: "rates"
+  path: "state"
+  path: "out-bits-rate"
+  timestamp: < timestamp: 1200000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 38000000000 range: < minimum: 1000000000 maximum: 95000000000 > >
+>
+
+# ─── Interface swp4 (DOWN — link state simulation) ────────────────────────────
+
+values: <
+  path: "interfaces"
+  path: "interface[name=swp4]"
+  path: "state"
+  path: "oper-status"
+  timestamp: < timestamp: 1300000000 delta_min: 30000000000 delta_max: 30000000000 >
+  string_value: < value: "DOWN" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp4]"
+  path: "state"
+  path: "admin-status"
+  timestamp: < timestamp: 1310000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "UP" >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp4]"
+  path: "state"
+  path: "counters"
+  path: "in-pkts"
+  timestamp: < timestamp: 1300000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 142876 range: < minimum: 142876 maximum: 10000000000000 delta_min: 0 delta_max: 0 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp4]"
+  path: "state"
+  path: "counters"
+  path: "out-pkts"
+  timestamp: < timestamp: 1300000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 98312 range: < minimum: 98312 maximum: 10000000000000 delta_min: 0 delta_max: 0 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp4]"
+  path: "state"
+  path: "counters"
+  path: "in-errors"
+  timestamp: < timestamp: 1300000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 4 range: < minimum: 4 maximum: 10000 delta_min: 0 delta_max: 1 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp4]"
+  path: "rates"
+  path: "state"
+  path: "in-bits-rate"
+  timestamp: < timestamp: 1300000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 0 > >
+>
+values: <
+  path: "interfaces"
+  path: "interface[name=swp4]"
+  path: "rates"
+  path: "state"
+  path: "out-bits-rate"
+  timestamp: < timestamp: 1300000000 delta_min: 5000000000 delta_max: 5000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 0 > >
+>
+
+# ─── Platform: Temperature sensors ────────────────────────────────────────────
+
+# ASIC temperature (Spectrum ASIC typically runs 60-80°C under load)
+values: <
+  path: "components"
+  path: "component[name=ASIC]"
+  path: "state"
+  path: "temperature"
+  path: "instant"
+  timestamp: < timestamp: 2000000000 delta_min: 10000000000 delta_max: 10000000000 >
+  double_value: < value: 68.5 range: < minimum: 55.0 maximum: 85.0 > >
+>
+values: <
+  path: "components"
+  path: "component[name=ASIC]"
+  path: "state"
+  path: "temperature"
+  path: "avg"
+  timestamp: < timestamp: 2000000000 delta_min: 60000000000 delta_max: 60000000000 >
+  double_value: < value: 67.0 range: < minimum: 55.0 maximum: 82.0 > >
+>
+values: <
+  path: "components"
+  path: "component[name=ASIC]"
+  path: "state"
+  path: "temperature"
+  path: "alarm-status"
+  timestamp: < timestamp: 2000000000 delta_min: 60000000000 delta_max: 60000000000 >
+  bool_value: < value: false >
+>
+# CPU temperature
+values: <
+  path: "components"
+  path: "component[name=CPU]"
+  path: "state"
+  path: "temperature"
+  path: "instant"
+  timestamp: < timestamp: 2100000000 delta_min: 10000000000 delta_max: 10000000000 >
+  double_value: < value: 52.0 range: < minimum: 40.0 maximum: 70.0 > >
+>
+values: <
+  path: "components"
+  path: "component[name=CPU]"
+  path: "state"
+  path: "temperature"
+  path: "alarm-status"
+  timestamp: < timestamp: 2100000000 delta_min: 60000000000 delta_max: 60000000000 >
+  bool_value: < value: false >
+>
+
+# ─── Platform: Fans ────────────────────────────────────────────────────────────
+
+values: <
+  path: "components"
+  path: "component[name=FAN1]"
+  path: "fan"
+  path: "state"
+  path: "speed"
+  timestamp: < timestamp: 2200000000 delta_min: 10000000000 delta_max: 10000000000 >
+  uint_value: < value: 6200 range: < minimum: 4500 maximum: 9000 > >
+>
+values: <
+  path: "components"
+  path: "component[name=FAN2]"
+  path: "fan"
+  path: "state"
+  path: "speed"
+  timestamp: < timestamp: 2210000000 delta_min: 10000000000 delta_max: 10000000000 >
+  uint_value: < value: 6350 range: < minimum: 4500 maximum: 9000 > >
+>
+values: <
+  path: "components"
+  path: "component[name=FAN3]"
+  path: "fan"
+  path: "state"
+  path: "speed"
+  timestamp: < timestamp: 2220000000 delta_min: 10000000000 delta_max: 10000000000 >
+  uint_value: < value: 6100 range: < minimum: 4500 maximum: 9000 > >
+>
+
+# ─── Platform: Power Supplies ──────────────────────────────────────────────────
+
+values: <
+  path: "components"
+  path: "component[name=PSU1]"
+  path: "power-supply"
+  path: "state"
+  path: "output-power"
+  timestamp: < timestamp: 2300000000 delta_min: 10000000000 delta_max: 10000000000 >
+  double_value: < value: 95.5 range: < minimum: 60.0 maximum: 150.0 > >
+>
+values: <
+  path: "components"
+  path: "component[name=PSU1]"
+  path: "power-supply"
+  path: "state"
+  path: "output-voltage"
+  timestamp: < timestamp: 2300000000 delta_min: 10000000000 delta_max: 10000000000 >
+  double_value: < value: 12.05 range: < minimum: 11.8 maximum: 12.2 > >
+>
+values: <
+  path: "components"
+  path: "component[name=PSU1]"
+  path: "power-supply"
+  path: "state"
+  path: "output-current"
+  timestamp: < timestamp: 2300000000 delta_min: 10000000000 delta_max: 10000000000 >
+  double_value: < value: 7.93 range: < minimum: 5.0 maximum: 12.5 > >
+>
+values: <
+  path: "components"
+  path: "component[name=PSU2]"
+  path: "power-supply"
+  path: "state"
+  path: "output-power"
+  timestamp: < timestamp: 2310000000 delta_min: 10000000000 delta_max: 10000000000 >
+  double_value: < value: 0.0 range: < minimum: 0.0 maximum: 0.0 > >
+>
+values: <
+  path: "components"
+  path: "component[name=PSU2]"
+  path: "state"
+  path: "oper-status"
+  timestamp: < timestamp: 2310000000 delta_min: 60000000000 delta_max: 60000000000 >
+  string_value: < value: "INACTIVE" >
+>
+
+# ─── QoS: swp1 ingress priority-group buffers ─────────────────────────────────
+
+values: <
+  path: "qos"
+  path: "interfaces"
+  path: "interface[interface-id=swp1]"
+  path: "input"
+  path: "priority-group[pg-id=0]"
+  path: "state"
+  path: "shared-buffer"
+  path: "data"
+  path: "instant-occupancy"
+  timestamp: < timestamp: 3000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 50000 > >
+>
+values: <
+  path: "qos"
+  path: "interfaces"
+  path: "interface[interface-id=swp1]"
+  path: "input"
+  path: "priority-group[pg-id=0]"
+  path: "state"
+  path: "shared-buffer"
+  path: "data"
+  path: "max-occupancy"
+  timestamp: < timestamp: 3000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 1200 range: < minimum: 0 maximum: 50000 > >
+>
+values: <
+  path: "qos"
+  path: "interfaces"
+  path: "interface[interface-id=swp1]"
+  path: "input"
+  path: "priority-group[pg-id=0]"
+  path: "state"
+  path: "counters"
+  path: "in-pkts"
+  timestamp: < timestamp: 3000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 10000000000000 delta_min: 4800 delta_max: 48000 > >
+>
+
+# ─── QoS: swp3 egress queue buffers (100G uplink) ─────────────────────────────
+
+values: <
+  path: "qos"
+  path: "interfaces"
+  path: "interface[interface-id=swp3]"
+  path: "output"
+  path: "queues"
+  path: "queue[name=0]"
+  path: "state"
+  path: "shared-buffer"
+  path: "data"
+  path: "instant-occupancy"
+  timestamp: < timestamp: 3100000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 200000 > >
+>
+values: <
+  path: "qos"
+  path: "interfaces"
+  path: "interface[interface-id=swp3]"
+  path: "output"
+  path: "queues"
+  path: "queue[name=0]"
+  path: "state"
+  path: "shared-buffer"
+  path: "data"
+  path: "max-occupancy"
+  timestamp: < timestamp: 3100000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 8000 range: < minimum: 0 maximum: 200000 > >
+>
+values: <
+  path: "qos"
+  path: "interfaces"
+  path: "interface[interface-id=swp3]"
+  path: "output"
+  path: "queues"
+  path: "queue[name=0]"
+  path: "state"
+  path: "transmit-octets"
+  timestamp: < timestamp: 3100000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000000000 delta_min: 4000000 delta_max: 50000000 > >
+>
+
+# ─── System: Adaptive routing ─────────────────────────────────────────────────
+
+values: <
+  path: "system"
+  path: "adaptive-routing"
+  path: "state"
+  path: "counters"
+  path: "congestion-changes"
+  timestamp: < timestamp: 4000000000 delta_min: 1000000000 delta_max: 1000000000 >
+  uint_value: < value: 0 range: < minimum: 0 maximum: 100000000 delta_min: 0 delta_max: 50 > >
+>
