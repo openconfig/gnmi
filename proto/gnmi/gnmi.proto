@@ -38,7 +38,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.10.0";
+option (gnmi_service) = "0.11.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
@@ -132,6 +132,10 @@ message TypedValue {
     // github.com/openconfig/reference/blob/master/rpc/gnmi/protobuf-vals.md
     // for a complete specification. [Experimental]
     bytes proto_bytes = 13;
+    // Set to true for YANG modeled nodes containing presence statement.
+    bool presence_val = 15;
+    // Set to true for YANG modeled nodes of type empty.
+    bool empty_val = 16;
   }
 }
 
