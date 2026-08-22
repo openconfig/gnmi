@@ -38,7 +38,7 @@ extend google.protobuf.FileOptions {
 
 // gNMI_service is the current version of the gNMI service, returned through
 // the Capabilities RPC.
-option (gnmi_service) = "0.10.0";
+option (gnmi_service) = "0.11.0";
 
 option go_package = "github.com/openconfig/gnmi/proto/gnmi";
 option java_multiple_files = true;
@@ -277,7 +277,7 @@ message SubscriptionList {
   bool allow_aggregation = 6;
   // The set of schemas that define the elements of the data tree that should
   // be sent by the target.
-  repeated ModelData use_models = 7;
+  repeated ModelData use_models = 7 [deprecated = true];
   // The encoding that the target should use within the Notifications generated
   // corresponding to the SubscriptionList.
   Encoding encoding = 8;
@@ -398,9 +398,7 @@ message UpdateResult {
 
 // GetRequest is sent when a client initiates a Get RPC. It is used to specify
 // the set of data elements for which the target should return a snapshot of
-// data. The use_models field specifies the set of schema modules that are to
-// be used by the target - where use_models is not specified then the target
-// must use all schema models that it has.
+// data.
 // Reference: gNMI Specification Section 3.3.1
 message GetRequest {
   Path prefix = 1;         // Prefix used for paths.
@@ -417,7 +415,7 @@ message GetRequest {
   }
   DataType type = 3;                  // The type of data being requested.
   Encoding encoding = 5;              // Encoding to be used.
-  repeated ModelData use_models = 6;  // The schema models to be used.
+  repeated ModelData use_models = 6 [deprecated = true];  // The schema models to be used.
   // Extension messages associated with the GetRequest. See the
   // gNMI extension specification for further definition.
   repeated gnmi_ext.Extension extension = 7;
